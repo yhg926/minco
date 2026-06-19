@@ -11,7 +11,9 @@ context-distance output for large screens.
 Raw assembled-genome CtxMoE ANI (`ani --raw-output -s3`) uses a minco-trained
 MoE calibration against Nayfach ANIm labels for the default 10,000-context
 sketch. Default assembled-genome ANI (`ani -s1`, Best) applies a matching HGB
-recalibration layer on top of that raw MoE score.
+recalibration layer on top of that raw MoE score. `Best` does not silently
+switch to containment/Mash-style metrics under low aligned fraction; use
+`-s5`/`-s6` explicitly when you want MashD or AafD.
 
 ## Build
 
