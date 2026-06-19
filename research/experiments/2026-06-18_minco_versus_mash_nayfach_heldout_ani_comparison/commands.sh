@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Working directory:
-# /home/ubuntu/yihuiguang/tools/KSSD3mini
+# /home/ubuntu/yihuiguang/tools/minco
 
 command -v mash
 mash --version

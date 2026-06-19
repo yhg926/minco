@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/ubuntu/yihuiguang/tools/KSSD3mini
+cd /home/ubuntu/yihuiguang/tools/minco
 
 OUT=/tmp/minco_validation_20260618
 mkdir -p "$OUT/genomes1000" "$OUT/fastq250m"

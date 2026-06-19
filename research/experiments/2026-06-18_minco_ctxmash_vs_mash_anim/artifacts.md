@@ -3,7 +3,7 @@
 Experiment directory:
 
 ```text
-/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim
+/home/ubuntu/yihuiguang/tools/minco/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim
 ```
 
 Inputs:

@@ -2,7 +2,7 @@
 
 | Kind | Path | Description | Preserve? |
 | --- | --- | --- | --- |
-| source | `/home/ubuntu/yihuiguang/tools/KSSD3mini` | minco pure C repo under test. | yes |
+| source | `/home/ubuntu/yihuiguang/tools/minco` | minco pure C repo under test. | yes |
 | test | `tests/smoke.sh` | Fast public-command smoke test. | yes |
 | test | `tests/full_cli.sh` | Expanded CLI/function coverage test. | yes |
 | input | `/mnt/new3T/gtdbr220/GTDBr226_kssd3a_Tf8_anno_20260604/GTDBr226_genomes.fna_gz.list` | Source genome list; first 1000 used. | yes |

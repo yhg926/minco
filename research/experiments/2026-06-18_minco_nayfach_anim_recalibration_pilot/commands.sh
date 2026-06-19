@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Working directory for all commands:
-# /home/ubuntu/yihuiguang/tools/KSSD3mini
+# /home/ubuntu/yihuiguang/tools/minco
 
 python3 -m py_compile \
   research/experiments/2026-06-18_minco_nayfach_anim_recalibration_pilot/scripts/minco_nayfach_calibration_pilot.py

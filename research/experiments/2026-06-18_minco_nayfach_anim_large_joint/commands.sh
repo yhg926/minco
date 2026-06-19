@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=/home/ubuntu/yihuiguang/tools/KSSD3mini
+ROOT=/home/ubuntu/yihuiguang/tools/minco
 EXP=$ROOT/research/experiments/2026-06-18_minco_nayfach_anim_large_joint
 RUN=$EXP/large_10k_perbin20000
 

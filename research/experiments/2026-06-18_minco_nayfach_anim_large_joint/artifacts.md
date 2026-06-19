@@ -3,7 +3,7 @@
 Experiment root:
 
 ```text
-/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-18_minco_nayfach_anim_large_joint
+/home/ubuntu/yihuiguang/tools/minco/research/experiments/2026-06-18_minco_nayfach_anim_large_joint
 ```
 
 Input data:

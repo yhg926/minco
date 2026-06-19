@@ -2,9 +2,9 @@
 
 Date: 2026-06-18
 Author/agent: Codex
-Project: Minco/KSSD3mini
+Project: minco
 Code commit: no git repository present in working directory
-KSSD3A binary/tool version: minco 0.1; Mash 2.3
+minco binary/tool version: minco 0.1; Mash 2.3
 
 ## Question
 
@@ -20,7 +20,7 @@ For equal-size Minco sketches, Minco `MashD` and Minco `AafD` should be identica
 - Ground truth: existing bidirectional ANIm mean in the source table.
 - Sample count: 120 selected pairs from 32 unique Vibrio genomes.
 - Selection criteria: deterministic ANIm-spread sample, sorted by `anim_identity_mean` and taking 120 evenly spaced pairs.
-- Storage location: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim`
+- Storage location: `/home/ubuntu/yihuiguang/tools/minco/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim`
 
 ## Methods
 

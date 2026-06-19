@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=/home/ubuntu/yihuiguang/tools/KSSD3mini
+ROOT=/home/ubuntu/yihuiguang/tools/minco
 OUT=$ROOT/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim
 SRC=/mnt/new3T/gtdbr220/eval_runs/gtdb_random_genus_vibrio_20260609/vibrio_pair_predictions_with_anim.tsv
 
@@ -13,7 +13,7 @@ mkdir -p "$OUT"
 python3 - <<'PY'
 import csv, pathlib
 src=pathlib.Path('/mnt/new3T/gtdbr220/eval_runs/gtdb_random_genus_vibrio_20260609/vibrio_pair_predictions_with_anim.tsv')
-out=pathlib.Path('/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim')
+out=pathlib.Path('/home/ubuntu/yihuiguang/tools/minco/research/experiments/2026-06-18_minco_ctxmash_vs_mash_anim')
 rows=[]
 with src.open() as f:
     r=csv.DictReader(f, delimiter='\t')
