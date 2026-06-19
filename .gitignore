@@ -1,0 +1,45 @@
+# Build outputs
+/bin/
+/minco_core/obj*/
+*.o
+*.d
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Local/tooling state
+/.agents/
+/.codex/
+/.minco_git/
+.DS_Store
+__pycache__/
+*.pyc
+
+# Generated minco/Mash sketches and run products
+*.kmini
+*.msh
+*.dist
+*.matrix
+*.tmp
+*.log
+*.time
+*.time.txt
+*.time.log
+
+# Research experiment data products. Keep notes and scripts in Git.
+/research/experiments/**/*.tsv
+/research/experiments/**/*.msh
+/research/experiments/**/*.kmini
+/research/experiments/**/*.log
+/research/experiments/**/*.time
+/research/experiments/**/*.time.txt
+/research/experiments/**/*.time.log
+/research/experiments/**/time_*.txt
+/research/experiments/**/*.hfrag
+/research/experiments/**/tmp/
+/research/experiments/**/tmp_*/
+/research/experiments/**/genomes.minco/
+/research/experiments/**/model_refaf_hgb*.h
+/research/experiments/**/model_ani.before*.h
