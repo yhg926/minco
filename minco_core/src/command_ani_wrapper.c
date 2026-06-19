@@ -157,6 +157,8 @@ static char doc_ani[] =
 	"  --raw-output skips calibrated/best ANI fields when unavailable.\n"
 	"  CtxMoE is a minco-trained Nayfach ANIm MoE calibration for assembled\n"
 	"  genomes. Best/Recalibrated apply a matching HGB layer on top of it.\n"
+	"  Best may use a density-aware exact-context AAF fallback and report\n"
+	"  guarded_low_confidence in a narrow low-AF complete-assembly case.\n"
 	"  Use --raw-output -s3 to inspect raw CtxMoE.\n"
 	"\n"
 	"Use '-' as one raw input to read FASTA/FASTQ from stdin. Use --pipecmd\n"

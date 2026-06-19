@@ -408,8 +408,7 @@ static uint32_t ani_density_af_needed_ctx(const ani_opt_t *ani_opt,
 
 static inline bool ani_best_guard_enabled(const ani_opt_t *ani_opt)
 {
-	(void)ani_opt;
-	return false;
+	return ani_opt && ani_opt->fmt == 0 && !ani_opt->unassembled && !ani_opt->v;
 }
 
 static void load_infile_meta_for_best_guard(unify_sketch_t *sketch, const char *sketch_dir,
@@ -1088,7 +1087,7 @@ typedef kvec_t(ani_row_t) kv_ani_row_t;
 /* --- tiny helpers --- */
 static inline const char *ani_best_confidence_label(const ani_row_t *r)
 {
-	return ani_confidence_label(r->confidence);
+	return r->best_guarded ? "guarded_low_confidence" : ani_confidence_label(r->confidence);
 }
 
 static inline void fill_row_calibration(ani_row_t *r, bool unassembled,
@@ -1111,8 +1110,36 @@ static inline void fill_row_calibration(ani_row_t *r, bool unassembled,
     r->best_ani = r->calibrated_ani;
     r->best_guarded = 0;
 
-    (void)enable_best_guard;
-    (void)qry_asm;
+    const bool query_assembly = has_assembly_meta_record(qry_asm);
+    const double guard_af_qry = ani_row_report_af_qry(r);
+    const double guard_af_ref = ani_row_report_af_ref(r);
+    const double min_af = guard_af_qry < guard_af_ref ? guard_af_qry : guard_af_ref;
+    if (!enable_best_guard ||
+        !r->real_af_available ||
+        !query_assembly ||
+        !infile_meta_complete_like_assembly(qry_asm) ||
+        r->ani < 0.958 ||
+        r->calibrated_ani < 0.962 ||
+        min_af < 0.25 || min_af >= 0.50 ||
+        r->XnY_ctx <= 0 || guard_af_qry <= 0.0 || guard_af_ref <= 0.0)
+        return;
+
+    const double qry_ctx = (double)r->XnY_ctx / guard_af_qry;
+    const double ref_ctx = (double)r->XnY_ctx / guard_af_ref;
+    double exact = (double)r->XnY_ctx - (double)r->N_diff_obj;
+    if (exact < 0.0)
+        exact = 0.0;
+    const double ctx_exact_mean =
+        (mash_ani_from_counts((double)r->XnY_ctx, qry_ctx, ref_ctx) +
+         aaf_ani_from_counts((double)r->XnY_ctx, qry_ctx, ref_ctx) +
+         mash_ani_from_counts(exact, qry_ctx, ref_ctx) +
+         aaf_ani_from_counts(exact, qry_ctx, ref_ctx)) / 4.0;
+    if (r->ani - ctx_exact_mean < 0.015)
+        return;
+
+    r->best_ani = aaf_ani_from_counts(exact, qry_ctx, ref_ctx);
+    r->best_guarded = 1;
+
     (void)ref_asm;
 }
 

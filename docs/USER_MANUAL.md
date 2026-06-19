@@ -266,8 +266,10 @@ In `-m1` and `-m2` formats, positive `-s` values print distance and negative
 For normal assembled-genome ANI, `CtxMoE` uses a minco-trained MoE calibration
 against Nayfach ANIm labels for the default 10,000-context sketch. `Best` and
 `Recalibrated` apply a matching HGB calibration layer on top of that raw MoE
-score. `Best` does not silently switch to containment/Mash-style metrics under
-low aligned fraction; use `-s5` or `-s6` explicitly when you want MashD or AafD.
+score. In a narrow low-AF complete-assembly case, `Best` can mark
+`guarded_low_confidence` and use a density-aware exact-context AAF fallback
+instead of the HGB value. Use `-s5` or `-s6` explicitly when you want raw MashD
+or AafD.
 Use `--raw-output -s3` to inspect the raw CtxMoE value.
 
 ## Context-Distance Matrix Reports
