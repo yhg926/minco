@@ -3,14 +3,14 @@
 Date: 2026-06-19
 Author/agent: Codex
 Project: minco
-Code commit: 763a226
+Code commit at tool rerun: 9a28fcc
 minco binary/tool version: minco 0.1
 
 ## Question
 
-For a same-species pair, how do minco default ANI, minco context-Mash ANI,
-skani, and Mash behave when one genome is replaced by its first or second
-half?
+For a same-species pair, how do minco default ANI, minco naive ANI, minco
+context-Mash ANI, skani, and Mash behave when one genome is replaced by its
+first or second half?
 
 ## Hypothesis
 
@@ -35,6 +35,7 @@ Key parameters:
 ```text
 ANIm truth: dnadiff 1-to-1 AvgIdentity
 minco default: minco ani -S 10000 -p2 -f0 -n0 -t0 -s1
+minco naive: minco ani -S 10000 -p2 -f0 -n0 -t0 -s4
 minco context-Mash: minco ani -S 10000 -p2 -f0 -n0 -t0 -s-5
 skani: skani dist -t2
 Mash: mash sketch -s 10000 -k 21, then mash dist; Mash ANI = 1 - distance
@@ -48,19 +49,19 @@ Commands are recorded in `commands.sh`.
 Key metrics are recorded in `summary.tsv`.
 
 ```text
-comparison      ANIm/dnadiff  minco_best  minco_ctxmash  skani    Mash
-full_vs_full    0.9890        0.988175    0.986221       0.9894   0.986859
-full_vs_half1   0.9890        0.986711    0.957802       0.9892   0.968856
-full_vs_half2   0.9887        0.985193    0.954844       0.9886   0.966481
+comparison      ANIm/dnadiff  minco_best  minco_naive  minco_ctxmash  skani    Mash
+full_vs_full    0.9890        0.988175    0.987841     0.986221       0.9894   0.986859
+full_vs_half1   0.9890        0.986711    0.988288     0.957802       0.9892   0.968856
+full_vs_half2   0.9887        0.985193    0.987011     0.954844       0.9886   0.966481
 ```
 
 Errors versus dnadiff ANIm:
 
 ```text
-comparison      minco_best  minco_ctxmash  skani     Mash
-full_vs_full    -0.000825   -0.002779      +0.000400 -0.002141
-full_vs_half1   -0.002289   -0.031198      +0.000200 -0.020145
-full_vs_half2   -0.003507   -0.033856      -0.000100 -0.022219
+comparison      minco_best  minco_naive  minco_ctxmash  skani     Mash
+full_vs_full    -0.000825   -0.001159    -0.002779      +0.000400 -0.002141
+full_vs_half1   -0.002289   -0.000712    -0.031198      +0.000200 -0.020145
+full_vs_half2   -0.003507   -0.001689    -0.033856      -0.000100 -0.022219
 ```
 
 Aligned-fraction behavior:
@@ -90,16 +91,18 @@ See `artifacts.md` for paths to generated files and external inputs.
 ## Conclusion
 
 On this one high-ANI same-species pair, truncating one genome to half length
-barely changes dnadiff regional ANIm and skani ANI, while minco default drops
-modestly by about 0.2-0.35 ANI percentage points. minco context-Mash and Mash
-drop much more strongly under truncation because the shared-sketch fraction is
-affected by missing genome content.
+barely changes dnadiff regional ANIm and skani ANI. minco naive was the closest
+minco benchmark in this specific truncation test; minco default drops modestly
+by about 0.2-0.35 ANI percentage points. minco context-Mash and Mash drop much
+more strongly under truncation because the shared-sketch fraction is affected
+by missing genome content.
 
 ## Paper-Relevant Claim
 
-Tentative only: minco default ANI is more robust than context-Mash-style ANI to
-large one-sided genome truncation, but the current default still has some
-coverage-related downward bias compared with skani on this pair.
+Tentative only: minco naive and minco default ANI are more robust than
+context-Mash-style ANI to large one-sided genome truncation. On this pair,
+minco naive best matches dnadiff among minco metrics, while minco default still
+has some coverage-related downward bias compared with skani.
 
 ## Caveats
 

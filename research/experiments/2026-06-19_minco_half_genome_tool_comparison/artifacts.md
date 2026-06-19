@@ -7,7 +7,7 @@
 | summary | `research/experiments/2026-06-19_minco_half_genome_tool_comparison/summary.tsv` | Final comparison table. |
 | timings | `research/experiments/2026-06-19_minco_half_genome_tool_comparison/tool_times.tsv` | Per-tool wall-clock timings from Python. |
 | split metadata | `research/experiments/2026-06-19_minco_half_genome_tool_comparison/split_metadata.tsv` | Query-genome split sizes. |
-| raw outputs | `/tmp/minco_half_genome_tool_comparison/raw_outputs/` | Tool stdout/stderr and per-tool TSV outputs. |
+| raw outputs | `/tmp/minco_half_genome_tool_comparison/raw_outputs/` | Tool stdout/stderr and per-tool TSV outputs, including `*.minco_naive.tsv`. |
 | half FASTA | `/tmp/minco_half_genome_tool_comparison/tmp/3300014912_1.first_half.fna` | First concatenated half of query genome. |
 | half FASTA | `/tmp/minco_half_genome_tool_comparison/tmp/3300014912_1.second_half.fna` | Second concatenated half of query genome. |
 

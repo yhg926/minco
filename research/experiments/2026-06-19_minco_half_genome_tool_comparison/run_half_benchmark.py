@@ -264,6 +264,29 @@ def main() -> int:
         tool_times.append({"comparison": label, "tool": "minco_ctxmash", "seconds": elapsed})
         minco_ctxmash = parse_minco(minco_ctxmash_out)
 
+        minco_naive_out = raw / f"{label}.minco_naive.tsv"
+        elapsed, _, _ = run(
+            [
+                str(root / "bin/minco"),
+                "ani",
+                "-S",
+                "10000",
+                "-p2",
+                "-f0",
+                "-n0",
+                "-t0",
+                "-s4",
+                "-o",
+                str(minco_naive_out),
+                str(REF_FASTA),
+                str(query),
+            ],
+            cwd=root,
+            stderr_path=raw / f"{label}.minco_naive.stderr",
+        )
+        tool_times.append({"comparison": label, "tool": "minco_naive", "seconds": elapsed})
+        minco_naive = parse_minco(minco_naive_out)
+
         elapsed, skani_stdout, skani_stderr = run(
             ["skani", "dist", "-t2", str(REF_FASTA), str(query)],
             cwd=raw,
@@ -322,6 +345,8 @@ def main() -> int:
                 "minco_best_error_vs_dnadiff": float(minco_best["ani"]) - truth,
                 "minco_ctxmash_ani": minco_ctxmash["ani"],
                 "minco_ctxmash_error_vs_dnadiff": float(minco_ctxmash["ani"]) - truth,
+                "minco_naive_ani": minco_naive["ani"],
+                "minco_naive_error_vs_dnadiff": float(minco_naive["ani"]) - truth,
                 "skani_ani": skani["ani"],
                 "skani_error_vs_dnadiff": float(skani["ani"]) - truth,
                 "mash_ani": mash["ani"],
@@ -330,6 +355,9 @@ def main() -> int:
                 "minco_best_qry_af": minco_best["qry_af"],
                 "minco_best_ref_af": minco_best["ref_af"],
                 "minco_ctxmash_xny": minco_ctxmash["xny"],
+                "minco_naive_xny": minco_naive["xny"],
+                "minco_naive_qry_af": minco_naive["qry_af"],
+                "minco_naive_ref_af": minco_naive["ref_af"],
                 "skani_ref_af": skani["ref_af"],
                 "skani_qry_af": skani["qry_af"],
                 "mash_distance": mash["distance"],
