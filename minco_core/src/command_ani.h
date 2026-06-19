@@ -15,6 +15,21 @@
 #include "dna_popcount.h"
 #include "minco_hash.h"
 
+typedef enum ani_query_density_model
+{
+	ANI_QUERY_DENSITY_FIXED = 0,
+	ANI_QUERY_DENSITY_REF = 1
+} ani_query_density_model_t;
+
+typedef enum ani_abundance_model
+{
+	ANI_ABUNDANCE_NONE = 0,
+	ANI_ABUNDANCE_DEPTH = 1
+} ani_abundance_model_t;
+
+#define MINCO_DEFAULT_DENSITY_BLOCK_CTX 100u
+#define MINCO_DEFAULT_DENSITY_BLOCK_CTX_STR "100"
+
 typedef struct ani_opt
 {
 	int fmt;   // print out format: 0:detail; 1, aafD; 2. 1-ani
@@ -25,19 +40,22 @@ typedef struct ani_opt
 	bool pair; // pairwise compute
 	bool unassembled; // query sketch is unassembled;
 	bool unified_metric; // honor -s in unassembled mode instead of forcing naive
+	bool readwise_query; // direct FASTQ query is streamed readwise with coverage AF
 	bool ignoreconflict; // ignore reference contexts with conflicting objects
 	bool raw_output; // skip calibrated/best ANI; print NULLs in unified detail fields
 	int e;
 	int s; // select metrics;
 	int ntop; // report at most top N references for each query
 	int ctxcut;
+	bool ctxcut_set;
 	float afcut;
 	bool afcut_set;
 	float anicut;
+	bool anicut_set;
 	int sketch_hclen;
 	int sketch_holen;
 	int sketch_iolen;
-	int sketch_drfold;
+	int sketch_filter_shift;
 	uint32_t sketch_size;
 	int sketch_kmerocrs;
 	int sketch_ncap;
@@ -49,12 +67,16 @@ typedef struct ani_opt
 	bool sketch_anno;
 	bool sketch_split_mfa;
 	bool sketch_coden_ctxobj_pattern;
+	uint32_t density_block_ctx;
+	ani_query_density_model_t query_density_model;
+	ani_abundance_model_t abundance_model;
 	char index[PATHLEN];
 	char qrydir[PATHLEN];
 	char refdir[PATHLEN];
 	char qrylist[PATHLEN];
 	char reflist[PATHLEN];
 	char sketch_pipecmd[PATHLEN];
+	char save_query_sketch[PATHLEN];
 	char outf[PATHLEN];
 	char gl[PATHLEN]; // genome list with selection code
 	char model[PATHLEN];
@@ -138,6 +160,8 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt);
 int sparse_mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt);
 int stream_ref_sketches_one_qraw_lookup(ani_opt_t *ani_opt);
 int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt);
+int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *query_path,
+											uint64_t density_threshold);
 int compare_u32(const void *a, const void *b);
 void sort_arrays(uint64_t *a, uint32_t *b, uint32_t n);
 ctxgidobj_t *comb_sortedsketch64_2sortedcomb_ctxgid64obj32(unify_sketch_t *result);

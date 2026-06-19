@@ -23,6 +23,7 @@ typedef struct set_opt
   int p;
   int P;
 	int show;
+  uint32_t sketch_size;
   int num_remaining_args;
   char ** remaining_args;
   char insketchpath[PATHLEN];

@@ -265,13 +265,17 @@ void pairwise_check_compatible(const unify_sketch_t *ref, const unify_sketch_t *
 			 __func__, ref->hash_id, qry->hash_id);
 }
 
-void pairwise_prepare_lco_model(const unify_sketch_t *sketch)
+void pairwise_prepare_minco_model(const unify_sketch_t *sketch)
 {
 	if (!sketch || sketch->stat_type != 2)
 		return;
-	dim_sketch_stat_t stat = sketch->stats.lco_stat_val;
+	minco_sketch_stat_t stat = sketch->stats.minco_stat;
 	const_comask_init(&stat);
-	ani_model_drfold = stat.drfold;
+	if (sketch->minco_info.target_sketch_size)
+		ani_model_target_sketch_size = sketch->minco_info.target_sketch_size;
+	else
+		ani_model_target_sketch_size = ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	ani_model_compat_filter_shift = stat.compat_filter_shift;
 }
 
 uint32_t pairwise_count_ctx_runs_sorted_ctxobj64(const uint64_t *a, size_t n)
@@ -290,7 +294,7 @@ uint32_t pairwise_count_ctx_runs_sorted_ctxobj64(const uint64_t *a, size_t n)
 }
 
 pairwise_eval_t pairwise_eval_arrays(pairwise_metric_t metric,
-									 const dim_sketch_stat_t *stat,
+									 const minco_sketch_stat_t *stat,
 									 const uint64_t *qry, size_t qry_n,
 									 const uint64_t *ref, size_t ref_n,
 									 uint32_t qry_ctx_count,
@@ -365,8 +369,8 @@ pairwise_eval_t pairwise_eval_samples(pairwise_metric_t metric,
 								   ref->sketch_index[rn]);
 
 	if (qry->stat_type == 1) {
-		if (pairwise_metric_is_context(metric))
-			errx(EINVAL, "%s(): context-object metrics require lco sketches",
+			if (pairwise_metric_is_context(metric))
+				errx(EINVAL, "%s(): context-object metrics require minco sketches",
 				 __func__);
 		pairwise_eval_t eval = {
 			.distance = 1.0,
@@ -390,14 +394,14 @@ pairwise_eval_t pairwise_eval_samples(pairwise_metric_t metric,
 		return eval;
 	}
 
-	pairwise_prepare_lco_model(ref);
+	pairwise_prepare_minco_model(ref);
 	const uint32_t qry_ctx_count = qry->conflict
 									  ? pairwise_count_ctx_runs_sorted_ctxobj64(qry_arr, qry_len)
 									  : (uint32_t)qry_len;
 	const uint32_t ref_ctx_count = ref->conflict
 									  ? pairwise_count_ctx_runs_sorted_ctxobj64(ref_arr, ref_len)
 									  : (uint32_t)ref_len;
-	return pairwise_eval_arrays(metric, &ref->stats.lco_stat_val,
+	return pairwise_eval_arrays(metric, &ref->stats.minco_stat,
 								qry_arr, qry_len, ref_arr, ref_len,
 								qry_ctx_count, ref_ctx_count,
 								ignore_ref_conflicts && ref->conflict);
@@ -435,7 +439,7 @@ static pairwise_eval_t pairwise_eval_expr_merge(const pairwise_metric_expr_t *ex
 }
 
 pairwise_eval_t pairwise_eval_expr_arrays(const pairwise_metric_expr_t *expr,
-										  const dim_sketch_stat_t *stat,
+										  const minco_sketch_stat_t *stat,
 										  const uint64_t *qry, size_t qry_n,
 										  const uint64_t *ref, size_t ref_n,
 										  uint32_t qry_ctx_count,
@@ -481,8 +485,8 @@ pairwise_eval_t pairwise_eval_expr_samples(const pairwise_metric_expr_t *expr,
 								   ref->sketch_index[rn]);
 
 	if (qry->stat_type == 1) {
-		if (pairwise_metric_expr_uses_context(expr))
-			errx(EINVAL, "%s(): context-object metrics require lco sketches",
+			if (pairwise_metric_expr_uses_context(expr))
+				errx(EINVAL, "%s(): context-object metrics require minco sketches",
 				 __func__);
 		pairwise_eval_t evals[PAIRWISE_METRIC_EXPR_MAX];
 		for (size_t i = 0; i < expr->count; ++i)
@@ -491,14 +495,14 @@ pairwise_eval_t pairwise_eval_expr_samples(const pairwise_metric_expr_t *expr,
 		return pairwise_eval_expr_merge(expr, evals, expr->count);
 	}
 
-	pairwise_prepare_lco_model(ref);
+	pairwise_prepare_minco_model(ref);
 	const uint32_t qry_ctx_count = qry->conflict
 									  ? pairwise_count_ctx_runs_sorted_ctxobj64(qry_arr, qry_len)
 									  : (uint32_t)qry_len;
 	const uint32_t ref_ctx_count = ref->conflict
 									  ? pairwise_count_ctx_runs_sorted_ctxobj64(ref_arr, ref_len)
 									  : (uint32_t)ref_len;
-	return pairwise_eval_expr_arrays(expr, &ref->stats.lco_stat_val,
+	return pairwise_eval_expr_arrays(expr, &ref->stats.minco_stat,
 									 qry_arr, qry_len, ref_arr, ref_len,
 									 qry_ctx_count, ref_ctx_count,
 									 ignore_ref_conflicts && ref->conflict);
@@ -1146,7 +1150,7 @@ void pairwise_indexed_self_scan(const unify_sketch_t *sketch,
 	if (!sketch || !sorted_index_path || !opt)
 		errx(EINVAL, "%s(): invalid indexed scan arguments", __func__);
 	if (sketch->stat_type != 2)
-		errx(EINVAL, "%s(): indexed scan requires lco sketches", __func__);
+		errx(EINVAL, "%s(): indexed scan requires minco sketches", __func__);
 	if (sketch->conflict)
 		errx(EINVAL, "%s(): indexed scan does not support conflict sketches yet", __func__);
 
@@ -1171,7 +1175,7 @@ void pairwise_indexed_self_scan(const unify_sketch_t *sketch,
 			sorted_index_path, index_size,
 			(size_t)total_entries * sizeof(sorted_index[0]));
 
-	pairwise_prepare_lco_model(sketch);
+	pairwise_prepare_minco_model(sketch);
 	const uint64_t gidmask = (1ULL << GID_NBITS) - 1ULL;
 	const uint8_t nobjbits = Bitslen.obj;
 	const int fence_k = minco_choose_k_fenceposts((size_t)total_entries, 0);

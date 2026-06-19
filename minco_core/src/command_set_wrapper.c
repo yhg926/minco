@@ -15,9 +15,11 @@ static struct argp_option opt_set[] =
 	{"subtract",'s',"<pan>", 0,"Subtract the pan-sketch from each input sketch.",2 },
 	{"intsect",'i',"<pan>", 0, "Intersect each input sketch with the pan-sketch.",2},
 	{"uniq_union",'q',0,  0, "Compute the unique union set of sketches.",3 },
+	{"downsample",444,0,  0, "Create a smaller bottom-k minco sketch from an existing larger minco sketch.",4 },
     {"markerdb",333,0,  0, "Generate marker database instead of unique union set. Requires -q.",4 },
 //	{"combin_pan",'c',0,  0, "combine pan files to combco file.",4 },
 	{"threads",'p',"<INT>",  0, "Number of threads.",5 },
+	{"sketch-size",'S',"<INT>",  0, "Target sketch size for --downsample. [1000]",5 },
 	{"print",'P',0,  0, "Print genome names.",5 },
 	{"psketch",777,0,  0, "Print sketch content.",5 },
 	{"pindex",888,0,  0, "Print context/genome/object index content.",5 },
@@ -36,16 +38,18 @@ static char doc_set[] =
   "Examples:\n"
   "  minco set --union -o union_sketch input_sketches\n"
   "  minco set --uniq_union --markerdb -o markerdb input_sketches\n"
-  "  minco set --subtract pan_sketch -o subtracted input_sketches"
+  "  minco set --subtract pan_sketch -o subtracted input_sketches\n"
+  "  minco set --downsample -S 1000 -o sketch.S1000.minco sketch.S10000.minco\n"
   ;
 
 
 set_opt_t set_opt = {
 .operation = -1,//0:subtract,1:intersect,2 union, 3 uniq_union, 4 combin_pan
-.q2markerdb = 0, // when -q set, generate markerdb instead of uniq union set, only for lco sketch 
+.q2markerdb = 0, // when -q set, generate markerdb instead of uniq union set for minco sketches
 .p = 1,
 .P = 0,
 .show = 0,
+.sketch_size = 1000,
 .num_remaining_args = 0,
 .remaining_args = NULL,			
 .insketchpath[0] = '\0',
@@ -132,6 +136,11 @@ static error_t parse_set(int key, char* arg, struct argp_state* state) {
 			set_opt.p = parse_int_range(state, "-p/--threads", arg, 1, 65536);
 			break;
 		}
+		case 'S':
+		{
+			set_opt.sketch_size = (uint32_t)parse_int_range(state, "-S/--sketch-size", arg, 1, INT32_MAX);
+			break;
+		}
 		case 'P':
 		{
 			set_opt.P = 1;	
@@ -145,6 +154,12 @@ static error_t parse_set(int key, char* arg, struct argp_state* state) {
 		case 333:
 		{
 			set_opt.q2markerdb = 1; 
+			break;
+		}
+		case 444:
+		{
+			if (set_opt.operation != -1) printf("set operation is already set, --downsample is ignored.\n");
+			else set_opt.operation = 5;
 			break;
 		}
 		case 777:
@@ -218,27 +233,35 @@ int cmd_set(struct argp_state* state)
 			if(file_exists_in_folder(set_opt.insketchpath,co_dstat) )
 				return sketch_union(&set_opt); 
 			else if(file_exists_in_folder(set_opt.insketchpath,sketch_stat))
-				return lsketch_union(&set_opt);			
+				return minco_sketch_union(&set_opt);
 		}
 		else if(set_opt.operation == 3){
 	  	if(file_exists_in_folder(set_opt.insketchpath,co_dstat))
 				return uniq_sketch_union(&set_opt) ;
       else if(file_exists_in_folder(set_opt.insketchpath,sketch_stat))
-        return lsketch_union(&set_opt);
+        return minco_sketch_union(&set_opt);
 		}
 		else if(set_opt.operation == 4){
 			return combin_pans(&set_opt);
+		}
+		else if(set_opt.operation == 5){
+			if (set_opt.num_remaining_args != 1)
+				errx(EXIT_FAILURE, "--downsample expects exactly one input minco sketch");
+			if(file_exists_in_folder(set_opt.insketchpath,sketch_stat))
+				return minco_sketch_downsample(&set_opt);
+			else
+				errx(EXIT_FAILURE, "%s is not a valid minco sketch", set_opt.insketchpath);
 		}
 		else if(set_opt.operation == 0 || set_opt.operation == 1 ){
 			if(file_exists_in_folder(set_opt.pansketchpath,co_dstat))
 				return sketch_operate(&set_opt) ;
 			else if (file_exists_in_folder(set_opt.pansketchpath,sketch_stat))
-				 return lsketch_operate(&set_opt) ;
+				 return minco_sketch_operate(&set_opt) ;
 		}
 		else {
 			if(set_opt.P) {
 				if(file_exists_in_folder(set_opt.insketchpath,co_dstat)) print_gnames(&set_opt);
-				else if(file_exists_in_folder(set_opt.insketchpath,sketch_stat)) print_lco_gnames(&set_opt);
+				else if(file_exists_in_folder(set_opt.insketchpath,sketch_stat)) print_minco_sample_names(&set_opt);
 				else printf("%s is not a valid sketch\n",set_opt.insketchpath );
 
 			}
@@ -249,10 +272,10 @@ int cmd_set(struct argp_state* state)
 				if(file_exists_in_folder(set_opt.insketchpath,co_dstat))
 					return grouping_genomes(&set_opt); // combin_subset_pans(set_opt.subsetf);
 				else if(file_exists_in_folder(set_opt.insketchpath,sketch_stat))
-					return lgrouping_genomes(&set_opt);
+					return minco_group_samples(&set_opt);
 
 			}
-			else printf("set operation use : -u, -q, -i or -s\n");
+			else printf("set operation use : -u, -q, -i, -s or --downsample\n");
 			return -1 ;
 		}
 	}

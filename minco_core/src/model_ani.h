@@ -225,16 +225,23 @@ typedef struct
 
 #define EPSILON (1e-8)
 
-/* Universal fold-normalized ANI model.
- * The learned MoE/linear coefficients are defined at DimRdcFold=8. Count-like
- * inputs from other folds are normalized to that reference scale; fold 8 is
- * therefore exactly the original model behavior. */
-enum { ANI_MODEL_REFERENCE_DRFOLD = 8 };
-extern int ani_model_drfold;
+/* Universal sketch-size-normalized ANI model.
+ * The installed minco calibration is trained at 10,000 bottom-k contexts.
+ * Count-like inputs from other sketch sizes are normalized to that reference
+	 * scale; S=10000 is exactly the trained behavior.  ani_model_compat_filter_shift is kept as
+	 * a compatibility fallback for old stat files that do not carry minco metadata.
+ */
+enum { ANI_MODEL_REFERENCE_FILTER_SHIFT = 8 };
+enum { ANI_MODEL_REFERENCE_SKETCH_SIZE = 10000 };
+extern int ani_model_compat_filter_shift;
+extern uint32_t ani_model_target_sketch_size;
 
 static inline double ani_model_fold_scale(void)
 {
-    const int delta = ani_model_drfold - ANI_MODEL_REFERENCE_DRFOLD;
+    if (ani_model_target_sketch_size > 0)
+        return (double)ANI_MODEL_REFERENCE_SKETCH_SIZE /
+               (double)ani_model_target_sketch_size;
+    const int delta = ani_model_compat_filter_shift - ANI_MODEL_REFERENCE_FILTER_SHIFT;
     if (delta < -60)
         return ldexp(1.0, -60);
     if (delta > 60)

@@ -5,6 +5,7 @@
 #include "command_composite.h"
 #include "command_matrix.h"
 #include "command_ani.h"
+#include "command_set_wrapper.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -67,6 +68,8 @@ static char doc_global[] =
       "  ani      \tEstimate ANI from sketches or direct FASTA/FASTQ inputs.\n"
 "\n"
       "  matrix   \tReport context-distance matrices, sparse edges, clusters, and dedup plans.\n"
+"\n"
+      "  set      \tCombine, subset, and downsample existing sketches.\n"
 
 "\n"
       "  examples\tPrint common command workflows.\n"
@@ -94,6 +97,10 @@ static void print_global_examples(const char *prog)
   printf("  %s sketch -i genomes.minco\n", prog);
   printf("  %s matrix --format triangle -q genomes.minco -d -p8 -o dist.triangle.tsv\n\n", prog);
 
+  printf("Downsample an existing larger bottom-k sketch without re-sketching:\n");
+  printf("  %s set --downsample -S 1000 -o genomes.S1000.minco genomes.minco\n", prog);
+  printf("  %s sketch -i genomes.S1000.minco\n\n", prog);
+
   printf("Many assembled genomes, all-vs-all ANI triangle:\n");
   printf("  %s ani -q genomes.minco -m2 -s -1 -d -p8 -o ani.triangle.tsv\n\n", prog);
 
@@ -119,8 +126,9 @@ static void print_global_examples(const char *prog)
   printf("    -r ref_sketches --qraw reads.bam --readsQC -o raw_read_ani.tsv\n\n");
 
   printf("Notes:\n");
-  printf("  - Sketch directories contain comblco, lcofiles.stat, and optional sidecars.\n");
+  printf("  - Sketch directories contain minco.ctxobj64, minco.stat, and optional sidecars.\n");
   printf("  - Build an index with `sketch -i` before large reference or all-vs-all runs.\n");
+  printf("  - Use `set --downsample -S N` to shrink an existing sketch; rebuild the index after.\n");
   printf("  - For noisy reads, use `--conflict --readsQC` before `ani --qraw`.\n");
   printf("  - The default public sketch is fixed-size bottom-k: 10,000 contexts/sample.\n");
   printf("  - Change sketch size with `sketch --sketch-size N` or `ani -S N` for direct inputs.\n");
@@ -247,6 +255,8 @@ static error_t parse_global(int key, char* arg, struct argp_state* state)
 				cmd_matrix(state);
 	    else if(strcmp(arg, "ani") == 0)
         cmd_ani(state);
+			else if(strcmp(arg, "set") == 0)
+				cmd_set(state);
 			else if(strcmp(arg, "primer") == 0)
 					for(int i = 8;i<52;i++ )
 				 		printf("%llu\n",find_lgst_primer_2pow(i));

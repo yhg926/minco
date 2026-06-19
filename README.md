@@ -45,6 +45,17 @@ Use a larger or smaller fixed sketch:
 bin/minco sketch -p8 --sketch-size 20000 -o genomes.20k.minco genomes/*.fna.gz
 ```
 
+Downsample an existing larger bottom-k sketch without re-sketching:
+
+```bash
+bin/minco set --downsample -S 1000 -o genomes.1k.minco genomes.20k.minco
+bin/minco sketch -i genomes.1k.minco
+```
+
+The target sketch size and compact density summary are stored in `minco.stat`.
+When `minco ani` uses an existing reference sketch with a direct FASTA/FASTQ
+query, the temporary query sketch inherits that reference size automatically.
+
 Sketch from a path list:
 
 ```bash
@@ -73,6 +84,51 @@ Direct FASTA/FASTQ ANI with a non-default sketch size:
 
 ```bash
 bin/minco ani -S 20000 -f0 -n0 -t0 -o pair.20k.tsv ref.fna query.fna
+```
+
+Direct sequence-query ANI at reference density:
+
+```bash
+bin/minco ani -r ref.minco -q query.fna.gz --query-density ref -m0 -o ani.tsv
+```
+
+Raw FASTQ query ANI can use the same reference-density model without first
+building a query sketch:
+
+```bash
+bin/minco ani -r ref.minco --qraw reads.fq.gz --query-density ref -m0 -o reads_vs_ref.tsv
+```
+
+In this mode minco streams reads, accumulates readwise mutation features, and
+uses auxiliary unique context coverage to report AF. Detail output appends
+`Reads_with_ctx_match`, `Total_reads`, `Read_match_fraction`,
+`Unique_query_ctx`, `Unique_query_ctx_hit`, `Unique_ref_ctx_hit`, and
+experimental density-block counters.
+During long FASTQ runs it writes progress to stderr: reads processed, read
+rate, and input-file percent when the query is a regular file.
+By default minco uses `--density-block-ctx 100`: it accumulates consecutive
+reads until at least 100 retained density contexts are available before lookup.
+For example, on an `S=1000` reference this tests 100-context pseudo-read blocks
+while keeping `Total_reads` as the real read count. Use `--density-block-ctx 0`
+to force exact per-read lookup, or set another `N` with
+`--density-block-ctx N`.
+Add `--abundance-est depth` to also append experimental per-reference
+breadth/depth metrics, including `Relative_abundance_depth` and
+`Normalized_abundance_depth`, plus `Default_call`. With no custom `-f`, `-n`,
+`-t`, or `--top`, minco applies the default readwise abundance report: it uses
+a sketch-size-scaled unique-context cutoff (`S/100`), requires ANI >= 0.95,
+and prints only `major` and `low_abundance` calls. The normalized column sums
+to 1 across printed rows.
+Use explicit filters such as `-f0 -n0 -t0` when every candidate comparison must
+be reported. This abundance option requires the direct readwise FASTQ density
+path, so do not combine it with `--readsQC`, `--abundance`, or
+`--save-query-sketch`.
+
+Keep the generated query sketch for debugging:
+
+```bash
+bin/minco ani -r ref.minco -q query.fna.gz --query-density ref \
+  --save-query-sketch query.debug.minco -m0 -o ani.tsv
 ```
 
 Fast all-vs-all context-distance lower triangle:
@@ -108,18 +164,35 @@ The longer user manual is in `docs/USER_MANUAL.md`.
 
 ## Metadata
 
-`--ctxmeta` controls the context-cardinality sidecar `minco.ctxmeta.tsv`.
-Modes are `preconflict` (default), `postconflict`, `both`, and `none`.
+New sketches write the `minco.*` / `minco.ctxobj64*` filenames. Readers still
+accept earlier KSSD-style filenames for compatibility with existing sketch
+directories.
 
-The density-based estimator uses the final bottom-k threshold:
+`--ctxmeta` controls context-cardinality metadata. It writes compact binary
+per-sample records in `minco.ctxmeta` and stores the operational set-level
+density summary in `minco.stat`. Modes are `preconflict` (default),
+`postconflict`, `both`, and `none`.
+
+The unique-context estimator uses the final bottom-k threshold:
 
 ```text
-observed_contexts_under_threshold / hash_threshold
+observed_contexts_under_threshold * hash_space / (hash_threshold + 1)
 ```
 
-This sidecar is metadata only. It does not change `comblco` or `comblco.index`.
-`minco ani` uses it when available to estimate asymmetric real aligned
-fractions from the common bottom-k hash threshold. Detail output appends
+This metadata is optional. It does not change `minco.ctxobj64` or
+`minco.ctxobj64.offsets`. The optional search index is
+`minco.refindex.ctxgid64obj32`. `minco.ctxmeta` stores per-sample density
+estimates as fixed-width records without text keys or headers. Use
+`minco sketch --pctxmeta DIR` and `minco sketch --pctxsetmeta DIR` to print TSV
+views when needed.
+`minco ani --query-density ref` uses this metadata only for FASTA/FASTQ query
+inputs: one-sample references use that sample's density threshold, while
+combined references use the largest sample density threshold. The query
+extraction is internal to `ani`; no persistent query sketch is written unless
+`--save-query-sketch DIR` is used for debugging. The save target must not
+already exist.
+`minco ani` uses `minco.ctxmeta` when available to estimate asymmetric real
+aligned fractions from the common bottom-k hash threshold. Detail output appends
 `Real_Qry_align_fraction`, `Real_Ref_align_fraction`,
 `Real_min_align_fraction`, and `AF_source`; without ctxmeta these fall back to
 the fixed-sketch aligned fractions.

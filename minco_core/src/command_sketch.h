@@ -113,17 +113,17 @@ static inline uint64_t make_ctxobj(uint64_t unituple, uint64_t tuplemask, int64_
 
 //
 //initialize funs
-//void public_vars_init(dim_sketch_stat_t* sketch_stat_raw) ; //initla global vars from sketch subcommand pars before sketch generated
+//void public_vars_init(minco_sketch_stat_t* sketch_stat_raw) ; //initla global vars from sketch subcommand pars before sketch generated
 
 void compute_sketch(sketch_opt_t * sketch_opt_val, infile_tab_t* infile_stat);
-void combine_lco( sketch_opt_t * sketch_opt_val, infile_tab_t* infile_stat);
-int merge_comblco (sketch_opt_t * sketch_opt_val);
-int append_comblco(sketch_opt_t *sketch_opt_val);
-int remove_comblco_samples(sketch_opt_t *sketch_opt_val);
-int keep_comblco_samples(sketch_opt_t *sketch_opt_val);
-int dedup_comblco_samples(sketch_opt_t *sketch_opt_val);
-int sketch_qc_comblco(sketch_opt_t *sketch_opt_val);
-void gen_inverted_index4comblco(const char* sketchdir);
+void combine_minco_parts( sketch_opt_t * sketch_opt_val, infile_tab_t* infile_stat);
+int merge_minco_sketches (sketch_opt_t * sketch_opt_val);
+int append_minco_sketches(sketch_opt_t *sketch_opt_val);
+int remove_minco_samples(sketch_opt_t *sketch_opt_val);
+int keep_minco_samples(sketch_opt_t *sketch_opt_val);
+int dedup_minco_samples(sketch_opt_t *sketch_opt_val);
+int sketch_qc_minco(sketch_opt_t *sketch_opt_val);
+void gen_inverted_index_for_minco(const char* sketchdir);
 //sketchuing methods family
 // produce sorted sketch
 void read_genomes2mem2sortedctxobj64 (sketch_opt_t * sketch_opt_val, infile_tab_t* infile_stat, int batch_size);
@@ -137,7 +137,11 @@ int opt2_seq2sortedsketch64(char* seqfname, char * outfname, bool abundance, int
 void mfa2sortedctxobj64( sketch_opt_t * sketch_opt_val, infile_tab_t* infile_stat);
 //void print_hash_table(khash_t(kmer_hash) *h);
 void write_sketch_stat (const char* outdir, infile_tab_t* infile_stat, bool write_annotations);
-simple_sketch_t* simple_genomes2mem2sortedctxobj64_mem (infile_tab_t *infile_stat, int drfold);
+simple_sketch_t* simple_genomes2mem2sortedctxobj64_mem (infile_tab_t *infile_stat, int compat_filter_shift);
+extern uint32_t minco_target_sketch_size;
+extern uint32_t minco_selection_mode;
+extern uint64_t minco_density_threshold;
+uint32_t minco_compiled_stat_flags(void);
 static void sketch_many_files_in_parallel(sketch_opt_t *opt, infile_tab_t *tab, int batch_size);
 static void sketch_few_files_with_intrafile_parallel(sketch_opt_t *opt, infile_tab_t *tab, int BATCH_READS);
 void mfa2sortedctxobj64_v2 (sketch_opt_t *sketch_opt_val, infile_tab_t *infile_stat);

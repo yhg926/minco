@@ -673,36 +673,425 @@ int mkdir_p(const char *path)
     return 0; // Success
 }
 
-// test if parent_path contain file dstat_f, return full path if has otherwise return NULL
-// orginally develop fo test dstat_f , but can generally test other file
+static const char *minco_legacy_suffix_for(const char *filename)
+{
+    if (!filename)
+        return NULL;
+    if (strcmp(filename, "minco.stat") == 0)
+        return "lcofiles.stat";
+    if (strcmp(filename, "minco.qc") == 0)
+        return "lcofiles.qc";
+    if (strcmp(filename, "minco.anno") == 0)
+        return "lcofiles.anno";
+    if (strcmp(filename, "minco.infilemeta") == 0)
+        return "lcofiles.infilemeta";
+    if (strcmp(filename, "minco.ctxobj64") == 0)
+        return "comblco";
+    if (strcmp(filename, "minco.ctxobj64.offsets") == 0)
+        return "comblco.index";
+    if (strcmp(filename, "minco.ctxobj64.abund") == 0)
+        return "comblco.a";
+    if (strcmp(filename, "minco.ctxobj64.position") == 0)
+        return "comblco.position";
+    if (strcmp(filename, "minco.refindex.ctxgid64obj32") == 0)
+        return "sortedcomb_ctxgid64obj32";
+    return NULL;
+}
 
-char *test_get_fullpath(const char *parent_path, const char *dstat_f)
+typedef struct minco_legacy_warning_node
+{
+    char *dir;
+    struct minco_legacy_warning_node *next;
+} minco_legacy_warning_node_t;
+
+static minco_legacy_warning_node_t *minco_legacy_warning_dirs = NULL;
+
+static void minco_warn_legacy_sketch_name_once(const char *dir,
+                                               const char *legacy,
+                                               const char *canonical)
+{
+    for (minco_legacy_warning_node_t *node = minco_legacy_warning_dirs;
+         node != NULL; node = node->next) {
+        if (strcmp(node->dir, dir) == 0)
+            return;
+    }
+
+    fprintf(stderr,
+            "minco warning: using legacy sketch filename '%s/%s' as '%s'; "
+            "this sketch may be old minco or KSSD/KSSD3. New minco output "
+            "uses minco.* filenames.\n",
+            dir, legacy, canonical);
+
+    minco_legacy_warning_node_t *node = malloc(sizeof(*node));
+    if (!node)
+        return;
+    node->dir = strdup(dir);
+    if (!node->dir) {
+        free(node);
+        return;
+    }
+    node->next = minco_legacy_warning_dirs;
+    minco_legacy_warning_dirs = node;
+}
+
+static char *join_folder_filename(const char *folder, const char *filename)
+{
+    const size_t n = strlen(folder) + strlen(filename) + 2;
+    char *path = malloc(n);
+    if (!path)
+        err(EXIT_FAILURE, "%s(): OOM path", __func__);
+    snprintf(path, n, "%s/%s", folder, filename);
+    return path;
+}
+
+char *sketch_existing_fullpath(const char *parent_path, const char *dstat_f)
 {
     struct stat path_stat;
     if (stat(parent_path, &path_stat) < 0)
         err(EXIT_FAILURE, "%s()%s", __func__, parent_path);
-    if (S_ISDIR(path_stat.st_mode))
-    {
-        char *fullpath = malloc(PATHLEN + 1);
-        sprintf((char *)fullpath, "%s/%s", parent_path, dstat_f);
-        FILE *fp;
-        if ((fp = fopen(fullpath, "rb")) != NULL)
-        {
-            fclose(fp);
-            return fullpath;
-        }
-        else
-        {
-            printf("%s(): %s do not exists\n", __func__, fullpath);
-            free((char *)fullpath);
-            return NULL;
-        }
-    }
-    else
-    {
-        printf("%s()::%s is not a director\n", __func__, parent_path);
+    if (!S_ISDIR(path_stat.st_mode))
         return NULL;
+
+    char *fullpath = join_folder_filename(parent_path, dstat_f);
+    if (access(fullpath, F_OK) == 0)
+        return fullpath;
+    free(fullpath);
+
+    const char *legacy = minco_legacy_suffix_for(dstat_f);
+    if (!legacy)
+        return NULL;
+    fullpath = join_folder_filename(parent_path, legacy);
+    if (access(fullpath, F_OK) == 0) {
+        minco_warn_legacy_sketch_name_once(parent_path, legacy, dstat_f);
+        return fullpath;
     }
+    free(fullpath);
+    return NULL;
+}
+
+static uint64_t minco_stat_mix64(uint64_t x)
+{
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+}
+
+static uint32_t minco_stat_fold_id64(uint64_t x)
+{
+    uint32_t id = (uint32_t)(x ^ (x >> 32));
+    return id ? id : 1u;
+}
+
+size_t minco_stat_base_size(int infile_num)
+{
+    if (infile_num < 0)
+        errx(EINVAL, "%s(): negative sample count %d", __func__, infile_num);
+    const size_t n = (size_t)infile_num;
+    if (n > (SIZE_MAX - sizeof(minco_sketch_stat_t)) / PATHLEN)
+        errx(EINVAL, "%s(): sample count %d overflows stat size", __func__, infile_num);
+    return sizeof(minco_sketch_stat_t) + n * PATHLEN;
+}
+
+size_t minco_stat_full_size(int infile_num)
+{
+    const size_t base = minco_stat_base_size(infile_num);
+    if (base > SIZE_MAX - sizeof(minco_stat_ext_v1_t))
+        errx(EINVAL, "%s(): sample count %d overflows extended stat size", __func__, infile_num);
+    return base + sizeof(minco_stat_ext_v1_t);
+}
+
+uint32_t minco_stat_hash_bits_from_dim(const minco_sketch_stat_t *stat)
+{
+    if (!stat)
+        errx(EINVAL, "%s(): NULL stat", __func__);
+    const int ctx_bits = stat->coden_len > 0 ? 4 * stat->coden_len : 4 * stat->hclen;
+    const int obj_bits = 2 * stat->klen - ctx_bits;
+    if (obj_bits < 0 || obj_bits > 64)
+        errx(EINVAL,
+             "%s(): invalid context/object lengths: coden_len=%d klen=%d hclen=%d holen=%d",
+             __func__, stat->coden_len, stat->klen, stat->hclen, stat->holen);
+    return (uint32_t)(64 - obj_bits);
+}
+
+uint32_t minco_stat_feature_id_from_dim(const minco_sketch_stat_t *stat)
+{
+    if (!stat)
+        errx(EINVAL, "%s(): NULL stat", __func__);
+    const int iolen = stat->coden_len > 0 ? 0 : stat->klen - 2 * (stat->hclen + stat->holen);
+    uint64_t x = 0x6d696e636f2d4631ULL; /* "minco-F1" */
+    x = minco_stat_mix64(x ^ (uint64_t)(uint32_t)stat->coden_len);
+    x = minco_stat_mix64(x ^ ((uint64_t)(uint32_t)stat->klen << 8));
+    x = minco_stat_mix64(x ^ ((uint64_t)(uint32_t)stat->hclen << 16));
+    x = minco_stat_mix64(x ^ ((uint64_t)(uint32_t)stat->holen << 24));
+    x = minco_stat_mix64(x ^ ((uint64_t)(uint32_t)iolen << 32));
+    x = minco_stat_mix64(x ^ ((uint64_t)MINCO_STAT_HASH_FUNCTION_SPLITMIX64 << 48));
+    x = minco_stat_mix64(x ^ (uint64_t)MINCO_SEED);
+    x = minco_stat_mix64(x ^ (uint64_t)minco_stat_hash_bits_from_dim(stat));
+    return minco_stat_fold_id64(x);
+}
+
+uint32_t minco_stat_sketch_id_from_dim(const minco_sketch_stat_t *stat,
+                                       uint32_t target_sketch_size,
+                                       uint32_t selection_mode,
+                                       uint32_t flags)
+{
+    if (target_sketch_size == 0)
+        errx(EINVAL, "%s(): target sketch size must be positive", __func__);
+    uint64_t x = 0x6d696e636f2d5331ULL; /* "minco-S1" */
+    const uint32_t payload_flags = flags & MINCO_STAT_FLAG_SPARSE_CTX_HASH;
+    x = minco_stat_mix64(x ^ (uint64_t)minco_stat_feature_id_from_dim(stat));
+    x = minco_stat_mix64(x ^ ((uint64_t)target_sketch_size << 1));
+    (void)selection_mode;
+    x = minco_stat_mix64(x ^ ((uint64_t)MINCO_STAT_SKETCH_MODEL_CTX_BOTTOMK << 41));
+    x = minco_stat_mix64(x ^ ((uint64_t)payload_flags << 49));
+    return minco_stat_fold_id64(x);
+}
+
+static minco_stat_density_summary_t minco_stat_default_density_summary(
+    const minco_sketch_stat_t *stat,
+    uint32_t selection_mode,
+    uint64_t density_threshold)
+{
+    minco_stat_density_summary_t density = {
+        .min_threshold = UINT64_MAX,
+        .max_threshold = UINT64_MAX,
+        .universal_threshold = UINT64_MAX,
+        .min_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .max_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .universal_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .valid_sample_count = 0,
+        .hash_bits = minco_stat_hash_bits_from_dim(stat),
+        .universal_policy = MINCO_STAT_DENSITY_POLICY_NONE,
+        .flags = 0,
+    };
+    if (selection_mode == MINCO_STAT_SELECTION_DENSITY_THRESHOLD &&
+        density_threshold != UINT64_MAX) {
+        density.min_threshold = density_threshold;
+        density.max_threshold = density_threshold;
+        density.universal_threshold = density_threshold;
+        density.valid_sample_count =
+            stat->infile_num > 0 ? (uint32_t)stat->infile_num : 0;
+        density.universal_policy = MINCO_STAT_DENSITY_POLICY_EXPLICIT_THRESHOLD;
+    }
+    return density;
+}
+
+minco_stat_ext_v1_t minco_stat_make_ext_with_density(
+                                        const minco_sketch_stat_t *stat,
+                                        uint32_t target_sketch_size,
+                                        uint32_t selection_mode,
+                                        uint32_t flags,
+                                        uint64_t density_threshold,
+                                        const minco_stat_density_summary_t *density_summary)
+{
+    minco_stat_density_summary_t density =
+        minco_stat_default_density_summary(stat, selection_mode, density_threshold);
+    if (density_summary && density_summary->valid_sample_count > 0) {
+        density = *density_summary;
+        if (density.hash_bits == 0)
+            density.hash_bits = minco_stat_hash_bits_from_dim(stat);
+        if (density.universal_policy == MINCO_STAT_DENSITY_POLICY_NONE)
+            density.universal_policy =
+                density.valid_sample_count == 1
+                    ? MINCO_STAT_DENSITY_POLICY_SINGLE_SAMPLE
+                    : MINCO_STAT_DENSITY_POLICY_LARGEST_SAMPLE;
+    }
+    minco_stat_ext_v1_t ext = {
+        .magic = MINCO_STAT_EXT_MAGIC,
+        .version = MINCO_STAT_EXT_VERSION,
+        .struct_size = sizeof(minco_stat_ext_v1_t),
+        .target_sketch_size = target_sketch_size,
+        .feature_id = minco_stat_feature_id_from_dim(stat),
+        .sketch_id = minco_stat_sketch_id_from_dim(stat, target_sketch_size,
+                                                   selection_mode, flags),
+        .hash_function = MINCO_STAT_HASH_FUNCTION_SPLITMIX64,
+        .hash_bits = minco_stat_hash_bits_from_dim(stat),
+        .hash_seed = (uint64_t)MINCO_SEED,
+        .sketch_model = MINCO_STAT_SKETCH_MODEL_CTX_BOTTOMK,
+        .selection_mode = selection_mode,
+        .flags = flags,
+        .reserved = 0,
+        .density_threshold = density_threshold,
+        .density_min_threshold = density.min_threshold,
+        .density_max_threshold = density.max_threshold,
+        .density_universal_threshold = density.universal_threshold,
+        .density_min_sample_id = density.min_sample_id,
+        .density_max_sample_id = density.max_sample_id,
+        .density_universal_sample_id = density.universal_sample_id,
+        .density_valid_sample_count = density.valid_sample_count,
+        .density_hash_bits = density.hash_bits,
+        .density_universal_policy = density.universal_policy,
+        .density_flags = density.flags,
+        .density_reserved = 0,
+    };
+    return ext;
+}
+
+minco_stat_ext_v1_t minco_stat_make_ext(const minco_sketch_stat_t *stat,
+                                        uint32_t target_sketch_size,
+                                        uint32_t selection_mode,
+                                        uint32_t flags,
+                                        uint64_t density_threshold)
+{
+    return minco_stat_make_ext_with_density(stat, target_sketch_size,
+                                           selection_mode, flags,
+                                           density_threshold, NULL);
+}
+
+static bool minco_stat_decode_ext(const void *mem, size_t stat_size,
+                                  const minco_sketch_stat_t *legacy,
+                                  minco_sketch_info_t *info_out)
+{
+    const size_t base = minco_stat_base_size(legacy->infile_num);
+    if (stat_size < base + sizeof(minco_stat_ext_v1_t))
+        return false;
+    const minco_stat_ext_v1_t *ext =
+        (const minco_stat_ext_v1_t *)((const char *)mem + base);
+    if (ext->magic != MINCO_STAT_EXT_MAGIC ||
+        ext->version != MINCO_STAT_EXT_VERSION ||
+        ext->struct_size < sizeof(minco_stat_ext_v1_t))
+        return false;
+    if (info_out) {
+        *info_out = (minco_sketch_info_t){
+            .has_minco_ext = true,
+            .stat_version = ext->version,
+            .target_sketch_size = ext->target_sketch_size,
+            .feature_id = ext->feature_id,
+            .sketch_id = ext->sketch_id,
+            .hash_function = ext->hash_function,
+            .hash_bits = ext->hash_bits,
+            .hash_seed = ext->hash_seed,
+            .sketch_model = ext->sketch_model,
+            .selection_mode = ext->selection_mode,
+            .flags = ext->flags,
+            .density_threshold = ext->density_threshold,
+            .density_min_threshold = ext->density_min_threshold,
+            .density_max_threshold = ext->density_max_threshold,
+            .density_universal_threshold = ext->density_universal_threshold,
+            .density_min_sample_id = ext->density_min_sample_id,
+            .density_max_sample_id = ext->density_max_sample_id,
+            .density_universal_sample_id = ext->density_universal_sample_id,
+            .density_valid_sample_count = ext->density_valid_sample_count,
+            .density_hash_bits = ext->density_hash_bits,
+            .density_universal_policy = ext->density_universal_policy,
+            .density_flags = ext->density_flags,
+        };
+    }
+    return true;
+}
+
+bool minco_stat_decode_mem(const void *mem, size_t stat_size,
+                           minco_sketch_stat_t *legacy_out,
+                           minco_sketch_info_t *info_out)
+{
+    if (!mem || stat_size < sizeof(minco_sketch_stat_t))
+        return false;
+    minco_sketch_stat_t legacy;
+    memcpy(&legacy, mem, sizeof(legacy));
+    if (legacy.infile_num < 0)
+        return false;
+    const size_t base = minco_stat_base_size(legacy.infile_num);
+    if (stat_size < base)
+        return false;
+    if (legacy_out)
+        *legacy_out = legacy;
+    minco_sketch_info_t info = {
+        .has_minco_ext = false,
+        .stat_version = 0,
+        .target_sketch_size = 0,
+        .feature_id = minco_stat_feature_id_from_dim(&legacy),
+        .sketch_id = legacy.hash_id,
+        .hash_function = MINCO_STAT_HASH_FUNCTION_SPLITMIX64,
+        .hash_bits = minco_stat_hash_bits_from_dim(&legacy),
+        .hash_seed = (uint64_t)MINCO_SEED,
+        .sketch_model = MINCO_STAT_SKETCH_MODEL_CTX_BOTTOMK,
+        .selection_mode = MINCO_STAT_SELECTION_BOTTOMK,
+        .flags = 0,
+        .density_threshold = UINT64_MAX,
+        .density_min_threshold = UINT64_MAX,
+        .density_max_threshold = UINT64_MAX,
+        .density_universal_threshold = UINT64_MAX,
+        .density_min_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .density_max_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .density_universal_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+        .density_valid_sample_count = 0,
+        .density_hash_bits = minco_stat_hash_bits_from_dim(&legacy),
+        .density_universal_policy = MINCO_STAT_DENSITY_POLICY_NONE,
+        .density_flags = 0,
+    };
+    minco_stat_decode_ext(mem, stat_size, &legacy, &info);
+    if (info_out)
+        *info_out = info;
+    return true;
+}
+
+char (*minco_stat_names_from_mem(void *mem, size_t stat_size))[PATHLEN]
+{
+    minco_sketch_stat_t stat;
+    if (!minco_stat_decode_mem(mem, stat_size, &stat, NULL))
+        errx(EINVAL, "%s(): malformed minco stat buffer", __func__);
+    (void)stat;
+    return (char (*)[PATHLEN])((char *)mem + sizeof(minco_sketch_stat_t));
+}
+
+const char (*minco_stat_const_names_from_mem(const void *mem, size_t stat_size))[PATHLEN]
+{
+    return (const char (*)[PATHLEN])minco_stat_names_from_mem((void *)mem, stat_size);
+}
+
+void minco_stat_write_path_with_density(const char *path, const minco_sketch_stat_t *stat,
+                                        const char (*names)[PATHLEN],
+                                        uint32_t target_sketch_size,
+                                        uint32_t selection_mode,
+                                        uint32_t flags,
+                                        uint64_t density_threshold,
+                                        const minco_stat_density_summary_t *density_summary)
+{
+    if (!path || !stat)
+        errx(EINVAL, "%s(): missing path or stat", __func__);
+    minco_sketch_stat_t out_stat = *stat;
+    minco_stat_ext_v1_t ext =
+        minco_stat_make_ext_with_density(&out_stat, target_sketch_size,
+                                         selection_mode, flags,
+                                         density_threshold, density_summary);
+    out_stat.hash_id = ext.sketch_id;
+    const size_t base = minco_stat_base_size(out_stat.infile_num);
+    const size_t full = base + sizeof(ext);
+    char *buf = calloc(1, full);
+    if (!buf)
+        err(EXIT_FAILURE, "%s(): OOM stat buffer", __func__);
+    memcpy(buf, &out_stat, sizeof(out_stat));
+    if (out_stat.infile_num > 0) {
+        if (!names)
+            errx(EINVAL, "%s(): missing sample names for %d samples",
+                 __func__, out_stat.infile_num);
+        memcpy(buf + sizeof(out_stat), names, (size_t)out_stat.infile_num * PATHLEN);
+    }
+    memcpy(buf + base, &ext, sizeof(ext));
+    write_to_file(path, buf, full);
+    free(buf);
+}
+
+void minco_stat_write_path(const char *path, const minco_sketch_stat_t *stat,
+                           const char (*names)[PATHLEN],
+                           uint32_t target_sketch_size,
+                           uint32_t selection_mode,
+                           uint32_t flags,
+                           uint64_t density_threshold)
+{
+    minco_stat_write_path_with_density(path, stat, names, target_sketch_size,
+                                       selection_mode, flags,
+                                       density_threshold, NULL);
+}
+
+char *test_get_fullpath(const char *parent_path, const char *dstat_f)
+{
+    char *fullpath = sketch_existing_fullpath(parent_path, dstat_f);
+    if (fullpath)
+        return fullpath;
+    printf("%s(): %s/%s do not exists\n", __func__, parent_path, dstat_f);
+    return NULL;
 };
 
 char *test_create_fullpath(const char *parent_path, const char *dstat_f)
@@ -726,10 +1115,12 @@ char *test_create_fullpath(const char *parent_path, const char *dstat_f)
 
 int file_exists_in_folder(const char *folder, const char *filename)
 {
-    char filepath[1024];                                             // Buffer to store the full file path
-    snprintf(filepath, sizeof(filepath), "%s/%s", folder, filename); // Construct path
-    // Check if the file exists
-    return access(filepath, F_OK) == 0;
+    char *path = sketch_existing_fullpath(folder, filename);
+    if (path) {
+        free(path);
+        return 1;
+    }
+    return 0;
 }
 
 // by chatgpt
@@ -1095,13 +1486,18 @@ unify_sketch_t *generic_sketch_parse(const char *qrydir, unsigned flags)
     {
         result->stat_type = 2;
         result->mem_stat = read_from_file(test_get_fullpath(qrydir, sketch_stat), &file_size);
-        memcpy(&result->stats.lco_stat_val, result->mem_stat, sizeof(dim_sketch_stat_t));
+        if (!minco_stat_decode_mem(result->mem_stat, file_size,
+                                   &result->stats.minco_stat,
+                                   &result->minco_info))
+            errx(EINVAL, "%s(): malformed %s/%s", __func__, qrydir, sketch_stat);
 
-        result->hash_id = result->stats.lco_stat_val.hash_id;
-        result->conflict = result->stats.lco_stat_val.conflict ;
-        result->infile_num = result->stats.lco_stat_val.infile_num;
-        result->kmerlen = result->stats.lco_stat_val.klen;
-        result->gname = (char (*)[PATHLEN])(result->mem_stat + sizeof(dim_sketch_stat_t));
+        result->hash_id = result->minco_info.has_minco_ext
+                              ? result->minco_info.sketch_id
+                              : result->stats.minco_stat.hash_id;
+        result->conflict = result->stats.minco_stat.conflict ;
+        result->infile_num = result->stats.minco_stat.infile_num;
+        result->kmerlen = result->stats.minco_stat.klen;
+        result->gname = minco_stat_names_from_mem(result->mem_stat, file_size);
         size_t comb_file_size = 0;
         result->comb_sketch = read_from_file(test_get_fullpath(qrydir, combined_sketch_suffix), &comb_file_size);
         result->sketch_index = read_from_file(test_get_fullpath(qrydir, idx_sketch_suffix), &file_size);
@@ -1120,7 +1516,7 @@ unify_sketch_t *generic_sketch_parse(const char *qrydir, unsigned flags)
                 err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
                     __func__, qrydir, sketch_position_suffix, pos_file_size, expected_size);
         }
-        if ((flags & SKETCH_PARSE_ABUNDANCE) && result->stats.lco_stat_val.koc)
+        if ((flags & SKETCH_PARSE_ABUNDANCE) && result->stats.minco_stat.koc)
             result->abundance = read_from_file(test_get_fullpath(qrydir, combined_ab_suffix), &file_size);
         if ((flags & SKETCH_PARSE_SAMPLE_QC) && file_exists_in_folder(qrydir, sketch_qc_stat))
         {

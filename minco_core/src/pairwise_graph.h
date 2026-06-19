@@ -127,12 +127,12 @@ pairwise_metric_t pairwise_metric_expr_primary(const pairwise_metric_expr_t *exp
 const char *pairwise_metric_expr_name(const pairwise_metric_expr_t *expr);
 
 void pairwise_check_compatible(const unify_sketch_t *ref, const unify_sketch_t *qry);
-void pairwise_prepare_lco_model(const unify_sketch_t *sketch);
+void pairwise_prepare_minco_model(const unify_sketch_t *sketch);
 
 uint32_t pairwise_count_ctx_runs_sorted_ctxobj64(const uint64_t *a, size_t n);
 
 pairwise_eval_t pairwise_eval_arrays(pairwise_metric_t metric,
-									 const dim_sketch_stat_t *stat,
+									 const minco_sketch_stat_t *stat,
 									 const uint64_t *qry, size_t qry_n,
 									 const uint64_t *ref, size_t ref_n,
 									 uint32_t qry_ctx_count,
@@ -145,7 +145,7 @@ pairwise_eval_t pairwise_eval_samples(pairwise_metric_t metric,
 									  bool ignore_ref_conflicts);
 
 pairwise_eval_t pairwise_eval_expr_arrays(const pairwise_metric_expr_t *expr,
-										  const dim_sketch_stat_t *stat,
+										  const minco_sketch_stat_t *stat,
 										  const uint64_t *qry, size_t qry_n,
 										  const uint64_t *ref, size_t ref_n,
 										  uint32_t qry_ctx_count,

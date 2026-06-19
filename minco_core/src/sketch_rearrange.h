@@ -21,7 +21,7 @@ typedef struct {uint8_t ctx; uint8_t gid; uint8_t obj;} bitslen_t;
 extern bitslen_t Bitslen;
 typedef struct {uint64_t ctx; uint32_t gid; uint32_t obj;} tmp_ctxgidobj_t;
 
-void const_comask_init(dim_sketch_stat_t *lco_stat_val );
+void const_comask_init(minco_sketch_stat_t *minco_stat );
 
 ctxgidobj_t *ctxobj64_2ctxgidobj(uint64_t *sketch_index, uint64_t *ctxobj64, int infile_num, uint32_t arrlen);
 

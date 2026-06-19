@@ -146,13 +146,6 @@ int cmd_reverse(struct argp_state *state)
 	free(argv[0]);
 	argv[0] = argv0;
 	state->next += argc - 1;
-	/*
-		unify_sketch_t *in_sketch = generic_sketch_parse(reverse_opt_val.remaining_args[0], SKETCH_PARSE_NONE);
-		if(in_sketch->stat_type == 2 ){
-			return lco_reverse2kmer(in_sketch);
-		}
-		else
-	*/
 	return generic_co_reverse2kmer(&reverse_opt_val);
 
 }
@@ -170,7 +163,7 @@ int generic_co_reverse2kmer(reverse_opt_val_t *opt_val)
 	if (in_sketch->stat_type == 2)
 	{
 
-		if (in_sketch->stats.lco_stat_val.coden_len == 0)
+		if (in_sketch->stats.minco_stat.coden_len == 0)
 			errx(errno, "only support coden ctxobj pattern sketch reverse now");
 
 		for (uint32_t gn = 0; gn < infile_num; gn++)

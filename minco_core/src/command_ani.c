@@ -2,6 +2,7 @@
 #include "command_matrix.h"
 #include "global_basic.h"
 #include "minco_sort.h"
+#include "pairwise_graph.h"
 #include "sketch_rearrange.h"
 // #include "command_sketch.h"
 #include <stdarg.h>
@@ -13,6 +14,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <math.h>
 #include <libgen.h>
 #include <dirent.h>
@@ -22,20 +24,30 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <zlib.h>
+#if defined(__x86_64__)
+#include <immintrin.h>
+#endif
 #include "../klib/kstring.h" // from klib
 #include "../klib/khash.h"
 #include "../klib/kvec.h"      // klib: dynamic arrays
+#include "../klib/kseq.h"
 // #include "../klib/khashl.h"
+KSEQ_INIT(gzFile, gzread)
 #define GID_NBITS 20 // 2^20, 1M
 #define CONFLICT_OBJ UINT32_MAX
 // pulic vars
 const char gid_obj_prefix[] = "gidobj", ctx_idx_prefix[] = "ctx.index";
-static const char minco_ctxmeta_stat[] = "minco.ctxmeta.tsv";
+static const char minco_ctxmeta_legacy_tsv_stat[] = "minco.ctxmeta.tsv";
 extern const char sorted_comb_ctxgid64obj32[];
+extern uint32_t FILTER;
+extern void gen_inverted_index_for_minco(const char *sketchdir);
 extern double C9O7_98[6], C9O7_96[6];
 size_t file_size;
 
 const char unified_detail_header[] = "Qry\tRef\tANI\tDistance\tConfidence\tSelected_metric\tXnY_ctx\tQry_align_fraction\tblastn_Qry_align_fraction\tRef_align_fraction\tblastn_Ref_align_fraction\tN_diff_obj\tN_diff_obj_section\tN_mut2_ctx\tRef_annotation\tReal_Qry_align_fraction\tReal_Ref_align_fraction\tReal_min_align_fraction\tAF_source";
+const char readwise_detail_extra_header[] = "Reads_with_ctx_match\tTotal_reads\tRead_match_fraction\tUnique_query_ctx\tUnique_query_ctx_hit\tUnique_ref_ctx_hit\tDensity_block_ctx\tTotal_density_blocks\tBlocks_with_ctx_match\tBlock_match_fraction";
+const char readwise_abundance_extra_header[] = "Ref_breadth\tRef_mean_depth\tRef_hit_mean_depth\tRef_depth_variance\tRef_depth_cv\tRef_zero_fraction\tRelative_abundance_depth\tNormalized_abundance_depth\tDefault_call\tDefault_call_rule";
 #define ANI_SELECTED_METRIC_COUNT 8
 const char select_metrics_header[ANI_SELECTED_METRIC_COUNT][20] = {
 	"BestDist", "RecalDist", "CtxMoE", "Naive",
@@ -153,9 +165,16 @@ static inline double aaf_ani_from_counts(double overlap, double qry_ctx, double 
 
 static inline void print_ani_detail_header(FILE *outfp, const ani_opt_t *ani_opt, bool include_selected_metric)
 {
-	(void)ani_opt;
 	(void)include_selected_metric;
-	fprintf(outfp, "%s\n", unified_detail_header);
+	if (ani_opt && ani_opt->readwise_query)
+	{
+		fprintf(outfp, "%s\t%s", unified_detail_header, readwise_detail_extra_header);
+		if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
+			fprintf(outfp, "\t%s", readwise_abundance_extra_header);
+		fputc('\n', outfp);
+	}
+	else
+		fprintf(outfp, "%s\n", unified_detail_header);
 }
 
 static inline const char *annotation_or_na(const char *annotation)
@@ -234,10 +253,44 @@ static bool parse_u64_field(const char *s, uint64_t *out)
 
 static ani_ctxmeta_rec_t *read_optional_ani_ctxmeta_stats(const char *sketch_dir, int infile_num)
 {
-	if (infile_num <= 0 || !file_exists_in_folder(sketch_dir, minco_ctxmeta_stat))
+	if (infile_num <= 0)
 		return NULL;
 
-	char *ctxmeta_path = test_get_fullpath(sketch_dir, minco_ctxmeta_stat);
+	if (file_exists_in_folder(sketch_dir, minco_ctxmeta_bin_stat)) {
+		char *ctxmeta_path = test_get_fullpath(sketch_dir, minco_ctxmeta_bin_stat);
+		size_t ctxmeta_size = 0;
+		minco_ctxmeta_record_t *records = read_from_file(ctxmeta_path, &ctxmeta_size);
+		free(ctxmeta_path);
+		const size_t expected_size = (size_t)infile_num * sizeof(records[0]);
+		if (ctxmeta_size != expected_size)
+			errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+				 __func__, sketch_dir, minco_ctxmeta_bin_stat,
+				 ctxmeta_size, expected_size);
+		ani_ctxmeta_rec_t *stats = calloc((size_t)infile_num, sizeof(stats[0]));
+		if (!stats)
+			err(EXIT_FAILURE, "%s(): calloc ctxmeta", __func__);
+		for (int i = 0; i < infile_num; ++i) {
+			stats[i] = (ani_ctxmeta_rec_t){
+				.valid = records[i].valid,
+				.hash_bits = records[i].hash_bits,
+				.threshold = records[i].threshold,
+				.sketch_entries = records[i].sketch_entries,
+				.selected_observed_ctx = records[i].selected_observed_ctx,
+				.selected_estimated_unique_ctx = records[i].selected_estimated_unique_ctx,
+				.preconflict_observed_ctx = records[i].preconflict_observed_ctx,
+				.preconflict_estimated_unique_ctx = records[i].preconflict_estimated_unique_ctx,
+				.postconflict_observed_ctx = records[i].postconflict_observed_ctx,
+				.postconflict_estimated_unique_ctx = records[i].postconflict_estimated_unique_ctx,
+			};
+		}
+		free_read_from_file(records, ctxmeta_size);
+		return stats;
+	}
+
+	if (!file_exists_in_folder(sketch_dir, minco_ctxmeta_legacy_tsv_stat))
+		return NULL;
+
+	char *ctxmeta_path = test_get_fullpath(sketch_dir, minco_ctxmeta_legacy_tsv_stat);
 	FILE *fp = fopen(ctxmeta_path, "r");
 	if (!fp)
 		err(errno, "%s", ctxmeta_path);
@@ -552,8 +605,8 @@ static void fill_ctx_counts_for_query_block(uint32_t *qry_ctx_count, int offset_
 int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 {
 	
-	dim_sketch_stat_t *ref_dim_sketch_stat = read_from_file(test_get_fullpath(ani_opt->refdir, sketch_stat), &file_size);
-	int ref_infile_num = ref_dim_sketch_stat->infile_num;
+	minco_sketch_stat_t *ref_sketch_stat = read_from_file(test_get_fullpath(ani_opt->refdir, sketch_stat), &file_size);
+	int ref_infile_num = ref_sketch_stat->infile_num;
 	// read index
 	size_t ctxgidobj_arr_fsize;
 	uint64_t *ref_sketch_index = read_from_file(test_get_fullpath(ani_opt->refdir, idx_sketch_suffix), &file_size);
@@ -566,9 +619,9 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 	assert(ctxgidobj_arr_fsize == ref_sketch_size * sizeof(sortedcomb_ctxgid64obj32[0]));
 	uint32_t *ref_ctx_count = ref_ctx_counts_from_ctxgidobj(sortedcomb_ctxgid64obj32, ref_sketch_size, ref_infile_num, ref_sketch_index, ani_opt->ignoreconflict);
 
-	dim_sketch_stat_t *qry_dim_sketch_stat = read_from_file(test_get_fullpath(ani_opt->qrydir, sketch_stat), &file_size);
-	int qry_infile_num = qry_dim_sketch_stat->infile_num;
-	assert(qry_dim_sketch_stat->hash_id == ref_dim_sketch_stat->hash_id);
+	minco_sketch_stat_t *qry_sketch_stat = read_from_file(test_get_fullpath(ani_opt->qrydir, sketch_stat), &file_size);
+	int qry_infile_num = qry_sketch_stat->infile_num;
+	assert(qry_sketch_stat->hash_id == ref_sketch_stat->hash_id);
 	uint64_t *qry_sketch_index = read_from_file(test_get_fullpath(ani_opt->qrydir, idx_sketch_suffix), &file_size);
 	size_t qry_sketch_size = qry_sketch_index[qry_infile_num];
 	uint32_t *qry_ctx_count = calloc((size_t)qry_infile_num, sizeof(*qry_ctx_count));
@@ -593,8 +646,8 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 	for (int i = 0; i < block_size; i++)
 		sort_idani_block[i] = malloc(ref_infile_num * sizeof(idani_t));
 
-	char (*refname)[PATHLEN] = (char (*)[PATHLEN])(ref_dim_sketch_stat + 1);
-	char (*qryname)[PATHLEN] = (char (*)[PATHLEN])(qry_dim_sketch_stat + 1);
+	char (*refname)[PATHLEN] = (char (*)[PATHLEN])(ref_sketch_stat + 1);
+	char (*qryname)[PATHLEN] = (char (*)[PATHLEN])(qry_sketch_stat + 1);
 	char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, ref_infile_num);
 	const bool enable_best_guard = ani_best_guard_enabled(ani_opt);
 	infile_meta_t *qry_infile_meta =
@@ -647,7 +700,7 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 		size_t read_sketch_size = fread(tmp_ctxobj, sizeof(uint64_t), this_sketch_size, fp);
 		uint64_t *this_sketch_index = qry_sketch_index + offset_gid;
 		assert(this_sketch_size == read_sketch_size);
-		fill_ctx_counts_for_query_block(qry_ctx_count, offset_gid, this_block_size, qry_sketch_index, tmp_ctxobj, qry_dim_sketch_stat->conflict);
+		fill_ctx_counts_for_query_block(qry_ctx_count, offset_gid, this_block_size, qry_sketch_index, tmp_ctxobj, qry_sketch_stat->conflict);
 
 		memset(ctx, 0, ref_infile_num * block_size * sizeof(ctx_mut2_t));
 		memset(obj, 0, ref_infile_num * block_size * sizeof(obj_section_t)); // memset(obj,0,ref_infile_num * block_size * sizeof(uint32_t));
@@ -667,7 +720,7 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 		free_read_from_file(ref_infile_meta, (size_t)ref_infile_num * sizeof(ref_infile_meta[0]));
 	free(qry_ctxmeta);
 	free(ref_ctxmeta);
-	free_all(ref_dim_sketch_stat, ref_sketch_index, ref_ctx_count, qry_dim_sketch_stat, qry_sketch_index, qry_ctx_count, tmp_ctxobj, ctx, obj, num_passid_block, sort_idani_block, NULL);
+	free_all(ref_sketch_stat, ref_sketch_index, ref_ctx_count, qry_sketch_stat, qry_sketch_index, qry_ctx_count, tmp_ctxobj, ctx, obj, num_passid_block, sort_idani_block, NULL);
 	free_reference_sorted_index(sortedcomb_ctxgid64obj32, ctxgidobj_arr_fsize, sorted_index_is_mmap);
 	fclose(fp);
 	if (outfp != stdout)
@@ -718,7 +771,7 @@ size_t dedup_with_ctxobj_counts(uint32_t *arr, size_t n, co_distance_t **ctxobj_
 
 ctxgidobj_t *comb_sortedsketch64_2sortedcomb_ctxgid64obj32(unify_sketch_t *ref_result)
 {
-	// const_comask_init(&ref_result->stats.lco_stat_val);
+	// const_comask_init(&ref_result->stats.minco_stat);
 	uint64_t sketch_size = ref_result->sketch_index[ref_result->infile_num];
 	if (sketch_size > (float)UINT32_MAX * LD_FCTR)
 		err(EXIT_FAILURE, "%s():sketch_index maximun %lu exceed UINT32_MAX*LF;%f", __func__, sketch_size, (float)UINT32_MAX * LD_FCTR);
@@ -832,13 +885,13 @@ void sorted_ctxgidobj_arr2triangle(ctxgidobj_t *ctxgidobj_arr, sort_sketch_summa
 int sparse_mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 {
 	// initialize
-	dim_sketch_stat_t *ref_dim_sketch_stat = read_from_file(test_get_fullpath(ani_opt->refdir, sketch_stat), &file_size);
-	const_comask_init(ref_dim_sketch_stat);
+	minco_sketch_stat_t *ref_sketch_stat = read_from_file(test_get_fullpath(ani_opt->refdir, sketch_stat), &file_size);
+	const_comask_init(ref_sketch_stat);
 
 	uint64_t gidmask = UINT64_MAX >> (64 - GID_NBITS);
 	uint64_t objmask = (1UL << Bitslen.obj) - 1;
 
-	int ref_infile_num = ref_dim_sketch_stat->infile_num;
+	int ref_infile_num = ref_sketch_stat->infile_num;
 	// read index
 	size_t ctxgidobj_arr_fsize;
 	uint64_t *ref_sketch_index = read_from_file(test_get_fullpath(ani_opt->refdir, idx_sketch_suffix), &file_size);
@@ -847,9 +900,9 @@ int sparse_mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 	ctxgidobj_t *sortedcomb_ctxgid64obj32 = read_from_file(test_get_fullpath(ani_opt->refdir, sorted_comb_ctxgid64obj32), &ctxgidobj_arr_fsize);
 	assert(ctxgidobj_arr_fsize == ref_sketch_size * sizeof(sortedcomb_ctxgid64obj32[0]));
 
-	dim_sketch_stat_t *qry_dim_sketch_stat = read_from_file(test_get_fullpath(ani_opt->qrydir, sketch_stat), &file_size);
-	int qry_infile_num = qry_dim_sketch_stat->infile_num;
-	assert(qry_dim_sketch_stat->hash_id == ref_dim_sketch_stat->hash_id);
+	minco_sketch_stat_t *qry_sketch_stat = read_from_file(test_get_fullpath(ani_opt->qrydir, sketch_stat), &file_size);
+	int qry_infile_num = qry_sketch_stat->infile_num;
+	assert(qry_sketch_stat->hash_id == ref_sketch_stat->hash_id);
 	uint64_t *qry_sketch_index = read_from_file(test_get_fullpath(ani_opt->qrydir, idx_sketch_suffix), &file_size);
 	size_t qry_sketch_size = qry_sketch_index[qry_infile_num];
 
@@ -951,7 +1004,7 @@ int sparse_mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 	for (int i = 0; i < block_size; i++)
 		free(ref_gids_perqry_arr[i]);
 	free_all(ref_gids_perqry_arr, ctxobj_cnt_perqry_arr, NULL); ////sparse only code >>
-	free_all(ref_dim_sketch_stat, ref_sketch_index, qry_dim_sketch_stat, qry_sketch_index, tmp_ctxobj, NULL);
+	free_all(ref_sketch_stat, ref_sketch_index, qry_sketch_stat, qry_sketch_index, tmp_ctxobj, NULL);
 	free_read_from_file(sortedcomb_ctxgid64obj32, ctxgidobj_arr_fsize);
 	fclose(fp);
 
@@ -1057,6 +1110,22 @@ typedef struct {
     double   real_af_qry, real_af_ref;
     unsigned char real_af_available;
     int      XnY_ctx, N_diff_obj, N_diff_obj_section, N_mut2_ctx;
+    uint64_t readwise_total_reads;
+    uint64_t readwise_reads_with_ctx_match;
+    uint64_t readwise_unique_query_ctx;
+    uint64_t readwise_unique_query_ctx_hit;
+    uint64_t readwise_unique_ref_ctx_hit;
+    uint64_t readwise_density_block_ctx;
+    uint64_t readwise_total_density_blocks;
+    uint64_t readwise_blocks_with_ctx_match;
+    double   abundance_ref_breadth;
+    double   abundance_ref_mean_depth;
+    double   abundance_ref_hit_mean_depth;
+    double   abundance_ref_depth_variance;
+    double   abundance_ref_depth_cv;
+    double   abundance_ref_zero_fraction;
+    double   abundance_relative_depth;
+    double   abundance_normalized_depth;
 } ani_row_t;
 
 static inline double ani_row_report_af_qry(const ani_row_t *r)
@@ -1083,6 +1152,118 @@ static int cmp_ani_desc(const void *pa, const void *pb) {
 
 /* typedef to avoid anonymous-struct warnings from kvec_t params */
 typedef kvec_t(ani_row_t) kv_ani_row_t;
+
+typedef enum ani_readwise_default_call
+{
+	ANI_READWISE_CALL_WEAK = 0,
+	ANI_READWISE_CALL_LOW_ABUNDANCE = 1,
+	ANI_READWISE_CALL_MAJOR = 2
+} ani_readwise_default_call_t;
+
+static inline ani_readwise_default_call_t ani_readwise_default_call(const ani_row_t *r)
+{
+	if (!r)
+		return ANI_READWISE_CALL_WEAK;
+	if (r->abundance_ref_breadth >= 0.5 &&
+		r->abundance_relative_depth >= 1e-4 &&
+		r->XnY_ctx >= 50000 &&
+		r->selected_ani >= 0.95)
+		return ANI_READWISE_CALL_MAJOR;
+	if (r->abundance_ref_breadth >= 0.5 &&
+		r->abundance_relative_depth >= 1e-5 &&
+		r->XnY_ctx >= 1000 &&
+		r->selected_ani >= 0.95)
+		return ANI_READWISE_CALL_LOW_ABUNDANCE;
+	return ANI_READWISE_CALL_WEAK;
+}
+
+static inline const char *ani_readwise_default_call_label(ani_readwise_default_call_t call)
+{
+	switch (call)
+	{
+	case ANI_READWISE_CALL_MAJOR:
+		return "major";
+	case ANI_READWISE_CALL_LOW_ABUNDANCE:
+		return "low_abundance";
+	case ANI_READWISE_CALL_WEAK:
+	default:
+		return "weak";
+	}
+}
+
+static inline const char *ani_readwise_default_call_rule(ani_readwise_default_call_t call)
+{
+	switch (call)
+	{
+	case ANI_READWISE_CALL_MAJOR:
+		return "breadth>=0.5;rel_depth>=1e-4;XnY>=50000;ANI>=0.95";
+	case ANI_READWISE_CALL_LOW_ABUNDANCE:
+		return "breadth>=0.5;rel_depth>=1e-5;XnY>=1000;ANI>=0.95";
+	case ANI_READWISE_CALL_WEAK:
+	default:
+		return "below_default_call_thresholds";
+	}
+}
+
+static int cmp_readwise_default_call_desc(const void *pa, const void *pb)
+{
+	const ani_row_t *a = (const ani_row_t *)pa;
+	const ani_row_t *b = (const ani_row_t *)pb;
+	const int ca = (int)ani_readwise_default_call(a);
+	const int cb = (int)ani_readwise_default_call(b);
+	if (ca != cb)
+		return cb - ca;
+	if (a->abundance_relative_depth < b->abundance_relative_depth)
+		return 1;
+	if (a->abundance_relative_depth > b->abundance_relative_depth)
+		return -1;
+	if (a->abundance_ref_breadth < b->abundance_ref_breadth)
+		return 1;
+	if (a->abundance_ref_breadth > b->abundance_ref_breadth)
+		return -1;
+	if (a->selected_ani < b->selected_ani)
+		return 1;
+	if (a->selected_ani > b->selected_ani)
+		return -1;
+	return 0;
+}
+
+static void keep_readwise_default_calls(kv_ani_row_t *rows)
+{
+	if (!rows || kv_size(*rows) == 0)
+		return;
+	size_t w = 0;
+	for (size_t i = 0; i < kv_size(*rows); ++i)
+	{
+		if (ani_readwise_default_call(&kv_A(*rows, i)) == ANI_READWISE_CALL_WEAK)
+			continue;
+		if (w != i)
+			kv_A(*rows, w) = kv_A(*rows, i);
+		++w;
+	}
+	rows->n = w;
+}
+
+static void normalize_readwise_abundance_depth(kv_ani_row_t *rows, size_t out_n)
+{
+	if (!rows || out_n == 0)
+		return;
+	if (out_n > kv_size(*rows))
+		out_n = kv_size(*rows);
+	long double sum = 0.0L;
+	for (size_t i = 0; i < out_n; ++i) {
+		const double value = kv_A(*rows, i).abundance_relative_depth;
+		if (value > 0.0)
+			sum += (long double)value;
+	}
+	for (size_t i = 0; i < out_n; ++i) {
+		ani_row_t *row = &kv_A(*rows, i);
+		row->abundance_normalized_depth =
+			sum > 0.0L && row->abundance_relative_depth > 0.0
+				? (double)((long double)row->abundance_relative_depth / sum)
+				: 0.0;
+	}
+}
 
 /* --- tiny helpers --- */
 static inline const char *ani_best_confidence_label(const ani_row_t *r)
@@ -1306,13 +1487,50 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
     const double real_af_qry = bounded_align_fraction(r->real_af_qry);
     const double real_af_ref = bounded_align_fraction(r->real_af_ref);
     const double real_min_af = real_af_qry < real_af_ref ? real_af_qry : real_af_ref;
-    const char *af_source = r->real_af_available ? "density" : "sketch";
+    const char *af_source = (ani_opt && ani_opt->readwise_query)
+        ? "readwise_coverage"
+        : (r->real_af_available ? "density" : "sketch");
 
-    ksprintf(ks_out, "%s\t%s\t%lf\t%lf\t%s\t%s\t%d\t%f\t%f\t%f\t%f\t%d\t%d\t%d\t%s\t%f\t%f\t%f\t%s\n",
+    ksprintf(ks_out, "%s\t%s\t%lf\t%lf\t%s\t%s\t%d\t%f\t%f\t%f\t%f\t%d\t%d\t%d\t%s\t%f\t%f\t%f\t%s",
              qry_name, ref_name, selected_similarity, selected_distance, confidence, metric_name,
              r->XnY_ctx, r->af_qry, blastn_af_qry, r->af_ref, blastn_af_ref,
              r->N_diff_obj, r->N_diff_obj_section, r->N_mut2_ctx, ref_annotation,
              real_af_qry, real_af_ref, real_min_af, af_source);
+    if (ani_opt && ani_opt->readwise_query) {
+        const double read_match_fraction = r->readwise_total_reads
+            ? (double)r->readwise_reads_with_ctx_match / (double)r->readwise_total_reads
+            : 0.0;
+        const double block_match_fraction = r->readwise_total_density_blocks
+            ? (double)r->readwise_blocks_with_ctx_match / (double)r->readwise_total_density_blocks
+            : 0.0;
+        ksprintf(ks_out, "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f",
+                 r->readwise_reads_with_ctx_match,
+                 r->readwise_total_reads,
+                 read_match_fraction,
+                 r->readwise_unique_query_ctx,
+                 r->readwise_unique_query_ctx_hit,
+                 r->readwise_unique_ref_ctx_hit,
+                 r->readwise_density_block_ctx,
+                 r->readwise_total_density_blocks,
+                 r->readwise_blocks_with_ctx_match,
+                 block_match_fraction);
+        if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE) {
+			const ani_readwise_default_call_t default_call =
+				ani_readwise_default_call(r);
+            ksprintf(ks_out, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%s\t%s",
+                     r->abundance_ref_breadth,
+                     r->abundance_ref_mean_depth,
+                     r->abundance_ref_hit_mean_depth,
+                     r->abundance_ref_depth_variance,
+                     r->abundance_ref_depth_cv,
+                     r->abundance_ref_zero_fraction,
+                     r->abundance_relative_depth,
+                     r->abundance_normalized_depth,
+					 ani_readwise_default_call_label(default_call),
+					 ani_readwise_default_call_rule(default_call));
+        }
+    }
+    kputc('\n', ks_out);
 }
 
 static inline void print_unified_detail_row(FILE *outfp,
@@ -2114,11 +2332,11 @@ int stream_ref_sketches_one_qraw_lookup(ani_opt_t *ani_opt)
     if (qry->infile_num != 1)
         errx(EXIT_FAILURE, "%s(): expected exactly one query sample, found %d",
              __func__, qry->infile_num);
-    const_comask_init(&qry->stats.lco_stat_val);
+    const_comask_init(&qry->stats.minco_stat);
 
     size_t ref_stat_size = 0;
     char *ref_stat_path = test_get_fullpath(ani_opt->refdir, sketch_stat);
-    dim_sketch_stat_t *ref_stat = read_from_file(ref_stat_path, &ref_stat_size);
+    minco_sketch_stat_t *ref_stat = read_from_file(ref_stat_path, &ref_stat_size);
     free(ref_stat_path);
     if (ref_stat->hash_id != qry->hash_id)
         errx(EXIT_FAILURE, "%s(): hash_id mismatch between query and reference sketches", __func__);
@@ -2417,12 +2635,12 @@ int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt)
     if (qry->infile_num <= 1)
         errx(EXIT_FAILURE, "%s(): expected multiple query samples, found %d",
              __func__, qry->infile_num);
-    const_comask_init(&qry->stats.lco_stat_val);
+    const_comask_init(&qry->stats.minco_stat);
     const uint32_t Q = (uint32_t)qry->infile_num;
 
     size_t ref_stat_size = 0;
     char *ref_stat_path = test_get_fullpath(ani_opt->refdir, sketch_stat);
-    dim_sketch_stat_t *ref_stat = read_from_file(ref_stat_path, &ref_stat_size);
+    minco_sketch_stat_t *ref_stat = read_from_file(ref_stat_path, &ref_stat_size);
     free(ref_stat_path);
     if (ref_stat->hash_id != qry->hash_id)
         errx(EXIT_FAILURE, "%s(): hash_id mismatch between query and reference sketches", __func__);
@@ -2841,6 +3059,8 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 {
 	unify_sketch_t *qry_result = generic_sketch_parse(ani_opt->qrydir, ani_query_parse_flags(ani_opt));
 	unify_sketch_t *ref_result = generic_sketch_parse(ani_opt->refdir, ani_ref_parse_flags(ani_opt));
+	pairwise_check_compatible(ref_result, qry_result);
+	pairwise_prepare_minco_model(ref_result);
 	load_infile_meta_for_best_guard(qry_result, ani_opt->qrydir, ani_opt);
 	load_infile_meta_for_best_guard(ref_result, ani_opt->refdir, ani_opt);
 	const bool same_sketch = strcmp(ani_opt->qrydir, ani_opt->refdir) == 0;
@@ -3341,6 +3561,984 @@ size_t *minco_find_first_occurrences_fenceposts(const uint64_t *a, size_t a_size
 	return idx;
 }
 
+#ifndef MINCO_HASH_BOTTOMK
+#define MINCO_HASH_BOTTOMK 0
+#endif
+#ifndef MINCO_KEEP_SOURCE_FILTER
+#define MINCO_KEEP_SOURCE_FILTER 1
+#endif
+#ifndef MINCO_SEED
+#define MINCO_SEED 0x9e3779b97f4a7c15ULL
+#endif
+#ifndef MINCO_HASH_SPARSE_CTX
+#define MINCO_HASH_SPARSE_CTX 0
+#endif
+#ifndef likely
+#define likely(x) __builtin_expect(!!(x), 1)
+#endif
+#ifndef unlikely
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#endif
+
+#define ANI_APPLY_SOURCE_FILTER (!MINCO_HASH_BOTTOMK || MINCO_KEEP_SOURCE_FILTER)
+#define ANI_U64SET_MAX_LOAD_NUM 7u
+#define ANI_U64SET_MAX_LOAD_DEN 10u
+
+typedef struct {
+	uint64_t *keys;
+	uint8_t *used;
+	size_t cap;
+	size_t n;
+} ani_u64_set_t;
+
+typedef struct {
+	uint64_t XnY_ctx;
+	uint64_t N_diff_obj;
+	uint64_t N_diff_obj_section;
+	uint64_t N_mut2_ctx;
+	uint64_t qry_ctx_hit;
+	uint64_t ref_ctx_hit;
+	uint64_t reads_with_ctx_match;
+	uint64_t blocks_with_ctx_match;
+} ani_readwise_acc_t;
+
+typedef struct {
+	double ref_breadth;
+	double ref_mean_depth;
+	double ref_hit_mean_depth;
+	double ref_depth_variance;
+	double ref_depth_cv;
+	double ref_zero_fraction;
+	double relative_depth;
+} ani_readwise_abundance_t;
+
+typedef struct {
+	gzFile gz;
+	FILE *pipe_fp;
+	char *cmd;
+	uint64_t input_size;
+	bool input_size_known;
+} ani_fastx_stream_t;
+
+typedef struct {
+	bool enabled;
+	bool input_size_known;
+	uint64_t input_size;
+	uint64_t next_reads;
+	time_t started_at;
+	time_t last_at;
+} ani_readwise_progress_t;
+
+#define ANI_READWISE_PROGRESS_READ_INTERVAL 1000000ULL
+#define ANI_READWISE_PROGRESS_TIME_INTERVAL 30
+
+static inline size_t ani_next_pow2_size(size_t x)
+{
+	if (x <= 2)
+		return 2;
+	--x;
+	for (size_t s = 1; s < sizeof(size_t) * CHAR_BIT; s <<= 1)
+		x |= x >> s;
+	return x + 1;
+}
+
+static void ani_u64_set_init(ani_u64_set_t *set, size_t initial)
+{
+	memset(set, 0, sizeof(*set));
+	set->cap = ani_next_pow2_size(initial < 1024 ? 1024 : initial);
+	set->keys = calloc(set->cap, sizeof(set->keys[0]));
+	set->used = calloc(set->cap, sizeof(set->used[0]));
+	if (!set->keys || !set->used)
+		err(EXIT_FAILURE, "%s(): OOM hash set", __func__);
+}
+
+static void ani_u64_set_destroy(ani_u64_set_t *set)
+{
+	if (!set)
+		return;
+	free(set->keys);
+	free(set->used);
+	memset(set, 0, sizeof(*set));
+}
+
+static void ani_u64_set_grow(ani_u64_set_t *set)
+{
+	ani_u64_set_t next;
+	ani_u64_set_init(&next, set->cap << 1);
+	for (size_t i = 0; i < set->cap; ++i) {
+		if (!set->used[i])
+			continue;
+		uint64_t key = set->keys[i];
+		size_t pos = (size_t)mix64(key) & (next.cap - 1);
+		while (next.used[pos])
+			pos = (pos + 1) & (next.cap - 1);
+		next.used[pos] = 1;
+		next.keys[pos] = key;
+		next.n++;
+	}
+	free(set->keys);
+	free(set->used);
+	*set = next;
+}
+
+static bool ani_u64_set_insert(ani_u64_set_t *set, uint64_t key)
+{
+	if ((set->n + 1) * ANI_U64SET_MAX_LOAD_DEN >
+		set->cap * ANI_U64SET_MAX_LOAD_NUM)
+		ani_u64_set_grow(set);
+	size_t pos = (size_t)mix64(key) & (set->cap - 1);
+	for (;;) {
+		if (!set->used[pos]) {
+			set->used[pos] = 1;
+			set->keys[pos] = key;
+			set->n++;
+			return true;
+		}
+		if (set->keys[pos] == key)
+			return false;
+		pos = (pos + 1) & (set->cap - 1);
+	}
+}
+
+static inline uint32_t ani_clamp_u64_to_u32(uint64_t x)
+{
+	return x > (uint64_t)UINT32_MAX ? UINT32_MAX : (uint32_t)x;
+}
+
+static inline int ani_clamp_u64_to_int(uint64_t x)
+{
+	return x > (uint64_t)INT_MAX ? INT_MAX : (int)x;
+}
+
+static inline bool ani_bitset_test_set(uint8_t *bits, size_t idx)
+{
+	uint8_t *byte = &bits[idx >> 3];
+	const uint8_t mask = (uint8_t)(1u << (idx & 7u));
+	const bool was_set = (*byte & mask) != 0;
+	*byte |= mask;
+	return was_set;
+}
+
+static inline void ani_u32_saturating_inc(uint32_t *x)
+{
+	if (*x != UINT32_MAX)
+		++*x;
+}
+
+static char *ani_shell_quote_arg(const char *arg)
+{
+	size_t len = 2;
+	for (const char *p = arg; *p; ++p)
+		len += (*p == '\'') ? 4 : 1;
+	char *out = malloc(len + 1);
+	if (!out)
+		err(errno, "%s(): OOM shell quote", __func__);
+	char *w = out;
+	*w++ = '\'';
+	for (const char *p = arg; *p; ++p) {
+		if (*p == '\'') {
+			memcpy(w, "'\\''", 4);
+			w += 4;
+		} else {
+			*w++ = *p;
+		}
+	}
+	*w++ = '\'';
+	*w = '\0';
+	return out;
+}
+
+static char *ani_pipe_command_for_path(const char *pipecmd, const char *path)
+{
+	char *quoted = ani_shell_quote_arg(path);
+	const char *placeholder = strstr(pipecmd, "{}");
+	if (!placeholder) {
+		char *cmd = format_string("%s %s", pipecmd, quoted);
+		free(quoted);
+		return cmd;
+	}
+
+	size_t placeholders = 0;
+	for (const char *p = pipecmd; (p = strstr(p, "{}")) != NULL; p += 2)
+		placeholders++;
+	const size_t pipecmd_len = strlen(pipecmd);
+	const size_t quoted_len = strlen(quoted);
+	const size_t out_len = pipecmd_len - placeholders * 2 + placeholders * quoted_len;
+	char *cmd = malloc(out_len + 1);
+	if (!cmd)
+		err(errno, "%s(): OOM pipe command", __func__);
+
+	const char *src = pipecmd;
+	char *dst = cmd;
+	while ((placeholder = strstr(src, "{}")) != NULL) {
+		const size_t chunk = (size_t)(placeholder - src);
+		memcpy(dst, src, chunk);
+		dst += chunk;
+		memcpy(dst, quoted, quoted_len);
+		dst += quoted_len;
+		src = placeholder + 2;
+	}
+	strcpy(dst, src);
+	free(quoted);
+	return cmd;
+}
+
+static ani_fastx_stream_t ani_open_fastx_stream(const char *path, const char *pipecmd)
+{
+	ani_fastx_stream_t stream = {0};
+	if (pipecmd && pipecmd[0]) {
+		stream.cmd = ani_pipe_command_for_path(pipecmd, path);
+		stream.pipe_fp = popen(stream.cmd, "r");
+		if (!stream.pipe_fp)
+			err(errno, "%s(): popen %s", __func__, stream.cmd);
+		int fd = dup(fileno(stream.pipe_fp));
+		if (fd < 0)
+			err(errno, "%s(): dup pipe fd", __func__);
+		stream.gz = gzdopen(fd, "rb");
+		if (!stream.gz)
+			err(errno, "%s(): gzdopen pipe %s", __func__, stream.cmd);
+		return stream;
+	}
+	if (strcmp(path, "-") == 0) {
+		int fd = dup(STDIN_FILENO);
+		if (fd < 0)
+			err(errno, "%s(): dup stdin", __func__);
+		stream.gz = gzdopen(fd, "rb");
+		if (!stream.gz)
+			err(errno, "%s(): gzdopen stdin", __func__);
+		return stream;
+	}
+	stream.gz = gzopen(path, "r");
+	if (!stream.gz)
+		err(errno, "%s(): Cannot open %s", __func__, path);
+	struct stat st;
+	if (stat(path, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
+		stream.input_size = (uint64_t)st.st_size;
+		stream.input_size_known = true;
+	}
+	return stream;
+}
+
+static void ani_close_fastx_stream(ani_fastx_stream_t *stream)
+{
+	if (!stream)
+		return;
+	if (stream->gz) {
+		const int rc = gzclose(stream->gz);
+		stream->gz = NULL;
+		if (rc != Z_OK)
+			errx(EXIT_FAILURE, "%s(): gzclose failed", __func__);
+	}
+	if (stream->pipe_fp) {
+		const int rc = pclose(stream->pipe_fp);
+		stream->pipe_fp = NULL;
+		if (rc == -1)
+			err(errno, "%s(): pclose %s", __func__, stream->cmd ? stream->cmd : "pipe");
+		if (rc != 0)
+			errx(EXIT_FAILURE, "%s(): pipe command failed with status %d: %s",
+				 __func__, rc, stream->cmd ? stream->cmd : "pipe");
+	}
+	free(stream->cmd);
+	stream->cmd = NULL;
+}
+
+static void ani_progress_format_duration(uint64_t seconds, char *buf, size_t buf_size)
+{
+	const uint64_t hours = seconds / 3600;
+	const uint64_t minutes = (seconds % 3600) / 60;
+	const uint64_t secs = seconds % 60;
+	if (hours > 9999) {
+		snprintf(buf, buf_size, ">9999h");
+	} else if (hours > 0) {
+		snprintf(buf, buf_size, "%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64,
+				 hours, minutes, secs);
+	} else {
+		snprintf(buf, buf_size, "%02" PRIu64 ":%02" PRIu64, minutes, secs);
+	}
+}
+
+static bool ani_fastx_stream_offset(const ani_fastx_stream_t *stream, uint64_t *offset)
+{
+	if (!stream || !stream->gz || !offset)
+		return false;
+#if defined(ZLIB_VERNUM) && ZLIB_VERNUM >= 0x1240
+	const z_off_t pos = gzoffset(stream->gz);
+	if (pos < 0)
+		return false;
+	*offset = (uint64_t)pos;
+	return true;
+#else
+	(void)stream;
+	(void)offset;
+	return false;
+#endif
+}
+
+static ani_readwise_progress_t ani_readwise_progress_start(const ani_fastx_stream_t *stream)
+{
+	ani_readwise_progress_t progress = {
+		.enabled = true,
+		.input_size_known = stream && stream->input_size_known,
+		.input_size = stream ? stream->input_size : 0,
+		.next_reads = ANI_READWISE_PROGRESS_READ_INTERVAL,
+		.started_at = time(NULL),
+		.last_at = 0,
+	};
+	if (progress.input_size_known) {
+		fprintf(stderr,
+				"minco readwise: started; input=%" PRIu64
+				" bytes; progress every %" PRIu64 " reads or %d seconds\n",
+				progress.input_size, (uint64_t)ANI_READWISE_PROGRESS_READ_INTERVAL,
+				ANI_READWISE_PROGRESS_TIME_INTERVAL);
+	} else {
+		fprintf(stderr,
+				"minco readwise: started; input size unknown; progress every %" PRIu64
+				" reads or %d seconds\n",
+				(uint64_t)ANI_READWISE_PROGRESS_READ_INTERVAL,
+				ANI_READWISE_PROGRESS_TIME_INTERVAL);
+	}
+	return progress;
+}
+
+static void ani_readwise_progress_update(const ani_fastx_stream_t *stream,
+										 ani_readwise_progress_t *progress,
+										 uint64_t reads_done, bool force)
+{
+	if (!progress || !progress->enabled)
+		return;
+	if (!force && reads_done < progress->next_reads &&
+		(reads_done & 0xffffULL) != 0)
+		return;
+
+	const time_t now = time(NULL);
+	if (!force && reads_done < progress->next_reads &&
+		now - progress->last_at < ANI_READWISE_PROGRESS_TIME_INTERVAL)
+		return;
+	progress->last_at = now;
+	while (progress->next_reads <= reads_done)
+		progress->next_reads += ANI_READWISE_PROGRESS_READ_INTERVAL;
+
+	const uint64_t elapsed = now >= progress->started_at
+								 ? (uint64_t)(now - progress->started_at)
+								 : 0;
+	const double rate = (double)reads_done / (double)(elapsed > 0 ? elapsed : 1);
+	char elapsed_buf[32];
+	ani_progress_format_duration(elapsed, elapsed_buf, sizeof(elapsed_buf));
+
+	uint64_t offset = 0;
+	if (progress->input_size_known && ani_fastx_stream_offset(stream, &offset)) {
+		if (offset > progress->input_size)
+			offset = progress->input_size;
+		const double pct = progress->input_size > 0
+							   ? 100.0 * (double)offset / (double)progress->input_size
+							   : 100.0;
+		fprintf(stderr,
+				"minco readwise: %" PRIu64 " reads processed; %.2f%% input; "
+				"elapsed %s; %.0f reads/s\n",
+				reads_done, pct, elapsed_buf, rate);
+	} else {
+		fprintf(stderr,
+				"minco readwise: %" PRIu64 " reads processed; elapsed %s; "
+				"%.0f reads/s\n",
+				reads_done, elapsed_buf, rate);
+	}
+}
+
+static void ani_readwise_progress_done(const ani_fastx_stream_t *stream,
+									   ani_readwise_progress_t *progress,
+									   uint64_t reads_done)
+{
+	ani_readwise_progress_update(stream, progress, reads_done, true);
+	if (progress && progress->enabled)
+		fprintf(stderr, "minco readwise: complete\n");
+}
+
+static inline uint64_t ani_pext_portable(uint64_t value, uint64_t mask)
+{
+	uint64_t out = 0;
+	uint64_t bit = 1;
+	while (mask) {
+		const uint64_t low = mask & (~mask + 1);
+		if (value & low)
+			out |= bit;
+		mask ^= low;
+		bit <<= 1;
+	}
+	return out;
+}
+
+#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+__attribute__((target("bmi2")))
+static inline uint64_t ani_pext_bmi2(uint64_t value, uint64_t mask)
+{
+	return _pext_u64(value, mask);
+}
+#endif
+
+static inline uint64_t ani_pext_u64(uint64_t value, uint64_t mask)
+{
+#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+	static int inited = 0;
+	static int has_bmi2 = 0;
+	if (!inited) {
+		has_bmi2 = __builtin_cpu_supports("bmi2");
+		__atomic_store_n(&inited, 1, __ATOMIC_RELAXED);
+	}
+	if (has_bmi2)
+		return ani_pext_bmi2(value, mask);
+#endif
+	return ani_pext_portable(value, mask);
+}
+
+static inline uint64_t ani_hash_ctx(uint64_t ctx, uint32_t n_obj_bits)
+{
+	return mix64(ctx ^ (uint64_t)MINCO_SEED) >> n_obj_bits;
+}
+
+static inline uint64_t ani_hash_sparse_ctx(uint64_t sparse_ctx, uint32_t n_obj_bits)
+{
+	return mix64(sparse_ctx ^ (uint64_t)MINCO_SEED) >> n_obj_bits;
+}
+
+static inline uint64_t ani_make_hashed_ctxobj(uint64_t unituple, uint32_t n_obj_bits,
+											  uint64_t density_threshold)
+{
+#if MINCO_HASH_SPARSE_CTX
+	const uint64_t hctx = ani_hash_sparse_ctx(unituple & ctxmask, n_obj_bits);
+#else
+	const uint64_t ctx = ani_pext_u64(unituple, ctxmask);
+	const uint64_t hctx = ani_hash_ctx(ctx, n_obj_bits);
+#endif
+	if (hctx > density_threshold)
+		return UINT64_MAX;
+	const uint64_t obj = ani_pext_u64(unituple, tupmask & ~ctxmask);
+	return (hctx << n_obj_bits) | obj;
+}
+
+static void ani_extract_read_density_ctxobjs(const char *s, int len, u64vec *vec,
+											 uint32_t n_obj_bits,
+											 uint64_t density_threshold)
+{
+	if (len < (int)klen)
+		return;
+	const uint32_t len_mv = (uint32_t)(2 * klen - 2);
+	uint64_t tuple = 0, crv = 0;
+	int base = 0;
+
+	for (int pos = 0; pos < len; ++pos) {
+		const int bmap = Basemap[(unsigned char)s[pos]];
+		if (unlikely(bmap == DEFAULT)) {
+			base = 0;
+			tuple = 0;
+			crv = 0;
+			continue;
+		}
+		const uint64_t b2 = (uint64_t)bmap;
+		tuple = (tuple << 2) | b2;
+		crv = (crv >> 2) | ((b2 ^ 3ull) << len_mv);
+		if (unlikely(++base < (int)klen))
+			continue;
+
+		const uint64_t t_ctx = tuple & ctxmask;
+		const uint64_t r_ctx = crv & ctxmask;
+		const uint64_t unictx = t_ctx < r_ctx ? t_ctx : r_ctx;
+#if ANI_APPLY_SOURCE_FILTER
+		if (unlikely((uint32_t)mix64(unictx) > FILTER))
+			continue;
+#endif
+		const uint64_t unituple = (t_ctx < r_ctx ? tuple : crv) & tupmask;
+		const uint64_t packed = ani_make_hashed_ctxobj(unituple, n_obj_bits,
+													   density_threshold);
+		if (packed != UINT64_MAX)
+			v_push(vec, packed);
+	}
+}
+
+static int ani_min_diff_sections_read_run_vs_ref_index(const uint64_t *qry,
+													   size_t qry_begin,
+													   size_t qry_end,
+													   const ctxgidobj_t *ref,
+													   size_t ref_begin,
+													   size_t ref_end,
+													   uint64_t objmask)
+{
+	int min_diff_sections = NUM_CODENS + 1;
+	for (size_t qi = qry_begin; qi < qry_end; ++qi) {
+		const uint32_t obj_q = (uint32_t)(qry[qi] & objmask);
+		for (size_t ri = ref_begin; ri < ref_end; ++ri) {
+			const uint32_t diff = obj_q ^ ref[ri].obj;
+			if (diff == 0)
+				return 0;
+			const int d = dna_popcount(diff);
+			if (d < min_diff_sections)
+				min_diff_sections = d;
+		}
+	}
+	return min_diff_sections;
+}
+
+static void ani_process_density_ctxobj_unit(
+	u64vec *unit_vec,
+	uint64_t unit_id,
+	uint64_t unit_reads_with_density_ctx,
+	const ctxgidobj_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	uint8_t nobjbits,
+	uint64_t gidmask_local,
+	uint64_t objmask,
+	uint64_t *read_marks,
+	uint8_t *ref_hit_bits,
+	uint32_t *ref_ctx_cov,
+	ani_u64_set_t *qry_ctx_seen,
+	ani_u64_set_t *qry_ref_ctx_seen,
+	ani_readwise_acc_t *acc)
+{
+	if (!unit_vec || unit_vec->n == 0)
+		return;
+	radix_sort_u64(unit_vec->a, unit_vec->n);
+	unit_vec->n = dedup_sorted_uint64(unit_vec->a, unit_vec->n);
+	if (unit_vec->n == 0)
+		return;
+	if (unit_reads_with_density_ctx == 0)
+		unit_reads_with_density_ctx = 1;
+
+	for (size_t q = 0; q < unit_vec->n; ) {
+		const uint64_t qctx = unit_vec->a[q] >> nobjbits;
+		const size_t qbeg = q;
+		do { ++q; } while (q < unit_vec->n && (unit_vec->a[q] >> nobjbits) == qctx);
+		const size_t qend = q;
+		(void)ani_u64_set_insert(qry_ctx_seen, qctx);
+
+		size_t pos = lb_in_bucket_ctxgid(index, fence, fence_k, qctx);
+		while (pos < index_n && (index[pos].ctxgid >> GID_NBITS) == qctx) {
+			const uint64_t ctxgid = index[pos].ctxgid;
+			const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+			const size_t ref_begin = pos;
+			do { ++pos; } while (pos < index_n && index[pos].ctxgid == ctxgid);
+			const size_t ref_end = pos;
+			if (gid >= ref_n)
+				continue;
+			if (ignoreconflict && ref_end - ref_begin > 1)
+				continue;
+
+			if (read_marks[gid] != unit_id) {
+				read_marks[gid] = unit_id;
+				acc[gid].reads_with_ctx_match += unit_reads_with_density_ctx;
+				acc[gid].blocks_with_ctx_match++;
+			}
+			acc[gid].XnY_ctx++;
+			if (ref_ctx_cov)
+				ani_u32_saturating_inc(&ref_ctx_cov[ref_begin]);
+			if (!ani_bitset_test_set(ref_hit_bits, ref_begin))
+				acc[gid].ref_ctx_hit++;
+			const uint64_t pair_key = (qctx << GID_NBITS) | gid;
+			if (ani_u64_set_insert(qry_ref_ctx_seen, pair_key))
+				acc[gid].qry_ctx_hit++;
+
+			const int min_diff = ani_min_diff_sections_read_run_vs_ref_index(
+				unit_vec->a, qbeg, qend, index, ref_begin, ref_end, objmask);
+			if (min_diff > 0) {
+				acc[gid].N_diff_obj++;
+				acc[gid].N_diff_obj_section += (uint64_t)min_diff;
+				if (min_diff > 1)
+					acc[gid].N_mut2_ctx++;
+			}
+		}
+	}
+}
+
+static uint32_t *ani_ref_ctx_counts_from_sorted_index(const ctxgidobj_t *index,
+													  size_t index_n,
+													  uint32_t ref_n,
+													  bool ignoreconflict)
+{
+	uint32_t *counts = calloc((size_t)ref_n, sizeof(counts[0]));
+	if (!counts)
+		err(EXIT_FAILURE, "%s(): OOM reference context counts", __func__);
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid < ref_n && (!ignoreconflict || i - begin == 1))
+			counts[gid]++;
+	}
+	return counts;
+}
+
+static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const uint32_t *ref_ctx_total,
+	const ani_readwise_acc_t *acc)
+{
+	ani_readwise_abundance_t *stats = calloc((size_t)ref_n, sizeof(stats[0]));
+	long double *sum = calloc((size_t)ref_n, sizeof(sum[0]));
+	long double *sumsq = calloc((size_t)ref_n, sizeof(sumsq[0]));
+	if (!stats || !sum || !sumsq)
+		err(EXIT_FAILURE, "%s(): OOM abundance stats", __func__);
+
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1))
+			continue;
+		const long double cov = ref_ctx_cov ? (long double)ref_ctx_cov[begin] : 0.0L;
+		sum[gid] += cov;
+		sumsq[gid] += cov * cov;
+	}
+
+	long double total_mean_depth = 0.0L;
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const uint32_t total = ref_ctx_total ? ref_ctx_total[rn] : 0;
+		if (!total)
+			continue;
+		const long double denom = (long double)total;
+		const long double mean = sum[rn] / denom;
+		long double var = sumsq[rn] / denom - mean * mean;
+		if (var < 0.0L && var > -1e-12L)
+			var = 0.0L;
+		if (var < 0.0L)
+			var = 0.0L;
+		const uint64_t hit = acc ? acc[rn].ref_ctx_hit : 0;
+		const long double breadth = hit ? (long double)hit / denom : 0.0L;
+		stats[rn].ref_breadth = (double)breadth;
+		stats[rn].ref_mean_depth = (double)mean;
+		stats[rn].ref_hit_mean_depth = hit ? (double)(sum[rn] / (long double)hit) : 0.0;
+		stats[rn].ref_depth_variance = (double)var;
+		stats[rn].ref_depth_cv = mean > 0.0L ? (double)(sqrtl(var) / mean) : 0.0;
+		stats[rn].ref_zero_fraction = (double)(1.0L - breadth);
+		total_mean_depth += mean;
+	}
+	if (total_mean_depth > 0.0L) {
+		for (uint32_t rn = 0; rn < ref_n; ++rn)
+			stats[rn].relative_depth =
+				(double)((long double)stats[rn].ref_mean_depth / total_mean_depth);
+	}
+
+	free(sum);
+	free(sumsq);
+	return stats;
+}
+
+int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *query_path,
+											uint64_t density_threshold)
+{
+	if (!ani_opt || !query_path)
+		errx(EXIT_FAILURE, "%s(): missing ANI options or query path", __func__);
+	if (ani_opt->fmt != 0)
+		errx(EXIT_FAILURE, "readwise density ANI currently supports detail output (-m0) only");
+	if (ani_opt->sketch_reads_qc || ani_opt->sketch_abundance)
+		errx(EXIT_FAILURE,
+			 "readwise density ANI does not yet support --readsQC or --abundance; "
+			 "use --save-query-sketch to force the materialized query-sketch path");
+
+	char *ref_stat_path = test_get_fullpath(ani_opt->refdir, sketch_stat);
+	size_t ref_stat_size = 0;
+	minco_sketch_stat_t *ref_stat = read_from_file(ref_stat_path, &ref_stat_size);
+	free(ref_stat_path);
+	minco_sketch_info_t ref_info = {0};
+	if (!minco_stat_decode_mem(ref_stat, ref_stat_size, ref_stat, &ref_info))
+		errx(EXIT_FAILURE, "%s(): malformed %s/%s", __func__, ani_opt->refdir, sketch_stat);
+	if (ref_info.has_minco_ext)
+		ref_stat->hash_id = ref_info.sketch_id;
+	ani_model_target_sketch_size = ref_info.target_sketch_size
+										? ref_info.target_sketch_size
+										: ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	const uint32_t ref_n = (uint32_t)ref_stat->infile_num;
+	char (*refname)[PATHLEN] = (char (*)[PATHLEN])(ref_stat + 1);
+	FILTER = UINT32_MAX >> ref_stat->compat_filter_shift;
+	const_comask_init(ref_stat);
+	if (Bitslen.ctx + GID_NBITS > 64)
+		errx(EXIT_FAILURE, "%s(): context bits (%u) + gid bits (%u) exceed 64",
+			 __func__, Bitslen.ctx, GID_NBITS);
+
+	if (!file_exists_in_folder(ani_opt->refdir, sorted_comb_ctxgid64obj32))
+		gen_inverted_index_for_minco(ani_opt->refdir);
+	char *index_path = test_get_fullpath(ani_opt->refdir, sorted_comb_ctxgid64obj32);
+	size_t index_bytes = 0;
+	bool index_is_mmap = false;
+	ctxgidobj_t *index = read_reference_sorted_index(index_path, &index_bytes, &index_is_mmap);
+	free(index_path);
+	if (index_bytes % sizeof(index[0]) != 0)
+		errx(EXIT_FAILURE, "%s(): malformed sorted reference index", __func__);
+	const size_t index_n = index_bytes / sizeof(index[0]);
+	uint32_t *ref_ctx_total = ani_ref_ctx_counts_from_sorted_index(
+		index, index_n, ref_n, ani_opt->ignoreconflict);
+	char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, (int)ref_n);
+	infile_meta_t *ref_infile_meta =
+		ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
+
+	const int fence_k = minco_choose_k_fenceposts(index_n, 1024);
+	const size_t fence_buckets = (size_t)1u << fence_k;
+	size_t *fence = malloc((fence_buckets + 1u) * sizeof(*fence));
+	if (!fence)
+		err(EXIT_FAILURE, "%s(): OOM fenceposts", __func__);
+	if (minco_build_fenceposts_ctxgid(index, index_n, fence_k, fence) != 0)
+		errx(EXIT_FAILURE, "%s(): failed to build reference fenceposts", __func__);
+
+	ani_readwise_acc_t *acc = calloc((size_t)ref_n, sizeof(acc[0]));
+	uint64_t *read_marks = calloc((size_t)ref_n, sizeof(read_marks[0]));
+	uint8_t *ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
+	uint32_t *ref_ctx_cov = ani_opt->abundance_model != ANI_ABUNDANCE_NONE
+		? calloc(index_n, sizeof(ref_ctx_cov[0]))
+		: NULL;
+	if (!acc || !read_marks || !ref_hit_bits)
+		err(EXIT_FAILURE, "%s(): OOM readwise accumulators", __func__);
+	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE && !ref_ctx_cov)
+		err(EXIT_FAILURE, "%s(): OOM readwise abundance coverage", __func__);
+	ani_u64_set_t qry_ctx_seen;
+	ani_u64_set_t qry_ref_ctx_seen;
+	ani_u64_set_init(&qry_ctx_seen, 1u << 16);
+	ani_u64_set_init(&qry_ref_ctx_seen, 1u << 18);
+
+	ani_fastx_stream_t stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
+	(void)gzbuffer(stream.gz, 4u << 20);
+	kseq_t *seq = kseq_init(stream.gz);
+	if (!seq)
+		err(errno, "%s(): kseq_init %s", __func__, query_path);
+	ani_readwise_progress_t progress = ani_readwise_progress_start(&stream);
+
+	const uint8_t nobjbits = Bitslen.obj;
+	const uint64_t objmask = (nobjbits == 64) ? UINT64_MAX : ((1ULL << nobjbits) - 1ULL);
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	uint64_t total_reads = 0;
+	uint64_t total_density_blocks = 0;
+	uint64_t block_reads_with_density_ctx = 0;
+	u64vec read_vec;
+	u64vec block_vec;
+	v_init(&read_vec, 2048);
+	v_init(&block_vec, ani_opt->density_block_ctx > 2048u ? ani_opt->density_block_ctx : 2048u);
+	const uint32_t density_block_ctx = ani_opt->density_block_ctx;
+	const bool density_block_mode = density_block_ctx > 1u;
+	if (density_block_mode)
+		fprintf(stderr,
+				"minco readwise: density block mode active; density_block_ctx=%u\n",
+				density_block_ctx);
+
+	while (kseq_read(seq) >= 0) {
+		++total_reads;
+		ani_readwise_progress_update(&stream, &progress, total_reads, false);
+		read_vec.n = 0;
+		ani_extract_read_density_ctxobjs(seq->seq.s, (int)seq->seq.l, &read_vec,
+										 nobjbits, density_threshold);
+		if (!read_vec.n)
+			continue;
+		if (density_block_mode) {
+			v_reserve(&block_vec, block_vec.n + read_vec.n);
+			memcpy(block_vec.a + block_vec.n, read_vec.a,
+				   read_vec.n * sizeof(read_vec.a[0]));
+			block_vec.n += read_vec.n;
+			block_reads_with_density_ctx++;
+			if (block_vec.n < (size_t)density_block_ctx)
+				continue;
+			++total_density_blocks;
+			ani_process_density_ctxobj_unit(
+				&block_vec, total_density_blocks, block_reads_with_density_ctx,
+				index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
+				nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
+				ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
+			block_vec.n = 0;
+			block_reads_with_density_ctx = 0;
+		} else {
+			++total_density_blocks;
+			ani_process_density_ctxobj_unit(
+				&read_vec, total_density_blocks, 1,
+				index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
+				nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
+				ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
+		}
+	}
+	if (density_block_mode && block_vec.n > 0) {
+		++total_density_blocks;
+		ani_process_density_ctxobj_unit(
+			&block_vec, total_density_blocks, block_reads_with_density_ctx,
+			index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
+			nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
+			ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
+	}
+	ani_readwise_progress_done(&stream, &progress, total_reads);
+	v_free(&read_vec);
+	v_free(&block_vec);
+	kseq_destroy(seq);
+	ani_close_fastx_stream(&stream);
+
+	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
+	if (!outfp)
+		err(errno, "%s", ani_opt->outf);
+	const bool old_readwise = ani_opt->readwise_query;
+	const bool old_unassembled = ani_opt->unassembled;
+	const bool old_v = ani_opt->v;
+	const int old_ctxcut = ani_opt->ctxcut;
+	const float old_afcut = ani_opt->afcut;
+	const float old_anicut = ani_opt->anicut;
+	get_generic_dist_from_features_fn old_dist_fn = get_generic_dist_from_features;
+	const bool auto_readwise_abundance_report =
+		ani_opt->abundance_model != ANI_ABUNDANCE_NONE &&
+		!ani_opt->ctxcut_set &&
+		!ani_opt->afcut_set &&
+		!ani_opt->anicut_set &&
+		ani_opt->ntop < 0;
+	if (auto_readwise_abundance_report)
+	{
+		const uint64_t target = ani_model_target_sketch_size
+									? (uint64_t)ani_model_target_sketch_size
+									: (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
+		uint64_t auto_ctxcut = (target + 99u) / 100u;
+		if (auto_ctxcut < 3u)
+			auto_ctxcut = 3u;
+		if (auto_ctxcut > (uint64_t)INT_MAX)
+			auto_ctxcut = (uint64_t)INT_MAX;
+		ani_opt->ctxcut = (int)auto_ctxcut;
+		ani_opt->afcut = 0.0f;
+		ani_opt->anicut = 0.95f;
+		fprintf(stderr,
+				"minco readwise: default abundance report active; ctxcut=%d; anicut=0.95; "
+				"calls=major|low_abundance\n",
+				ani_opt->ctxcut);
+	}
+	ani_opt->readwise_query = true;
+	ani_opt->unassembled = true;
+	ani_opt->v = true;
+	get_generic_dist_from_features = get_naive_dist;
+	if (!ani_opt->afcut_set)
+		ani_opt->afcut = 0.2f;
+	print_ani_detail_header(outfp, ani_opt, true);
+
+	kv_ani_row_t survivors;
+	kv_init(survivors);
+	const uint64_t total_unique_qry_ctx = qry_ctx_seen.n;
+	const uint32_t qry_ctx_for_dist = ani_clamp_u64_to_u32(total_unique_qry_ctx);
+	ani_readwise_abundance_t *abundance_stats = NULL;
+	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
+		abundance_stats = ani_depth_abundance_from_ref_coverage(
+			index, index_n, ref_n, ani_opt->ignoreconflict,
+			ref_ctx_cov, ref_ctx_total, acc);
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const ani_readwise_acc_t *a = &acc[rn];
+		const uint64_t unique_overlap = a->qry_ctx_hit < a->ref_ctx_hit ? a->qry_ctx_hit : a->ref_ctx_hit;
+		if (unique_overlap < (uint64_t)ani_opt->ctxcut)
+			continue;
+		if (!a->XnY_ctx || !total_unique_qry_ctx || !ref_ctx_total[rn])
+			continue;
+		const double qry_af = (double)a->qry_ctx_hit / (double)total_unique_qry_ctx;
+		const double ref_af = (double)a->ref_ctx_hit / (double)ref_ctx_total[rn];
+		ani_density_af_t density_af = {
+			.qry = qry_af,
+			.ref = ref_af,
+			.available = 1,
+		};
+		if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref))
+			continue;
+
+		ani_features_t f = {
+			.XnY_ctx = ani_clamp_u64_to_u32(a->XnY_ctx),
+			.X_ctx = qry_ctx_for_dist,
+			.N_diff_obj_section = ani_clamp_u64_to_u32(a->N_diff_obj_section),
+			.N_mut2_ctx = ani_clamp_u64_to_u32(a->N_mut2_ctx),
+			.N_diff_obj = ani_clamp_u64_to_u32(a->N_diff_obj),
+		};
+		ani_row_t row = make_selected_output_row(
+			rn, &f, ani_opt,
+			qry_ctx_for_dist,
+			ref_ctx_total[rn],
+			qry_af, qry_af,
+			ref_af, ref_af,
+			density_af,
+			NULL,
+			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
+		row.XnY_ctx = ani_clamp_u64_to_int(a->XnY_ctx);
+		row.N_diff_obj = ani_clamp_u64_to_int(a->N_diff_obj);
+		row.N_diff_obj_section = ani_clamp_u64_to_int(a->N_diff_obj_section);
+		row.N_mut2_ctx = ani_clamp_u64_to_int(a->N_mut2_ctx);
+		row.readwise_total_reads = total_reads;
+		row.readwise_reads_with_ctx_match = a->reads_with_ctx_match;
+		row.readwise_unique_query_ctx = total_unique_qry_ctx;
+		row.readwise_unique_query_ctx_hit = a->qry_ctx_hit;
+		row.readwise_unique_ref_ctx_hit = a->ref_ctx_hit;
+		row.readwise_density_block_ctx = density_block_mode ? density_block_ctx : 0u;
+		row.readwise_total_density_blocks = total_density_blocks;
+		row.readwise_blocks_with_ctx_match = a->blocks_with_ctx_match;
+		if (abundance_stats) {
+			row.abundance_ref_breadth = abundance_stats[rn].ref_breadth;
+			row.abundance_ref_mean_depth = abundance_stats[rn].ref_mean_depth;
+			row.abundance_ref_hit_mean_depth = abundance_stats[rn].ref_hit_mean_depth;
+			row.abundance_ref_depth_variance = abundance_stats[rn].ref_depth_variance;
+			row.abundance_ref_depth_cv = abundance_stats[rn].ref_depth_cv;
+			row.abundance_ref_zero_fraction = abundance_stats[rn].ref_zero_fraction;
+			row.abundance_relative_depth = abundance_stats[rn].relative_depth;
+		}
+		const uint32_t unique_overlap_u32 = ani_clamp_u64_to_u32(unique_overlap);
+		row.mash_dist = get_mashD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								  qry_ctx_for_dist, unique_overlap_u32);
+		row.aaf_dist = get_aafD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								qry_ctx_for_dist, unique_overlap_u32);
+		finalize_row_selected_metric(&row, ani_opt);
+		if (row.selected_ani < ani_opt->anicut)
+			continue;
+		kv_push(ani_row_t, survivors, row);
+	}
+	if (auto_readwise_abundance_report)
+	{
+		keep_readwise_default_calls(&survivors);
+		if (kv_size(survivors))
+			qsort(&kv_A(survivors, 0), kv_size(survivors),
+				  sizeof(ani_row_t), cmp_readwise_default_call_desc);
+	}
+	else if (kv_size(survivors))
+	{
+		qsort(&kv_A(survivors, 0), kv_size(survivors), sizeof(ani_row_t), cmp_ani_desc);
+	}
+	size_t out_n = kv_size(survivors);
+	if (ani_opt->ntop > 0 && (size_t)ani_opt->ntop < out_n)
+		out_n = (size_t)ani_opt->ntop;
+	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
+		normalize_readwise_abundance_depth(&survivors, out_n);
+	for (size_t i = 0; i < out_n; ++i) {
+		const ani_row_t *r = &kv_A(survivors, i);
+		print_unified_detail_row(outfp, ani_opt, query_path, refname[r->rn],
+								 r, annotation_at(refanno, r->rn));
+	}
+	kv_destroy(survivors);
+
+	ani_opt->readwise_query = old_readwise;
+	ani_opt->unassembled = old_unassembled;
+	ani_opt->v = old_v;
+	ani_opt->ctxcut = old_ctxcut;
+	ani_opt->afcut = old_afcut;
+	ani_opt->anicut = old_anicut;
+	get_generic_dist_from_features = old_dist_fn;
+	if (outfp != stdout)
+		fclose(outfp);
+	free(abundance_stats);
+	ani_u64_set_destroy(&qry_ctx_seen);
+	ani_u64_set_destroy(&qry_ref_ctx_seen);
+	free(acc);
+	free(read_marks);
+	free(ref_hit_bits);
+	free(ref_ctx_cov);
+	free(fence);
+	free(ref_ctx_total);
+	if (refanno)
+		free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
+	if (ref_infile_meta)
+		free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
+	free_reference_sorted_index(index, index_bytes, index_is_mmap);
+	free_read_from_file(ref_stat, ref_stat_size);
+	return 0;
+}
+
 
 
 /* comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_survivors using hash table  */
@@ -3489,6 +4687,8 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
 {
     unify_sketch_t *qry = generic_sketch_parse(ani_opt->qrydir, ani_query_parse_flags(ani_opt));
     unify_sketch_t *ref = generic_sketch_parse(ani_opt->refdir, ani_ref_parse_flags(ani_opt));
+    pairwise_check_compatible(ref, qry);
+    pairwise_prepare_minco_model(ref);
     load_infile_meta_for_best_guard(qry, ani_opt->qrydir, ani_opt);
     load_infile_meta_for_best_guard(ref, ani_opt->refdir, ani_opt);
     ani_ctxmeta_rec_t *qry_ctxmeta =

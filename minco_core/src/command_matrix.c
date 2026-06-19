@@ -1290,7 +1290,7 @@ int compute_triangle(matrix_opt_t *matrix_opt)
 	const matrix_format_t fmt = matrix_effective_format(matrix_opt, false);
 	unify_sketch_t *result = generic_sketch_parse(
 		matrix_opt->qrydir, matrix_parse_flags_for_format(fmt));
-	pairwise_prepare_lco_model(result);
+	pairwise_prepare_minco_model(result);
 	if (fmt == MATRIX_FORMAT_FULL) {
 		if (!matrix_write_indexed_self_matrix(matrix_opt, result, matrix_opt->qrydir, fmt))
 			matrix_compute_dense(matrix_opt, result, result, true);
@@ -1328,7 +1328,7 @@ int compute_matrix(matrix_opt_t *matrix_opt)
 	unify_sketch_t *ref_result = generic_sketch_parse(matrix_opt->refdir, SKETCH_PARSE_NONE);
 	unify_sketch_t *qry_result = generic_sketch_parse(matrix_opt->qrydir, SKETCH_PARSE_NONE);
 	pairwise_check_compatible(ref_result, qry_result);
-	pairwise_prepare_lco_model(ref_result);
+	pairwise_prepare_minco_model(ref_result);
 	const bool same_sketch = strcmp(matrix_opt->refdir, matrix_opt->qrydir) == 0;
 	const matrix_format_t fmt = matrix_effective_format(matrix_opt, true);
 	if (fmt == MATRIX_FORMAT_EDGES)
@@ -1352,13 +1352,13 @@ int compute_ani_matrix(matrix_opt_t *matrix_opt)
 		err(EXIT_FAILURE, "%s(): ref sketch type %u != qry %u", __func__, ref_result->stat_type, qry_result->stat_type);
 	else if (ref_result->hash_id != qry_result->hash_id)
 		err(EXIT_FAILURE, "%s(): ref hash_id %u != qry %u", __func__, ref_result->hash_id, qry_result->hash_id);
-	dim_sketch_stat_t *lco_stat_readin = (dim_sketch_stat_t *)ref_result->mem_stat;
-	int obj_len = lco_stat_readin->klen - 2 * lco_stat_readin->hclen;
+	minco_sketch_stat_t *minco_stat_readin = (minco_sketch_stat_t *)ref_result->mem_stat;
+	int obj_len = minco_stat_readin->klen - 2 * minco_stat_readin->hclen;
 	if (obj_len == 0)
 		err(EXIT_FAILURE, "%s() abort!: sketching mode has 0bp object", __func__);
 
-	uint64_t tmp_var = UINT64_MAX >> (64 - 2 * lco_stat_readin->hclen);
-	uint64_t ctxmask = (tmp_var << (2 * (lco_stat_readin->klen - lco_stat_readin->hclen - lco_stat_readin->holen))) | (tmp_var << (2 * (lco_stat_readin->holen)));
+	uint64_t tmp_var = UINT64_MAX >> (64 - 2 * minco_stat_readin->hclen);
+	uint64_t ctxmask = (tmp_var << (2 * (minco_stat_readin->klen - minco_stat_readin->hclen - minco_stat_readin->holen))) | (tmp_var << (2 * (minco_stat_readin->holen)));
 	//  int kmerlen = ref_result->kmerlen;
 	// print header
 	FILE *output = matrix_opt->outf[0] == '\0' ? stdout : fopen(matrix_opt->outf, "w");

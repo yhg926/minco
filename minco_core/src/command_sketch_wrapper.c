@@ -76,7 +76,9 @@ enum
   SKETCH_CTXMETA = 912,
   SKETCH_QC_HASH_MULT = 913,
   SKETCH_QC_HASH_TARGET = 914,
-  SKETCH_SIZE = 915
+  SKETCH_SIZE = 915,
+  SKETCH_PRINT_CTXMETA = 916,
+  SKETCH_PRINT_CTXSETMETA = 917
 };
 
 static struct argp_option opt_sketch[] =
@@ -89,7 +91,7 @@ static struct argp_option opt_sketch[] =
 
         {0, 0, 0, 0, "Context pattern and sketch size:", SKETCH_GROUP_PRESET},
         {"use_coden_ctxobj", 'T', 0, 0, "Use the default coden context/object pattern. [default]", SKETCH_GROUP_PRESET},
-        {"DimRdcFold", 'f', "<INT>", OPTION_HIDDEN, "Compatibility option; hidden from public help.", SKETCH_GROUP_PRESET},
+        {"hash-filter-shift", 'f', "<INT>", OPTION_HIDDEN, "Internal source hash prefilter shift; hidden from public help.", SKETCH_GROUP_PRESET},
         {"sketch-size", 'S', "<INT>", 0, "Number of bottom context hashes to keep per sample. [10000]", SKETCH_GROUP_PRESET},
 
         {0, 0, 0, 0, "Manual context-object sizing:", SKETCH_GROUP_MANUAL},
@@ -104,16 +106,16 @@ static struct argp_option opt_sketch[] =
 
         {0, 0, 0, 0, "Read and sketch QC:", SKETCH_GROUP_QC},
         {"readsQC", 890, 0, 0, "For noisy reads, infer a count range from a larger hash sample, filter by that range, then take final bottom-k.", SKETCH_GROUP_QC},
-        {"sketchQC", 892, 0, 0, "Apply stored lcofiles.qc ranges to an existing abundance sketch and write a filtered sketch.", SKETCH_GROUP_QC},
+        {"sketchQC", 892, 0, 0, "Apply stored minco.qc ranges to an existing abundance sketch and write a filtered sketch.", SKETCH_GROUP_QC},
         {"qc-hash-mult", SKETCH_QC_HASH_MULT, "<INT>", 0, "readsQC hash-sampling target multiplier relative to --sketch-size. [50]", SKETCH_GROUP_QC},
         {"qc-hash-target", SKETCH_QC_HASH_TARGET, "<INT>", 0, "readsQC absolute hash-sampling target; 0 uses --qc-hash-mult. [0]", SKETCH_GROUP_QC},
 
         {0, 0, 0, 0, "Sketch content:", SKETCH_GROUP_CONTENT},
-        {"abundance", 'A', 0, 0, "Keep per-entry counts in comblco.a; useful before --sketchQC.", SKETCH_GROUP_CONTENT},
-        {"anno", 893, 0, 0, "Write FASTA/FASTQ header annotations to lcofiles.anno.", SKETCH_GROUP_CONTENT},
-        {"nocomputemeta", 894, 0, 0, "Do not write per-input metadata sidecar lcofiles.infilemeta.", SKETCH_GROUP_CONTENT},
-        {"ctxmeta", SKETCH_CTXMETA, "<none|preconflict|postconflict|both>", 0, "Write minco.ctxmeta.tsv density/unique-context estimates. [preconflict]", SKETCH_GROUP_CONTENT},
-        {"position", 895, 0, 0, "Write zero-based sequence-stream positions to comblco.position.", SKETCH_GROUP_CONTENT},
+        {"abundance", 'A', 0, 0, "Keep per-entry counts in minco.ctxobj64.abund; useful before --sketchQC.", SKETCH_GROUP_CONTENT},
+        {"anno", 893, 0, 0, "Write FASTA/FASTQ header annotations to minco.anno.", SKETCH_GROUP_CONTENT},
+        {"nocomputemeta", 894, 0, 0, "Do not write per-input metadata sidecar minco.infilemeta.", SKETCH_GROUP_CONTENT},
+        {"ctxmeta", SKETCH_CTXMETA, "<none|preconflict|postconflict|both>", 0, "Store binary minco.ctxmeta density metadata. [preconflict]", SKETCH_GROUP_CONTENT},
+        {"position", 895, 0, 0, "Write zero-based sequence-stream positions to minco.ctxobj64.position.", SKETCH_GROUP_CONTENT},
         {"conflict", 666, 0, 0, "Keep multiple objects per context; recommended for raw-read sketches.", SKETCH_GROUP_CONTENT},
 
         {0, 0, 0, 0, "Sample layout:", SKETCH_GROUP_LAYOUT},
@@ -125,14 +127,16 @@ static struct argp_option opt_sketch[] =
         {"psketch", SKETCH_PRINT_SKETCH, 0, 0, "Print sketch content.", SKETCH_GROUP_INSPECT},
         {"pindex", SKETCH_PRINT_INDEX, 0, 0, "Print context/genome/object index content.", SKETCH_GROUP_INSPECT},
         {"ppos", SKETCH_PRINT_POSITIONS, 0, 0, "Print sketch positions as sample, sketch entry, and zero-based position.", SKETCH_GROUP_INSPECT},
+        {"pctxmeta", SKETCH_PRINT_CTXMETA, 0, 0, "Print per-sample context metadata as TSV.", SKETCH_GROUP_INSPECT},
+        {"pctxsetmeta", SKETCH_PRINT_CTXSETMETA, 0, 0, "Print sketch-set context metadata summary as TSV.", SKETCH_GROUP_INSPECT},
 
         {0, 0, 0, 0, "Maintenance modes:", SKETCH_GROUP_MODES},
-        {"index", 'i', "<DIR>", 0, "Build comblco.index and sorted context index for a sketch directory.", SKETCH_GROUP_MODES},
+        {"index", 'i', "<DIR>", 0, "Build minco.refindex.ctxgid64obj32 for fast reference/indexed scans.", SKETCH_GROUP_MODES},
         {"merge", 777, 0, OPTION_HIDDEN, "Deprecated alias for --append copy mode.", SKETCH_GROUP_MODIFY},
         {"append", 778, 0, 0, "Append sketches; with -o writes a copy, without -o modifies the first sketch.", SKETCH_GROUP_MODIFY},
         {"remove", 896, "<FILE>", 0, "Remove listed samples; with -o writes a copy, without -o modifies the first sketch.", SKETCH_GROUP_MODIFY},
         {"keep", SKETCH_KEEP_SAMPLES, "<FILE>", 0, "Keep only listed samples; with -o writes a copy, without -o modifies the first sketch.", SKETCH_GROUP_MODIFY},
-        {"drop-position", SKETCH_DROP_POSITION, 0, 0, "Drop comblco.position while writing --keep, --remove, or --dedup output.", SKETCH_GROUP_MODIFY},
+        {"drop-position", SKETCH_DROP_POSITION, 0, 0, "Drop minco.ctxobj64.position while writing --keep, --remove, or --dedup output.", SKETCH_GROUP_MODIFY},
         {"dedup", SKETCH_DEDUP_SAMPLES, "<DIST>", 0, "Deduplicate samples with distance < DIST; with -o can build from FASTA/FASTQ or write a sketch copy.", SKETCH_GROUP_MODIFY},
         {"dedup-strategy", SKETCH_DEDUP_STRATEGY, "<greedy|full-linkage>", 0, "Dedup grouping strategy: greedy representative-neighbor or full-linkage clique. [greedy]", SKETCH_GROUP_MODIFY},
         {"dedup-max-afcut", SKETCH_DEDUP_MAX_AFCUT, "<FLOAT>", 0, "Require max pairwise context alignment fraction for --dedup. [0.8]", SKETCH_GROUP_MODIFY},
@@ -150,8 +154,9 @@ static char doc_sketch[] =
     "\v"
     "Default public sketch: coden context/object pattern, bottom N context hashes per sample.\n"
     "The default --sketch-size is 10,000.\n"
-    "Output is a sketch directory containing comblco, lcofiles.stat, and optional sidecars such as\n"
-    "minco.ctxmeta.tsv, lcofiles.infilemeta, lcofiles.qc, lcofiles.anno, comblco.a, or comblco.position.\n"
+    "Output is a sketch directory containing minco.ctxobj64, minco.stat, and optional sidecars such as\n"
+    "minco.ctxmeta, minco.infilemeta, minco.qc,\n"
+    "minco.anno, minco.ctxobj64.abund, or minco.ctxobj64.position.\n"
     "Build an index with `minco sketch -i DIR` before large reference or all-vs-all comparisons.\n"
     "Use '-' as one input to read FASTA/FASTQ from stdin.\n"
     "Use --pipecmd CMD to stream each input through a command; '{}' is replaced by the input path, otherwise the path is appended.\n"
@@ -162,6 +167,8 @@ static char doc_sketch[] =
     "  minco sketch -p8 -l genomes.list -o genomes.minco\n"
     "  minco sketch -i genomes.minco\n"
     "  minco sketch --psmp genomes.minco\n"
+    "  minco sketch --pctxmeta genomes.minco\n"
+    "  minco sketch --pctxsetmeta genomes.minco\n"
     "  samtools fastq reads.bam | \\\n"
     "    minco sketch --conflict --readsQC -o reads_sketch -\n"
     "  minco sketch --pipecmd 'samtools fastq {}' --conflict --readsQC \\\n"
@@ -247,7 +254,7 @@ sketch_opt_t sketch_opt = {
     .hclen = 11, //
     .holen = 0,
     .iolen = 0,
-    .drfold = 8,
+    .compat_filter_shift = 8,
     .sketch_size = MINCO_DEFAULT_SKETCH_SIZE,
     .kmerocrs = 1,
     .npercentile = 0.0,
@@ -260,15 +267,17 @@ sketch_opt_t sketch_opt = {
     .anno = 0,
     .compute_meta = 1,
     .ctxmeta_mode = MINCO_CTXMETA_PRECONFLICT,
+    .density_threshold_enabled = false,
+    .density_threshold = UINT64_MAX,
     .qc_hash_mult = 50,
     .qc_hash_target = 0,
     .position = 0,
     .drop_position = false,
-    .merge_comblco = 0,
-    .append_comblco = 0,
-    .remove_comblco = 0,
-    .keep_comblco = 0,
-    .dedup_comblco = 0,
+    .merge_minco_mode = 0,
+    .append_minco_mode = 0,
+    .remove_minco_mode = 0,
+    .keep_minco_mode = 0,
+    .dedup_minco_mode = 0,
     .dedup_raw_build_from_inputs = 0,
     .append_copy_mode = 0,
     .remove_copy_mode = 0,
@@ -341,8 +350,8 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
   }
   case 'f':
   {
-    int val = parse_int_range(state, "-f/--DimRdcFold", arg, 0, 24);
-    sketch_opt.drfold = val;
+    int val = parse_int_range(state, "-f/--hash-filter-shift", arg, 0, 24);
+    sketch_opt.compat_filter_shift = val;
     break;
   }
   case 'S':
@@ -463,18 +472,18 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
   }
   case 777:
   {
-    sketch_opt.append_comblco = 1;
+    sketch_opt.append_minco_mode = 1;
     sketch_opt.append_copy_mode = 1;
     break;
   }
   case 778:
   {
-    sketch_opt.append_comblco = 1;
+    sketch_opt.append_minco_mode = 1;
     break;
   }
   case 896:
   {
-    sketch_opt.remove_comblco = 1;
+    sketch_opt.remove_minco_mode = 1;
     sketch_opt.remove_list = malloc(strlen(arg) + 1);
     if (sketch_opt.remove_list == NULL)
       err(EXIT_FAILURE, "%s(): failed to allocate remove list path", __func__);
@@ -483,7 +492,7 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
   }
   case SKETCH_KEEP_SAMPLES:
   {
-    sketch_opt.keep_comblco = 1;
+    sketch_opt.keep_minco_mode = 1;
     sketch_opt.keep_list = malloc(strlen(arg) + 1);
     if (sketch_opt.keep_list == NULL)
       err(EXIT_FAILURE, "%s(): failed to allocate keep list path", __func__);
@@ -492,7 +501,7 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
   }
   case SKETCH_DEDUP_SAMPLES:
   {
-    sketch_opt.dedup_comblco = 1;
+    sketch_opt.dedup_minco_mode = 1;
     sketch_opt.dedup_cutoff = parse_nonnegative_double(state, "--dedup", arg);
     break;
   }
@@ -586,6 +595,16 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
     sketch_opt.print_mode = 4;
     break;
   }
+  case SKETCH_PRINT_CTXMETA:
+  {
+    sketch_opt.print_mode = 5;
+    break;
+  }
+  case SKETCH_PRINT_CTXSETMETA:
+  {
+    sketch_opt.print_mode = 6;
+    break;
+  }
   case ARGP_KEY_ARGS:
   {
     sketch_opt.num_remaining_args = state->argc - state->next;
@@ -594,29 +613,29 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
   }
   case ARGP_KEY_END:
   {
-    int mode_count = (sketch_opt.merge_comblco ? 1 : 0)
-                     + (sketch_opt.append_comblco ? 1 : 0)
-                     + (sketch_opt.remove_comblco ? 1 : 0)
-                     + (sketch_opt.keep_comblco ? 1 : 0)
-                     + (sketch_opt.dedup_comblco ? 1 : 0)
+    int mode_count = (sketch_opt.merge_minco_mode ? 1 : 0)
+                     + (sketch_opt.append_minco_mode ? 1 : 0)
+                     + (sketch_opt.remove_minco_mode ? 1 : 0)
+                     + (sketch_opt.keep_minco_mode ? 1 : 0)
+                     + (sketch_opt.dedup_minco_mode ? 1 : 0)
                      + (sketch_opt.sketch_qc ? 1 : 0)
                      + (sketch_opt.print_mode ? 1 : 0)
                      + (sketch_opt.index[0] != '\0' ? 1 : 0);
     if (mode_count > 1)
-      argp_error(state, "Use only one of --merge, --append, --remove, --keep, --dedup, --sketchQC, --psmp/--psketch/--pindex/--ppos, or -i/--index.");
-    if (sketch->dedup_metric_seen && !sketch_opt.dedup_comblco)
+      argp_error(state, "Use only one of --merge, --append, --remove, --keep, --dedup, --sketchQC, --psmp/--psketch/--pindex/--ppos/--pctxmeta/--pctxsetmeta, or -i/--index.");
+    if (sketch->dedup_metric_seen && !sketch_opt.dedup_minco_mode)
       argp_error(state, "--metric is currently only used with --dedup.");
-    if (sketch->dedup_strategy_seen && !sketch_opt.dedup_comblco)
+    if (sketch->dedup_strategy_seen && !sketch_opt.dedup_minco_mode)
       argp_error(state, "--dedup-strategy is currently only used with --dedup.");
-    if (!sketch_opt.dedup_comblco &&
+    if (!sketch_opt.dedup_minco_mode &&
         (sketch->dedup_max_afcut_seen || sketch->dedup_ctxcut_seen))
       argp_error(state, "--dedup-max-afcut and --dedup-ctxcut are currently only used with --dedup.");
-    if (sketch->dedup_index_seen && !sketch_opt.dedup_comblco)
+    if (sketch->dedup_index_seen && !sketch_opt.dedup_minco_mode)
       argp_error(state, "--dedup-index options are currently only used with --dedup.");
     if (sketch_opt.drop_position &&
-        !(sketch_opt.remove_comblco || sketch_opt.keep_comblco || sketch_opt.dedup_comblco))
+        !(sketch_opt.remove_minco_mode || sketch_opt.keep_minco_mode || sketch_opt.dedup_minco_mode))
       argp_error(state, "--drop-position is only used with --remove, --keep, or --dedup.");
-    if (sketch_opt.append_comblco)
+    if (sketch_opt.append_minco_mode)
     {
       if (sketch->outdir_seen)
         sketch_opt.append_copy_mode = 1;
@@ -636,7 +655,7 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
         sketch_opt.num_remaining_args--;
       }
     }
-    if (sketch_opt.remove_comblco)
+    if (sketch_opt.remove_minco_mode)
     {
       if (sketch_opt.remove_list == NULL || sketch_opt.remove_list[0] == '\0')
         argp_error(state, "--remove requires a newline-delimited sample-name list file.");
@@ -655,7 +674,7 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
         sketch_opt.remove_source = sketch_opt.outdir;
       }
     }
-    if (sketch_opt.keep_comblco)
+    if (sketch_opt.keep_minco_mode)
     {
       if (sketch_opt.keep_list == NULL || sketch_opt.keep_list[0] == '\0')
         argp_error(state, "--keep requires a newline-delimited sample-name list file.");
@@ -674,7 +693,7 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
         sketch_opt.keep_source = sketch_opt.outdir;
       }
     }
-    if (sketch_opt.dedup_comblco)
+    if (sketch_opt.dedup_minco_mode)
     {
       if (sketch->outdir_seen)
       {
@@ -703,11 +722,11 @@ static error_t parse_sketch(int key, char *arg, struct argp_state *state)
     if (sketch_opt.print_mode)
     {
       if (sketch->outdir_seen)
-        argp_error(state, "--psmp/--psketch/--pindex/--ppos print to stdout and do not use -o/--outdir.");
+        argp_error(state, "--psmp/--psketch/--pindex/--ppos/--pctxmeta/--pctxsetmeta print to stdout and do not use -o/--outdir.");
       if (sketch_opt.fpath != NULL)
-        argp_error(state, "--psmp/--psketch/--pindex/--ppos take one sketch directory argument, not -l/--list.");
+        argp_error(state, "--psmp/--psketch/--pindex/--ppos/--pctxmeta/--pctxsetmeta take one sketch directory argument, not -l/--list.");
       if (sketch_opt.num_remaining_args != 1)
-        argp_error(state, "--psmp/--psketch/--pindex/--ppos require exactly one sketch directory.");
+        argp_error(state, "--psmp/--psketch/--pindex/--ppos/--pctxmeta/--pctxsetmeta require exactly one sketch directory.");
     }
     if (sketch->coden_pattern_seen && sketch->manual_pattern_seen)
     {
@@ -774,18 +793,22 @@ static int sketch_stdin_input_count(infile_tab_t *infile_stat)
   return count;
 }
 
-extern uint32_t FILTER; // control dimensionality reducation level
+extern uint32_t FILTER; // internal source hash prefilter threshold
 extern uint32_t hash_id;
-extern dim_sketch_stat_t comblco_stat_one;
+extern minco_sketch_stat_t minco_stat_one;
+extern uint32_t minco_target_sketch_size;
+extern uint32_t minco_selection_mode;
+extern uint64_t minco_density_threshold;
+extern uint32_t minco_compiled_stat_flags(void);
 extern void compute_sketch(sketch_opt_t *, infile_tab_t *);
-extern void gen_inverted_index4comblco(const char *sketchdir);
-extern int merge_comblco(sketch_opt_t *sketch_opt_val);
-extern int append_comblco(sketch_opt_t *sketch_opt_val);
-extern int remove_comblco_samples(sketch_opt_t *sketch_opt_val);
-extern int keep_comblco_samples(sketch_opt_t *sketch_opt_val);
-extern int dedup_comblco_samples(sketch_opt_t *sketch_opt_val);
-extern int sketch_qc_comblco(sketch_opt_t *sketch_opt_val);
-extern uint32_t get_sketching_id(uint32_t hclen, uint32_t holen, uint32_t iolen, uint32_t drfold, uint32_t FILTER);
+extern void gen_inverted_index_for_minco(const char *sketchdir);
+extern int merge_minco_sketches(sketch_opt_t *sketch_opt_val);
+extern int append_minco_sketches(sketch_opt_t *sketch_opt_val);
+extern int remove_minco_samples(sketch_opt_t *sketch_opt_val);
+extern int keep_minco_samples(sketch_opt_t *sketch_opt_val);
+extern int dedup_minco_samples(sketch_opt_t *sketch_opt_val);
+extern int sketch_qc_minco(sketch_opt_t *sketch_opt_val);
+extern uint32_t get_sketching_id(uint32_t hclen, uint32_t holen, uint32_t iolen, uint32_t compat_filter_shift, uint32_t FILTER);
 
 static void sketch_free_infile_tab(infile_tab_t *infile_stat)
 {
@@ -797,7 +820,7 @@ static void sketch_free_infile_tab(infile_tab_t *infile_stat)
   free(infile_stat);
 }
 
-static bool sketch_valid_lco_dir(const char *path)
+static bool sketch_valid_minco_dir(const char *path)
 {
   return file_exists_in_folder(path, sketch_stat) &&
          file_exists_in_folder(path, idx_sketch_suffix) &&
@@ -882,7 +905,7 @@ static void sketch_check_raw_dedup_output(const char *outdir)
   }
   if (!S_ISDIR(st.st_mode))
     errx(EINVAL, "%s(): output path exists but is not a directory: %s", __func__, outdir);
-  if (sketch_valid_lco_dir(outdir))
+  if (sketch_valid_minco_dir(outdir))
     errx(EINVAL,
          "%s(): --dedup -o cannot exactly update an existing sketch from raw inputs: %s. Exact dedup requires all candidate samples in one sketch; append into a temporary combined sketch and run --dedup on that sketch.",
          __func__, outdir);
@@ -930,42 +953,53 @@ static void sketch_promote_tmp_dir(const char *tmp_dir, const char *outdir)
 
 static void sketch_prepare_output_stat(sketch_opt_t *opt, infile_tab_t *infile_stat)
 {
-  FILTER = UINT32_MAX >> opt->drfold;
+  FILTER = UINT32_MAX >> opt->compat_filter_shift;
+  minco_target_sketch_size = opt->sketch_size ? opt->sketch_size : MINCO_DEFAULT_SKETCH_SIZE;
+  minco_selection_mode = opt->density_threshold_enabled
+                               ? MINCO_STAT_SELECTION_DENSITY_THRESHOLD
+                               : MINCO_STAT_SELECTION_BOTTOMK;
+  minco_density_threshold = opt->density_threshold_enabled
+                                  ? opt->density_threshold
+                                  : UINT64_MAX;
   if (opt->coden_ctxobj_pattern)
   {
-    hash_id = get_sketching_id(NUM_CODENS, 0, 0, opt->drfold, FILTER);
 #if NUM_CODENS < 11
     klen = 3 * NUM_CODENS + 1;
 #else
     klen = 32;
 #endif
-    comblco_stat_one.coden_len = NUM_CODENS;
-    comblco_stat_one.hclen = 0;
-    comblco_stat_one.holen = 0;
+    minco_stat_one.coden_len = NUM_CODENS;
+    minco_stat_one.hclen = 0;
+    minco_stat_one.holen = 0;
   }
   else
   {
-    hash_id = get_sketching_id(opt->hclen, opt->holen, opt->iolen, opt->drfold, FILTER);
     klen = 2 * (opt->hclen + opt->holen) + opt->iolen;
-    comblco_stat_one.coden_len = 0;
-    comblco_stat_one.hclen = opt->hclen;
-    comblco_stat_one.holen = opt->holen;
+    minco_stat_one.coden_len = 0;
+    minco_stat_one.hclen = opt->hclen;
+    minco_stat_one.holen = opt->holen;
   }
-  if (NUM_CODENS > 11 || klen > 32 || FILTER < 256)
-    err(EINVAL, "%s(): NUM_CODENS(%d) or klen (%d) or FILTER (%u) is out of range (NUM_CODENS <=11 and klen <=32 and FILTER: 256..0xffffffff)",
-        __func__, NUM_CODENS, klen, FILTER);
+  if (NUM_CODENS > 11 || klen > 32)
+    err(EINVAL, "%s(): NUM_CODENS(%d) or klen (%d) is out of range (NUM_CODENS <=11 and klen <=32)",
+        __func__, NUM_CODENS, klen);
 
-  printf("Sketching method hashid = %u\tctxobj_coden_len=%u\tklen=%u\tFILTER=%u\thclen=%d\n",
-         hash_id, comblco_stat_one.coden_len, klen, FILTER, comblco_stat_one.hclen);
-  comblco_stat_one.hash_id = hash_id;
-  comblco_stat_one.koc = opt->abundance;
-  comblco_stat_one.conflict = opt->conflict;
-  comblco_stat_one.klen = klen;
-  comblco_stat_one.drfold = opt->drfold;
-  comblco_stat_one.infile_num = opt->asone
+  minco_stat_one.koc = opt->abundance;
+  minco_stat_one.conflict = opt->conflict;
+  minco_stat_one.klen = klen;
+  minco_stat_one.compat_filter_shift = 0;
+  minco_stat_one.infile_num = opt->asone
                                     ? (infile_stat->infile_num < 1 ? 0 : 1)
                                     : infile_stat->infile_num;
-  const_comask_init(&comblco_stat_one);
+  hash_id = minco_stat_sketch_id_from_dim(&minco_stat_one,
+                                          minco_target_sketch_size,
+                                          minco_selection_mode,
+                                          minco_compiled_stat_flags());
+  minco_stat_one.hash_id = hash_id;
+  printf("Sketching method sketch_id=%u\tfeature_id=%u\tctxobj_coden_len=%u\tklen=%u\tsketch_size=%u\thclen=%d\n",
+         hash_id, minco_stat_feature_id_from_dim(&minco_stat_one),
+         minco_stat_one.coden_len, klen, minco_target_sketch_size,
+         minco_stat_one.hclen);
+  const_comask_init(&minco_stat_one);
   set_uint64kmer2generic_ctxobj(opt->coden_ctxobj_pattern);
 }
 
@@ -997,12 +1031,12 @@ static int sketch_dedup_raw_build_from_inputs(sketch_opt_t *opt)
   char *dedup_dir = sketch_raw_build_tmp_dir(opt->outdir, "dedup");
 
   sketch_opt_t new_opt = *opt;
-  new_opt.dedup_comblco = false;
+  new_opt.dedup_minco_mode = false;
   new_opt.dedup_raw_build_from_inputs = false;
   new_opt.dedup_copy_mode = false;
   sketch_compute_inputs_to_dir(&new_opt, infile_stat, new_dir);
   if (opt->dedup_index)
-    gen_inverted_index4comblco(new_dir);
+    gen_inverted_index_for_minco(new_dir);
 
   sketch_opt_t dedup_opt = {
       .outdir = dedup_dir,
@@ -1019,7 +1053,7 @@ static int sketch_dedup_raw_build_from_inputs(sketch_opt_t *opt)
       .dedup_index_min_votes = opt->dedup_index_min_votes,
       .dedup_index_sample_step = opt->dedup_index_sample_step,
   };
-  const int kept_samples = dedup_comblco_samples(&dedup_opt);
+  const int kept_samples = dedup_minco_samples(&dedup_opt);
 
   sketch_promote_tmp_dir(dedup_dir, opt->outdir);
   sketch_remove_tree(new_dir);
@@ -1044,9 +1078,9 @@ int cmd_sketch(struct argp_state *state)
   argp_parse(&argp_sketch, argc, argv, ARGP_IN_ORDER, &argc, &sketch);
   state->next += argc - 1;
 
-  if (sketch_opt.merge_comblco)
+  if (sketch_opt.merge_minco_mode)
   {
-    int merge_count = merge_comblco(&sketch_opt);
+    int merge_count = merge_minco_sketches(&sketch_opt);
   }
   else if (sketch_opt.print_mode)
   {
@@ -1055,34 +1089,38 @@ int cmd_sketch(struct argp_state *state)
       errx(EXIT_FAILURE, "%s is not a valid sketch", sketch_path);
     if (sketch_opt.print_mode == 1)
       sketch_inspect_print_samples(sketch_path);
+    else if (sketch_opt.print_mode == 5)
+      sketch_inspect_print_ctxmeta(sketch_path);
+    else if (sketch_opt.print_mode == 6)
+      sketch_inspect_print_ctxsetmeta(sketch_path);
     else
       sketch_inspect_print_content(sketch_path, sketch_opt.print_mode - 1);
   }
-  else if (sketch_opt.append_comblco)
+  else if (sketch_opt.append_minco_mode)
   {
-    int append_count = append_comblco(&sketch_opt);
+    int append_count = append_minco_sketches(&sketch_opt);
   }
-  else if (sketch_opt.remove_comblco)
+  else if (sketch_opt.remove_minco_mode)
   {
-    int remove_count = remove_comblco_samples(&sketch_opt);
+    int remove_count = remove_minco_samples(&sketch_opt);
   }
-  else if (sketch_opt.keep_comblco)
+  else if (sketch_opt.keep_minco_mode)
   {
-    int keep_count = keep_comblco_samples(&sketch_opt);
+    int keep_count = keep_minco_samples(&sketch_opt);
   }
-  else if (sketch_opt.dedup_comblco)
+  else if (sketch_opt.dedup_minco_mode)
   {
     int dedup_count = sketch_opt.dedup_raw_build_from_inputs
                           ? sketch_dedup_raw_build_from_inputs(&sketch_opt)
-                          : dedup_comblco_samples(&sketch_opt);
+                          : dedup_minco_samples(&sketch_opt);
   }
   else if (sketch_opt.sketch_qc)
   {
-    return sketch_qc_comblco(&sketch_opt);
+    return sketch_qc_minco(&sketch_opt);
   }
   else if (sketch_opt.index[0] != '\0')
   {
-    gen_inverted_index4comblco(sketch_opt.index);
+    gen_inverted_index_for_minco(sketch_opt.index);
   }
   else
   {
@@ -1094,43 +1132,7 @@ int cmd_sketch(struct argp_state *state)
         errx(EXIT_FAILURE, "stdin input '-' can be used only once");
       if ((stdin_count > 0 || sketch_opt.pipecmd != NULL) && sketch_opt.split_mfa)
         errx(EXIT_FAILURE, "--splitmfa does not support '-' or --pipecmd streaming inputs");
-      FILTER = UINT32_MAX >> sketch_opt.drfold;
-      /* conditionally initilize some comblco_stat_one members*/
-      if(sketch_opt.coden_ctxobj_pattern){
-        hash_id = get_sketching_id(NUM_CODENS,0,0,sketch_opt.drfold, FILTER);
-#if NUM_CODENS < 11
-        klen = 3 * NUM_CODENS + 1 ; // klen is 3*NUM_CODENS+1
-#else
-        klen = 32 ;
-#endif
-//  klen = NUM_CODENS < 11 ? 3 * NUM_CODENS + 1 : 32  ; // klen is 3*NUM_CODENS+1 only when NUM_CODENS <=10
-        comblco_stat_one.coden_len = NUM_CODENS; // set coden_len
-        comblco_stat_one.hclen = 0;
-        comblco_stat_one.holen = 0;
-      }else{
-        hash_id =  get_sketching_id(sketch_opt.hclen, sketch_opt.holen, sketch_opt.iolen, sketch_opt.drfold, FILTER);
-        klen = 2 * (sketch_opt.hclen + sketch_opt.holen) + sketch_opt.iolen;
-        comblco_stat_one.coden_len = 0; // no coden ctxobj pattern
-        comblco_stat_one.hclen = sketch_opt.hclen;
-        comblco_stat_one.holen = sketch_opt.holen;
-      }
-      if (NUM_CODENS > 11 || klen > 32 || FILTER < 256)
-        err(EINVAL, "%s(): NUM_CODENS(%d) or klen (%d) or FILTER (%u) is out of range (NUM_CODENS <=11 and klen <=32 and FILTER: 256..0xffffffff)", __func__, NUM_CODENS, klen, FILTER);
-
-      printf("Sketching method hashid = %u\tctxobj_coden_len=%u\tklen=%u\tFILTER=%u\thclen=%d\n", hash_id, comblco_stat_one.coden_len, klen, FILTER, comblco_stat_one.hclen);
-      { /*initilize the rest comblco_stat_one member*/
-        comblco_stat_one.hash_id = hash_id;
-        comblco_stat_one.koc = sketch_opt.abundance;
-        comblco_stat_one.conflict = sketch_opt.conflict;
-        comblco_stat_one.klen = klen;     
-        comblco_stat_one.drfold = sketch_opt.drfold;
-        if(sketch_opt.asone)
-          comblco_stat_one.infile_num =  infile_stat->infile_num < 1 ? 0: 1;
-        else
-          comblco_stat_one.infile_num = infile_stat->infile_num ;
-      }
-      // ensure initalize global masks
-      const_comask_init(&comblco_stat_one);
+      sketch_prepare_output_stat(&sketch_opt, infile_stat);
       mkdir_p(sketch_opt.outdir);
       // initialize k-mer rearrange method: reorder_unituple_by_coden_pattern64() or uint64_kmer2ctxobj()
       set_uint64kmer2generic_ctxobj(sketch_opt.coden_ctxobj_pattern);

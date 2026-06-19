@@ -114,7 +114,7 @@ typedef struct bin_stat
   // estimated kmer count sum accross files in the bin (dimension reduction rate not comsidered here)
   llong est_kmc_bf_dr;
   char (*seqfilebasename)[BASENAME_LEN];
-  llong AllcoMem; // exact co file size in mem. estimate after stage I
+  llong exact_co_mem; // exact co file size in memory, estimated after stage I
 } bin_stat_t;
 
 infile_tab_t *organize_infile_list(char *list_path, int fmt_ck);
@@ -135,8 +135,8 @@ typedef struct co_dirstat
   llong all_ctx_ct;
 } co_dstat_t;
 
-/*comblco stat file type*/
-typedef struct dim_sketch_stat
+/* minco sketch stat file type */
+typedef struct minco_sketch_stat
 {
   uint32_t hash_id; // sketching type coding
   bool koc;
@@ -145,22 +145,140 @@ typedef struct dim_sketch_stat
   int klen;      // full length of kmer, 8..31
   int hclen;     // half context length,
   int holen;     // half outer object length, 1..64
-  int drfold;    // dimension reduction fold 2^n , 0..32
+	  int compat_filter_shift;    // compatibility slot for the old hash-filter shift; minco writes 0
   int infile_num;
-} dim_sketch_stat_t;
+} minco_sketch_stat_t;
+
+#define MINCO_STAT_EXT_MAGIC 0x4d434f53u /* "MCOS" */
+#define MINCO_STAT_EXT_VERSION 1u
+#define MINCO_STAT_HASH_FUNCTION_SPLITMIX64 1u
+#define MINCO_STAT_SKETCH_MODEL_CTX_BOTTOMK 1u
+#define MINCO_STAT_SELECTION_BOTTOMK 1u
+#define MINCO_STAT_SELECTION_DENSITY_THRESHOLD 2u
+#define MINCO_STAT_SELECTION_READWISE_DENSITY 3u
+#define MINCO_STAT_DENSITY_POLICY_NONE 0u
+#define MINCO_STAT_DENSITY_POLICY_SINGLE_SAMPLE 1u
+#define MINCO_STAT_DENSITY_POLICY_LARGEST_SAMPLE 2u
+#define MINCO_STAT_DENSITY_POLICY_EXPLICIT_THRESHOLD 3u
+#define MINCO_STAT_DENSITY_SAMPLE_ID_NONE UINT32_MAX
+#define MINCO_STAT_DENSITY_FLAG_MIXED_HASH_BITS 0x01u
+#define MINCO_STAT_FLAG_MINCO_HASH_BOTTOMK 0x01u
+#define MINCO_STAT_FLAG_STREAM_BOTTOMK 0x02u
+#define MINCO_STAT_FLAG_KEEP_SOURCE_FILTER 0x04u
+#define MINCO_STAT_FLAG_SPARSE_CTX_HASH 0x08u
+
+#ifndef MINCO_SEED
+#define MINCO_SEED 0x9e3779b97f4a7c15ULL
+#endif
+
+typedef struct minco_stat_density_summary
+{
+  uint64_t min_threshold;
+  uint64_t max_threshold;
+  uint64_t universal_threshold;
+  uint32_t min_sample_id;
+  uint32_t max_sample_id;
+  uint32_t universal_sample_id;
+  uint32_t valid_sample_count;
+  uint32_t hash_bits;
+  uint32_t universal_policy;
+  uint32_t flags;
+} minco_stat_density_summary_t;
+
+/* Authoritative minco metadata appended after the legacy-compatible stat
+ * prefix and fixed-width sample-name table:
+ *   minco_sketch_stat_t prefix
+ *   char sample_names[infile_num][PATHLEN]
+ *   minco_stat_ext_v1_t extension
+ *
+ * The prefix keeps current payload readers working during this remodel; the
+ * extension carries minco-specific identity such as -S and selection mode.
+ */
+typedef struct minco_stat_ext_v1
+{
+  uint32_t magic;
+  uint16_t version;
+  uint16_t struct_size;
+  uint32_t target_sketch_size;
+  uint32_t feature_id;
+  uint32_t sketch_id;
+  uint32_t hash_function;
+  uint32_t hash_bits;
+  uint64_t hash_seed;
+  uint32_t sketch_model;
+  uint32_t selection_mode;
+  uint32_t flags;
+  uint32_t reserved;
+  uint64_t density_threshold;
+  uint64_t density_min_threshold;
+  uint64_t density_max_threshold;
+  uint64_t density_universal_threshold;
+  uint32_t density_min_sample_id;
+  uint32_t density_max_sample_id;
+  uint32_t density_universal_sample_id;
+  uint32_t density_valid_sample_count;
+  uint32_t density_hash_bits;
+  uint32_t density_universal_policy;
+  uint32_t density_flags;
+  uint32_t density_reserved;
+} minco_stat_ext_v1_t;
+
+typedef struct minco_sketch_info
+{
+  bool has_minco_ext;
+  uint32_t stat_version;
+  uint32_t target_sketch_size;
+  uint32_t feature_id;
+  uint32_t sketch_id;
+  uint32_t hash_function;
+  uint32_t hash_bits;
+  uint64_t hash_seed;
+  uint32_t sketch_model;
+  uint32_t selection_mode;
+  uint32_t flags;
+  uint64_t density_threshold;
+  uint64_t density_min_threshold;
+  uint64_t density_max_threshold;
+  uint64_t density_universal_threshold;
+  uint32_t density_min_sample_id;
+  uint32_t density_max_sample_id;
+  uint32_t density_universal_sample_id;
+  uint32_t density_valid_sample_count;
+  uint32_t density_hash_bits;
+  uint32_t density_universal_policy;
+  uint32_t density_flags;
+} minco_sketch_info_t;
+
+typedef struct minco_ctxmeta_record
+{
+  uint8_t mode;
+  uint8_t valid;
+  uint16_t reserved16;
+  uint32_t hash_bits;
+  uint64_t threshold;
+  uint64_t sketch_entries;
+  uint64_t selected_observed_ctx;
+  uint64_t selected_estimated_unique_ctx;
+  uint64_t preconflict_observed_ctx;
+  uint64_t preconflict_estimated_unique_ctx;
+  uint64_t postconflict_observed_ctx;
+  uint64_t postconflict_estimated_unique_ctx;
+} minco_ctxmeta_record_t;
+_Static_assert(sizeof(minco_ctxmeta_record_t) == 72,
+               "minco_ctxmeta_record_t must remain a 72-byte v1 binary record");
 
 #define DIM_SKETCH_QC_RANGE_VALID 1u
 #define DIM_SKETCH_QC_RANGE_APPLIED 2u
 
 /* Per-sample auxiliary sketch QC statistics. One record per sample, in the
- * same order as lcofiles.stat names and comblco.index entries. */
-typedef struct dim_sketch_qc_stat
+ * same order as minco.stat names and minco.ctxobj64.offsets entries. */
+typedef struct minco_sketch_qc_stat
 {
   uint32_t flags;
   uint32_t reads_qc_lower;
   uint32_t reads_qc_upper;
   uint32_t reads_qc_mode;
-} dim_sketch_qc_stat_t;
+} minco_sketch_qc_stat_t;
 
 #define MINCO_INFILE_META_VERSION 1u
 #define MINCO_INFILE_FMT_UNKNOWN 0
@@ -177,7 +295,7 @@ typedef struct dim_sketch_qc_stat
 #define MINCO_INFILE_FLAG_MIXED_FORMAT 0x10u
 
 /* Per-sample input metadata. One record per sample, in the same order as
- * lcofiles.stat names and comblco.index entries. meta_fmt_version == 0 means
+ * minco.stat names and minco.ctxobj64.offsets entries. meta_fmt_version == 0 means
  * metadata is unavailable/invalid for this sample.
  */
 typedef struct infile_meta
@@ -360,6 +478,44 @@ int str_suffix_match(char *str, const char *suf);
 const char *get_pathname(const char *fullpath, const char *suf);
 char *test_get_fullpath(const char *parent_path, const char *dstat_f);
 char *test_create_fullpath(const char *parent_path, const char *dstat_f);
+char *sketch_existing_fullpath(const char *parent_path, const char *dstat_f);
+uint32_t minco_stat_hash_bits_from_dim(const minco_sketch_stat_t *stat);
+uint32_t minco_stat_feature_id_from_dim(const minco_sketch_stat_t *stat);
+uint32_t minco_stat_sketch_id_from_dim(const minco_sketch_stat_t *stat,
+                                       uint32_t target_sketch_size,
+                                       uint32_t selection_mode,
+                                       uint32_t flags);
+minco_stat_ext_v1_t minco_stat_make_ext(const minco_sketch_stat_t *stat,
+                                        uint32_t target_sketch_size,
+                                        uint32_t selection_mode,
+                                        uint32_t flags,
+                                        uint64_t density_threshold);
+minco_stat_ext_v1_t minco_stat_make_ext_with_density(const minco_sketch_stat_t *stat,
+                                                     uint32_t target_sketch_size,
+                                                     uint32_t selection_mode,
+                                                     uint32_t flags,
+                                                     uint64_t density_threshold,
+                                                     const minco_stat_density_summary_t *density_summary);
+bool minco_stat_decode_mem(const void *mem, size_t stat_size,
+                           minco_sketch_stat_t *legacy_out,
+                           minco_sketch_info_t *info_out);
+size_t minco_stat_base_size(int infile_num);
+size_t minco_stat_full_size(int infile_num);
+char (*minco_stat_names_from_mem(void *mem, size_t stat_size))[PATHLEN];
+const char (*minco_stat_const_names_from_mem(const void *mem, size_t stat_size))[PATHLEN];
+void minco_stat_write_path(const char *path, const minco_sketch_stat_t *stat,
+                           const char (*names)[PATHLEN],
+                           uint32_t target_sketch_size,
+                           uint32_t selection_mode,
+                           uint32_t flags,
+                           uint64_t density_threshold);
+void minco_stat_write_path_with_density(const char *path, const minco_sketch_stat_t *stat,
+                                        const char (*names)[PATHLEN],
+                                        uint32_t target_sketch_size,
+                                        uint32_t selection_mode,
+                                        uint32_t flags,
+                                        uint64_t density_threshold,
+                                        const minco_stat_density_summary_t *density_summary);
 char *format_string(const char *format, ...);
 int file_exists_in_folder(const char *folder, const char *filename);
 void *read_from_file(const char *file_path, size_t *file_size);
@@ -384,12 +540,14 @@ extern const char sketch_stat[];
 extern const char sketch_qc_stat[];
 extern const char sketch_anno_stat[];
 extern const char sketch_infile_meta_stat[];
+extern const char minco_ctxmeta_bin_stat[];
+extern const char minco_ctxsetmeta_legacy_tsv_stat[];
 extern const char sketch_position_suffix[];
 extern const char combined_sketch_suffix[];
 extern const char combined_ab_suffix[];
 extern const char idx_sketch_suffix[];
-extern const char lpan_prefix[];
-extern const char luniq_pan_prefix[];
+extern const char minco_pan_prefix[];
+extern const char minco_uniq_pan_prefix[];
 // legency uint32_t sketch
 extern const char co_dstat[];
 extern const char skch_prefix[];
@@ -463,7 +621,7 @@ static inline void v_push(u64vec *v, uint64_t x)
     v->a[v->n++] = x;
 }
 
-// union type for both combco and comblco sketch
+// union type for in-memory sketch views
 typedef struct
 {
   int stat_type;          // 1 = 32-bit sketch, 2 = 64-bit sketch
@@ -473,17 +631,18 @@ typedef struct
   uint64_t *positions;    // Optional positions aligned with comb_sketch
   uint64_t *sketch_index; // Combined k-mer index
   uint32_t *abundance;
-  dim_sketch_qc_stat_t *sample_qc;
+  minco_sketch_qc_stat_t *sample_qc;
   infile_meta_t *infile_meta;
   char (*annotation)[PATHLEN];
   int infile_num;   // Number of input files
   int kmerlen;      // K-mer length
   uint32_t hash_id; // hash_id or shuf_id
   bool conflict; //if keep conflict obj
+  minco_sketch_info_t minco_info;
   union
   {
     co_dstat_t co_stat_val;         // 32-bit sketch statistics
-    dim_sketch_stat_t lco_stat_val; // 64-bit sketch statistics
+    minco_sketch_stat_t minco_stat; // 64-bit sketch statistics
   } stats;                          // Union of the two possible types
 } unify_sketch_t;
 

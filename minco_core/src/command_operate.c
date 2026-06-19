@@ -1,9 +1,12 @@
-/*command_operate.c extent the legency minco set functions to support long sketch (*.comblco) */
+/* Hidden sketch-set maintenance helpers for minco context-object sketches. */
 #include "global_basic.h"
 #include "command_ani.h"
 #include "command_operate.h"
+#include "command_sketch_wrapper.h"
 #include "sketch_inspect.h"
 #include "../klib/khash.h"
+#include <inttypes.h>
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -11,17 +14,17 @@
 #include <omp.h>
 #endif
 
-const char lpan_prefix[] = "lpan"; // uint64_t pan
-const char luniq_pan_prefix[] = "luniq_pan";
+const char minco_pan_prefix[] = "lpan"; // uint64_t pan
+const char minco_uniq_pan_prefix[] = "luniq_pan";
 // common vars
 static size_t file_size;
-static dim_sketch_stat_t lco_stat_readin, lco_stat_pan, lco_stat_origin;
+static minco_sketch_stat_t minco_stat_readin, minco_stat_pan, minco_stat_origin;
 static struct stat s;
 static char outfpath[PATHLEN + 20];
 static int ret;
 extern const char sorted_comb_ctxgid64obj32[];
 
-static void copy_lsketch_annotations(const char *indir, const char *outdir, int infile_num)
+static void copy_minco_sketch_annotations(const char *indir, const char *outdir, int infile_num)
 {
 	if (infile_num <= 0 || !file_exists_in_folder(indir, sketch_anno_stat))
 		return;
@@ -43,15 +46,168 @@ static void copy_lsketch_annotations(const char *indir, const char *outdir, int 
 void sketch_inspect_print_samples(const char *sketch_path)
 {
 	void *mem_stat = read_from_file(test_get_fullpath(sketch_path, sketch_stat), &file_size);
-	memcpy(&lco_stat_readin, mem_stat, sizeof(lco_stat_readin));
-	char (*tmpname)[PATHLEN] = mem_stat + sizeof(dim_sketch_stat_t);
+	memcpy(&minco_stat_readin, mem_stat, sizeof(minco_stat_readin));
+	char (*tmpname)[PATHLEN] = mem_stat + sizeof(minco_sketch_stat_t);
 	uint64_t *mem_index = (uint64_t *)read_from_file(test_get_fullpath(sketch_path, idx_sketch_suffix), &file_size);
-	for (int i = 0; i < lco_stat_readin.infile_num; i++)
+	for (int i = 0; i < minco_stat_readin.infile_num; i++)
 		printf("%lu\t%s\n", mem_index[i + 1] - mem_index[i], tmpname[i]);
 	free_all(mem_stat, mem_index, NULL);
 }
 
-void print_lco_gnames(set_opt_t *set_opt)
+static const char *inspect_ctxmeta_mode_name(uint8_t mode)
+{
+	switch (mode)
+	{
+	case MINCO_CTXMETA_PRECONFLICT:
+		return "preconflict";
+	case MINCO_CTXMETA_POSTCONFLICT:
+		return "postconflict";
+	case MINCO_CTXMETA_BOTH:
+		return "both";
+	case MINCO_CTXMETA_NONE:
+	default:
+		return "none";
+	}
+}
+
+static long double inspect_threshold_density(uint64_t threshold, uint32_t hash_bits)
+{
+	if (hash_bits == 0 || hash_bits > 64 || threshold == UINT64_MAX)
+		return 0.0L;
+	return ((long double)threshold + 1.0L) / ldexpl(1.0L, (int)hash_bits);
+}
+
+void sketch_inspect_print_ctxmeta(const char *sketch_path)
+{
+	size_t stat_size = 0;
+	char *stat_path = test_get_fullpath(sketch_path, sketch_stat);
+	void *mem_stat = read_from_file(stat_path, &stat_size);
+	free(stat_path);
+	if (!minco_stat_decode_mem(mem_stat, stat_size, &minco_stat_readin, NULL))
+		errx(EINVAL, "%s(): malformed %s/%s", __func__, sketch_path, sketch_stat);
+	char (*names)[PATHLEN] = minco_stat_names_from_mem(mem_stat, stat_size);
+
+	if (!file_exists_in_folder(sketch_path, minco_ctxmeta_bin_stat))
+		errx(EXIT_FAILURE, "%s/%s does not exist; build the sketch with --ctxmeta",
+			 sketch_path, minco_ctxmeta_bin_stat);
+	char *ctxmeta_path = test_get_fullpath(sketch_path, minco_ctxmeta_bin_stat);
+	size_t ctxmeta_size = 0;
+	minco_ctxmeta_record_t *records = read_from_file(ctxmeta_path, &ctxmeta_size);
+	free(ctxmeta_path);
+	const size_t expected_size =
+		(size_t)minco_stat_readin.infile_num * sizeof(records[0]);
+	if (ctxmeta_size != expected_size)
+		errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			 __func__, sketch_path, minco_ctxmeta_bin_stat,
+			 ctxmeta_size, expected_size);
+
+	puts("sample_id\tsample_path\tmode\tvalid\thash_bits\tthreshold\tsketch_entries"
+		 "\tselected_observed_ctx\tselected_estimated_unique_ctx"
+		 "\tpreconflict_observed_ctx\tpreconflict_estimated_unique_ctx"
+		 "\tpostconflict_observed_ctx\tpostconflict_estimated_unique_ctx");
+	for (int i = 0; i < minco_stat_readin.infile_num; ++i)
+	{
+		const minco_ctxmeta_record_t *r = &records[i];
+		printf("%d\t%s\t%s\t%u\t%u\t%" PRIu64 "\t%" PRIu64
+			   "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64
+			   "\t%" PRIu64 "\t%" PRIu64 "\n",
+			   i,
+			   names[i],
+			   inspect_ctxmeta_mode_name(r->mode),
+			   (unsigned)r->valid,
+			   r->hash_bits,
+			   r->threshold,
+			   r->sketch_entries,
+			   r->selected_observed_ctx,
+			   r->selected_estimated_unique_ctx,
+			   r->preconflict_observed_ctx,
+			   r->preconflict_estimated_unique_ctx,
+			   r->postconflict_observed_ctx,
+			   r->postconflict_estimated_unique_ctx);
+	}
+	free_read_from_file(records, ctxmeta_size);
+	free_read_from_file(mem_stat, stat_size);
+}
+
+static const char *inspect_density_policy_name(uint32_t policy)
+{
+	switch (policy)
+	{
+	case MINCO_STAT_DENSITY_POLICY_SINGLE_SAMPLE:
+		return "single_sample_density";
+	case MINCO_STAT_DENSITY_POLICY_LARGEST_SAMPLE:
+		return "largest_sample_density";
+	case MINCO_STAT_DENSITY_POLICY_EXPLICIT_THRESHOLD:
+		return "explicit_threshold";
+	case MINCO_STAT_DENSITY_POLICY_NONE:
+	default:
+		return "none";
+	}
+}
+
+static const char *inspect_sample_name_or_empty(char (*names)[PATHLEN], int infile_num,
+												uint32_t sample_id)
+{
+	if (!names || sample_id == MINCO_STAT_DENSITY_SAMPLE_ID_NONE ||
+		sample_id >= (uint32_t)infile_num)
+		return "";
+	return names[sample_id];
+}
+
+void sketch_inspect_print_ctxsetmeta(const char *sketch_path)
+{
+	size_t stat_size = 0;
+	char *stat_path = test_get_fullpath(sketch_path, sketch_stat);
+	void *mem_stat = read_from_file(stat_path, &stat_size);
+	free(stat_path);
+	minco_sketch_info_t info = {0};
+	if (!minco_stat_decode_mem(mem_stat, stat_size, &minco_stat_readin, &info))
+		errx(EINVAL, "%s(): malformed %s/%s", __func__, sketch_path, sketch_stat);
+	if (!info.has_minco_ext || info.density_valid_sample_count == 0)
+		errx(EXIT_FAILURE, "%s has no density summary; build the sketch with --ctxmeta",
+			 sketch_path);
+	char (*names)[PATHLEN] = minco_stat_names_from_mem(mem_stat, stat_size);
+
+	puts("key\tvalue");
+	printf("meta_version\t1\n");
+	printf("sample_count\t%d\n", minco_stat_readin.infile_num);
+	printf("valid_sample_count\t%u\n", info.density_valid_sample_count);
+	printf("hash_bits\t%u\n", info.density_hash_bits);
+	printf("hash_bits_mixed\t%u\n",
+		   (info.density_flags & MINCO_STAT_DENSITY_FLAG_MIXED_HASH_BITS) ? 1u : 0u);
+	printf("universal_density_policy\t%s\n",
+		   inspect_density_policy_name(info.density_universal_policy));
+	printf("universal_sample_id\t%u\n", info.density_universal_sample_id);
+	printf("universal_sample_path\t%s\n",
+		   inspect_sample_name_or_empty(names, minco_stat_readin.infile_num,
+										info.density_universal_sample_id));
+	printf("universal_hash_bits\t%u\n", info.density_hash_bits);
+	printf("universal_threshold\t%" PRIu64 "\n", info.density_universal_threshold);
+	printf("universal_density\t%.18Le\n",
+		   inspect_threshold_density(info.density_universal_threshold,
+									 info.density_hash_bits));
+	printf("min_sample_id\t%u\n", info.density_min_sample_id);
+	printf("min_sample_path\t%s\n",
+		   inspect_sample_name_or_empty(names, minco_stat_readin.infile_num,
+										info.density_min_sample_id));
+	printf("min_sample_hash_bits\t%u\n", info.density_hash_bits);
+	printf("min_sample_threshold\t%" PRIu64 "\n", info.density_min_threshold);
+	printf("min_sample_density\t%.18Le\n",
+		   inspect_threshold_density(info.density_min_threshold,
+									 info.density_hash_bits));
+	printf("largest_sample_id\t%u\n", info.density_max_sample_id);
+	printf("largest_sample_path\t%s\n",
+		   inspect_sample_name_or_empty(names, minco_stat_readin.infile_num,
+										info.density_max_sample_id));
+	printf("largest_sample_hash_bits\t%u\n", info.density_hash_bits);
+	printf("largest_sample_threshold\t%" PRIu64 "\n", info.density_max_threshold);
+	printf("largest_sample_density\t%.18Le\n",
+		   inspect_threshold_density(info.density_max_threshold,
+									 info.density_hash_bits));
+	free_read_from_file(mem_stat, stat_size);
+}
+
+void print_minco_sample_names(set_opt_t *set_opt)
 {
 	sketch_inspect_print_samples(set_opt->insketchpath);
 }
@@ -334,13 +490,411 @@ static void pwrite_all(int fd, const void *data, size_t bytes, off_t offset, con
 	}
 }
 
-int lsketch_union(set_opt_t *set_opt)
+static uint64_t minco_downsample_unique_ctx_count(const uint64_t *values, size_t n,
+												  uint32_t n_obj_bits)
+{
+	if (!values || n == 0)
+		return 0;
+	uint64_t count = 1;
+	uint64_t prev = n_obj_bits == 64 ? 0 : (values[0] >> n_obj_bits);
+	for (size_t i = 1; i < n; ++i)
+	{
+		const uint64_t ctx = n_obj_bits == 64 ? 0 : (values[i] >> n_obj_bits);
+		if (ctx != prev)
+		{
+			++count;
+			prev = ctx;
+		}
+	}
+	return count;
+}
+
+static uint64_t minco_downsample_density_estimate(uint64_t observed,
+												  uint64_t threshold,
+												  uint32_t hash_bits)
+{
+	if (observed == 0 || hash_bits == 0)
+		return observed;
+	const long double hash_space = ldexpl(1.0L, (int)hash_bits);
+	const long double denom = (long double)threshold + 1.0L;
+	if (denom <= 0.0L)
+		return 0;
+	const long double estimate =
+		((long double)observed * hash_space / denom) + 0.5L;
+	if (estimate >= (long double)UINT64_MAX)
+		return UINT64_MAX;
+	return (uint64_t)estimate;
+}
+
+static void minco_downsample_copy_optional_sidecar(const char *indir,
+												   const char *outdir,
+												   const char *name,
+												   size_t expected_size)
+{
+	if (!file_exists_in_folder(indir, name))
+		return;
+	char *in_path = test_get_fullpath(indir, name);
+	size_t sidecar_size = 0;
+	void *data = read_from_file(in_path, &sidecar_size);
+	free(in_path);
+	if (sidecar_size != expected_size)
+		errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			 __func__, indir, name, sidecar_size, expected_size);
+	char *out_path = test_create_fullpath(outdir, name);
+	write_to_file(out_path, data, sidecar_size);
+	free(out_path);
+	free_read_from_file(data, sidecar_size);
+}
+
+static void minco_downsample_prepare_outdir(const char *outdir)
+{
+	if (!outdir || outdir[0] == '\0')
+		errx(EINVAL, "%s(): missing output directory", __func__);
+	if (mkdir(outdir, 0777) != 0 && errno != EEXIST)
+		err(errno, "%s(): cannot create %s", __func__, outdir);
+	const char *core_names[] = {
+		sketch_stat,
+		combined_sketch_suffix,
+		idx_sketch_suffix,
+		minco_ctxmeta_bin_stat,
+		combined_ab_suffix,
+		sketch_position_suffix,
+		sorted_comb_ctxgid64obj32,
+	};
+	for (size_t i = 0; i < sizeof(core_names) / sizeof(core_names[0]); ++i)
+		if (file_exists_in_folder(outdir, core_names[i]))
+			errx(EINVAL, "%s already contains %s; choose an empty output directory",
+				 outdir, core_names[i]);
+}
+
+static size_t minco_downsample_file_size(const char *dir, const char *name)
+{
+	char *path = test_get_fullpath(dir, name);
+	struct stat st;
+	if (stat(path, &st) != 0)
+		err(errno, "%s(): stat %s", __func__, path);
+	free(path);
+	if (st.st_size < 0)
+		errx(EINVAL, "%s(): negative file size for %s/%s", __func__, dir, name);
+	return (size_t)st.st_size;
+}
+
+static FILE *minco_downsample_open_optional_entry_file(const char *dir,
+													   const char *name,
+													   uint64_t total_entries,
+													   size_t elem_size)
+{
+	if (!file_exists_in_folder(dir, name))
+		return NULL;
+	const size_t expected_size = (size_t)total_entries * elem_size;
+	const size_t observed_size = minco_downsample_file_size(dir, name);
+	if (observed_size != expected_size)
+		errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			 __func__, dir, name, observed_size, expected_size);
+	char *path = test_get_fullpath(dir, name);
+	FILE *fp = fopen(path, "rb");
+	if (!fp)
+		err(errno, "%s(): fopen %s", __func__, path);
+	free(path);
+	return fp;
+}
+
+static void minco_downsample_seek(FILE *fp, uint64_t entry_offset,
+								  size_t elem_size, const char *label)
+{
+	if (!fp)
+		return;
+	const uint64_t byte_offset_u64 = entry_offset * (uint64_t)elem_size;
+	if (entry_offset != 0 && byte_offset_u64 / entry_offset != elem_size)
+		errx(EINVAL, "%s(): byte offset overflow for %s", __func__, label);
+	if (fseeko(fp, (off_t)byte_offset_u64, SEEK_SET) != 0)
+		err(errno, "%s(): seek %s", __func__, label);
+}
+
+static void minco_downsample_read_exact(FILE *fp, void *buf, size_t elem_size,
+										size_t count, const char *label)
+{
+	if (count == 0)
+		return;
+	if (fread(buf, elem_size, count, fp) != count)
+		err(errno, "%s(): short read from %s", __func__, label);
+}
+
+static void minco_downsample_write_exact(FILE *fp, const void *buf, size_t elem_size,
+										 size_t count, const char *label)
+{
+	if (count == 0)
+		return;
+	if (fwrite(buf, elem_size, count, fp) != count)
+		err(errno, "%s(): write %s", __func__, label);
+}
+
+int minco_sketch_downsample(set_opt_t *set_opt)
+{
+	if (!set_opt)
+		errx(EINVAL, "%s(): missing set options", __func__);
+	if (set_opt->sketch_size == 0)
+		errx(EINVAL, "%s(): --sketch-size must be positive", __func__);
+	if (strcmp(set_opt->insketchpath, set_opt->outdir) == 0)
+		errx(EINVAL, "%s(): output directory must differ from input sketch", __func__);
+
+	size_t stat_size = 0;
+	char *stat_path = test_get_fullpath(set_opt->insketchpath, sketch_stat);
+	void *mem_stat = read_from_file(stat_path, &stat_size);
+	free(stat_path);
+	minco_sketch_info_t info = {0};
+	if (!minco_stat_decode_mem(mem_stat, stat_size, &minco_stat_origin, &info))
+		errx(EINVAL, "%s(): malformed %s/%s", __func__,
+			 set_opt->insketchpath, sketch_stat);
+	if (info.target_sketch_size && set_opt->sketch_size > info.target_sketch_size)
+		errx(EINVAL, "%s(): requested -S %u is larger than source sketch target %u",
+			 __func__, set_opt->sketch_size, info.target_sketch_size);
+	const int infile_num = minco_stat_origin.infile_num;
+	if (infile_num <= 0)
+		errx(EINVAL, "%s(): input sketch has no samples", __func__);
+	const uint32_t hash_bits = info.hash_bits ? info.hash_bits
+											  : minco_stat_hash_bits_from_dim(&minco_stat_origin);
+	if (hash_bits > 64)
+		errx(EINVAL, "%s(): invalid hash_bits=%u", __func__, hash_bits);
+	const uint32_t n_obj_bits = 64u - hash_bits;
+	char (*names)[PATHLEN] = minco_stat_names_from_mem(mem_stat, stat_size);
+
+	char *in_idx_path = test_get_fullpath(set_opt->insketchpath, idx_sketch_suffix);
+	uint64_t *in_idx = read_from_file(in_idx_path, &file_size);
+	free(in_idx_path);
+	const size_t expected_idx_size = (size_t)(infile_num + 1) * sizeof(in_idx[0]);
+	if (file_size != expected_idx_size)
+		errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			 __func__, set_opt->insketchpath, idx_sketch_suffix,
+			 file_size, expected_idx_size);
+	for (int i = 0; i < infile_num; ++i)
+		if (in_idx[i + 1] < in_idx[i])
+			errx(EINVAL, "%s(): offsets are not monotonic at sample %d",
+				 __func__, i);
+	const uint64_t total_entries = in_idx[infile_num];
+	const size_t comb_size = minco_downsample_file_size(set_opt->insketchpath,
+														combined_sketch_suffix);
+	if (comb_size != (size_t)total_entries * sizeof(uint64_t))
+		errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			 __func__, set_opt->insketchpath, combined_sketch_suffix, comb_size,
+			 (size_t)total_entries * sizeof(uint64_t));
+
+	minco_downsample_prepare_outdir(set_opt->outdir);
+	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
+										   sketch_anno_stat, (size_t)infile_num * PATHLEN);
+	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
+										   sketch_infile_meta_stat,
+										   (size_t)infile_num * sizeof(infile_meta_t));
+	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
+										   sketch_qc_stat,
+										   (size_t)infile_num * sizeof(minco_sketch_qc_stat_t));
+
+	char *in_comb_path = test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix);
+	FILE *in_comb = fopen(in_comb_path, "rb");
+	if (!in_comb)
+		err(errno, "%s(): open %s", __func__, in_comb_path);
+	char *out_comb_path = test_create_fullpath(set_opt->outdir, combined_sketch_suffix);
+	FILE *out_comb = fopen(out_comb_path, "wb");
+	if (!out_comb)
+		err(errno, "%s(): open %s", __func__, out_comb_path);
+	FILE *in_ab = minco_downsample_open_optional_entry_file(
+		set_opt->insketchpath, combined_ab_suffix, total_entries, sizeof(uint32_t));
+	FILE *out_ab = NULL;
+	if (in_ab)
+	{
+		char *out_ab_path = test_create_fullpath(set_opt->outdir, combined_ab_suffix);
+		out_ab = fopen(out_ab_path, "wb");
+		if (!out_ab)
+			err(errno, "%s(): open %s", __func__, out_ab_path);
+		free(out_ab_path);
+	}
+	FILE *in_pos = minco_downsample_open_optional_entry_file(
+		set_opt->insketchpath, sketch_position_suffix, total_entries, sizeof(uint64_t));
+	FILE *out_pos = NULL;
+	if (in_pos)
+	{
+		char *out_pos_path = test_create_fullpath(set_opt->outdir, sketch_position_suffix);
+		out_pos = fopen(out_pos_path, "wb");
+		if (!out_pos)
+			err(errno, "%s(): open %s", __func__, out_pos_path);
+		free(out_pos_path);
+	}
+
+	uint64_t *buf = malloc((size_t)set_opt->sketch_size * sizeof(buf[0]));
+	uint32_t *abuf = in_ab ? malloc((size_t)set_opt->sketch_size * sizeof(abuf[0])) : NULL;
+	uint64_t *pbuf = in_pos ? malloc((size_t)set_opt->sketch_size * sizeof(pbuf[0])) : NULL;
+	uint64_t *out_idx = calloc((size_t)infile_num + 1, sizeof(out_idx[0]));
+	minco_ctxmeta_record_t *ctxmeta =
+		calloc((size_t)infile_num, sizeof(ctxmeta[0]));
+	if (!buf || (in_ab && !abuf) || (in_pos && !pbuf) || !out_idx || !ctxmeta)
+		err(errno, "%s(): OOM downsample buffers", __func__);
+
+	minco_ctxmeta_record_t *old_ctxmeta = NULL;
+	size_t old_ctxmeta_size = 0;
+	if (file_exists_in_folder(set_opt->insketchpath, minco_ctxmeta_bin_stat))
+	{
+		char *old_ctxmeta_path =
+			test_get_fullpath(set_opt->insketchpath, minco_ctxmeta_bin_stat);
+		old_ctxmeta = read_from_file(old_ctxmeta_path, &old_ctxmeta_size);
+		free(old_ctxmeta_path);
+		const size_t expected_ctxmeta_size =
+			(size_t)infile_num * sizeof(old_ctxmeta[0]);
+		if (old_ctxmeta_size != expected_ctxmeta_size)
+			errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+				 __func__, set_opt->insketchpath, minco_ctxmeta_bin_stat,
+				 old_ctxmeta_size, expected_ctxmeta_size);
+	}
+
+	minco_stat_density_summary_t density = {
+		.min_threshold = UINT64_MAX,
+		.max_threshold = UINT64_MAX,
+		.universal_threshold = UINT64_MAX,
+		.min_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+		.max_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+		.universal_sample_id = MINCO_STAT_DENSITY_SAMPLE_ID_NONE,
+		.valid_sample_count = 0,
+		.hash_bits = hash_bits,
+		.universal_policy = MINCO_STAT_DENSITY_POLICY_NONE,
+		.flags = 0,
+	};
+
+	fprintf(stderr, "minco set downsample: %s -> %s; samples=%d; S=%u\n",
+			set_opt->insketchpath, set_opt->outdir, infile_num,
+			set_opt->sketch_size);
+	for (int i = 0; i < infile_num; ++i)
+	{
+		const uint64_t sample_entries = in_idx[i + 1] - in_idx[i];
+		const uint64_t keep64 =
+			sample_entries < (uint64_t)set_opt->sketch_size
+				? sample_entries
+				: (uint64_t)set_opt->sketch_size;
+		const size_t keep = (size_t)keep64;
+		out_idx[i + 1] = out_idx[i] + keep64;
+		minco_downsample_seek(in_comb, in_idx[i], sizeof(uint64_t),
+							  combined_sketch_suffix);
+		minco_downsample_read_exact(in_comb, buf, sizeof(buf[0]), keep,
+									combined_sketch_suffix);
+		minco_downsample_write_exact(out_comb, buf, sizeof(buf[0]), keep,
+									 combined_sketch_suffix);
+		if (in_ab)
+		{
+			minco_downsample_seek(in_ab, in_idx[i], sizeof(uint32_t),
+								  combined_ab_suffix);
+			minco_downsample_read_exact(in_ab, abuf, sizeof(abuf[0]), keep,
+										combined_ab_suffix);
+			minco_downsample_write_exact(out_ab, abuf, sizeof(abuf[0]), keep,
+										 combined_ab_suffix);
+		}
+		if (in_pos)
+		{
+			minco_downsample_seek(in_pos, in_idx[i], sizeof(uint64_t),
+								  sketch_position_suffix);
+			minco_downsample_read_exact(in_pos, pbuf, sizeof(pbuf[0]), keep,
+										sketch_position_suffix);
+			minco_downsample_write_exact(out_pos, pbuf, sizeof(pbuf[0]), keep,
+										 sketch_position_suffix);
+		}
+
+		uint8_t mode = MINCO_CTXMETA_BOTH;
+		if (old_ctxmeta)
+			mode = old_ctxmeta[i].mode;
+		ctxmeta[i].mode = mode;
+		ctxmeta[i].hash_bits = hash_bits;
+		ctxmeta[i].sketch_entries = keep64;
+		if (keep > 0)
+		{
+			const uint64_t threshold =
+				n_obj_bits == 64 ? 0 : (buf[keep - 1] >> n_obj_bits);
+			const uint64_t unique_ctx =
+				minco_downsample_unique_ctx_count(buf, keep, n_obj_bits);
+			const uint64_t estimate =
+				minco_downsample_density_estimate(unique_ctx, threshold, hash_bits);
+			ctxmeta[i].valid = 1;
+			ctxmeta[i].threshold = threshold;
+			ctxmeta[i].selected_observed_ctx = unique_ctx;
+			ctxmeta[i].selected_estimated_unique_ctx = estimate;
+			ctxmeta[i].preconflict_observed_ctx = unique_ctx;
+			ctxmeta[i].preconflict_estimated_unique_ctx = estimate;
+			ctxmeta[i].postconflict_observed_ctx = unique_ctx;
+			ctxmeta[i].postconflict_estimated_unique_ctx = estimate;
+			density.valid_sample_count++;
+			if (threshold < density.min_threshold)
+			{
+				density.min_threshold = threshold;
+				density.min_sample_id = (uint32_t)i;
+			}
+			if (threshold >= density.max_threshold || density.max_sample_id == MINCO_STAT_DENSITY_SAMPLE_ID_NONE)
+			{
+				density.max_threshold = threshold;
+				density.max_sample_id = (uint32_t)i;
+			}
+		}
+		if ((i + 1) % 5000 == 0 || i + 1 == infile_num)
+			fprintf(stderr,
+					"minco set downsample: %d/%d samples processed; entries=%" PRIu64 "\n",
+					i + 1, infile_num, out_idx[i + 1]);
+	}
+	if (fclose(in_comb) != 0 || fclose(out_comb) != 0)
+		err(errno, "%s(): close sketch files", __func__);
+	free(in_comb_path);
+	free(out_comb_path);
+	if (in_ab && (fclose(in_ab) != 0 || fclose(out_ab) != 0))
+		err(errno, "%s(): close abundance files", __func__);
+	if (in_pos && (fclose(in_pos) != 0 || fclose(out_pos) != 0))
+		err(errno, "%s(): close position files", __func__);
+
+	if (density.valid_sample_count > 0)
+	{
+		density.universal_threshold = density.max_threshold;
+		density.universal_sample_id = density.max_sample_id;
+		density.universal_policy =
+			density.valid_sample_count == 1
+				? MINCO_STAT_DENSITY_POLICY_SINGLE_SAMPLE
+				: MINCO_STAT_DENSITY_POLICY_LARGEST_SAMPLE;
+	}
+	char *out_idx_path = test_create_fullpath(set_opt->outdir, idx_sketch_suffix);
+	write_to_file(out_idx_path, out_idx, ((size_t)infile_num + 1) * sizeof(out_idx[0]));
+	free(out_idx_path);
+	char *out_ctxmeta_path =
+		test_create_fullpath(set_opt->outdir, minco_ctxmeta_bin_stat);
+	write_to_file(out_ctxmeta_path, ctxmeta, (size_t)infile_num * sizeof(ctxmeta[0]));
+	free(out_ctxmeta_path);
+
+	minco_sketch_stat_t out_stat = minco_stat_origin;
+	out_stat.koc = in_ab != NULL;
+	char *out_stat_path = test_create_fullpath(set_opt->outdir, sketch_stat);
+	minco_stat_write_path_with_density(out_stat_path, &out_stat,
+									   (const char (*)[PATHLEN])names,
+									   set_opt->sketch_size,
+									   MINCO_STAT_SELECTION_BOTTOMK,
+									   info.flags,
+									   UINT64_MAX,
+									   &density);
+	free(out_stat_path);
+	fprintf(stderr,
+			"minco set downsample: complete; entries=%" PRIu64
+			"; universal_threshold=%" PRIu64 "\n",
+			out_idx[infile_num], density.universal_threshold);
+
+	if (old_ctxmeta)
+		free_read_from_file(old_ctxmeta, old_ctxmeta_size);
+	free(buf);
+	free(abuf);
+	free(pbuf);
+	free(out_idx);
+	free(ctxmeta);
+	free_read_from_file(in_idx, expected_idx_size);
+	free_read_from_file(mem_stat, stat_size);
+	return 1;
+}
+
+int minco_sketch_union(set_opt_t *set_opt)
 { // for both union and uniq union
 
 	void *mem_stat = read_from_file(test_get_fullpath(set_opt->insketchpath, sketch_stat), &file_size);
 	const size_t stat_file_size = file_size;
-	memcpy(&lco_stat_readin, mem_stat, sizeof(lco_stat_readin));
-	if (lco_stat_readin.infile_num == 1)
+	memcpy(&minco_stat_readin, mem_stat, sizeof(minco_stat_readin));
+	if (minco_stat_readin.infile_num == 1)
 	{ // no need create
 		printf("only 1 sketch, use %s as pan-sketch?(Y/N)\n", set_opt->insketchpath);
 		char inpbuff;
@@ -348,29 +902,29 @@ int lsketch_union(set_opt_t *set_opt)
 		if ((inpbuff == 'Y') || (inpbuff == 'y'))
 		{
 			chdir(set_opt->insketchpath);
-			if (rename(combined_sketch_suffix, lpan_prefix) != 0)
-				err(errno, "lsketch_union()");
+			if (rename(combined_sketch_suffix, minco_pan_prefix) != 0)
+				err(errno, "minco_sketch_union()");
 			printf("the union directory: %s created successfully\n", set_opt->insketchpath);
 			return 1;
 		}
 	}
 	// union operation
-	uint64_t *mem_comblco = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
-	const size_t in_kmer_ct = file_size / sizeof(mem_comblco[0]);
+	uint64_t *mem_ctxobj = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
+	const size_t in_kmer_ct = file_size / sizeof(mem_ctxobj[0]);
 	uint64_t *sorted_kmers = (uint64_t *)malloc(file_size);
 	if (!sorted_kmers)
 		err(errno, "%s(): OOM copying %s/%s for set operation",
 			__func__, set_opt->insketchpath, combined_sketch_suffix);
-	memcpy(sorted_kmers, mem_comblco, file_size);
-	free_read_from_file(mem_comblco, file_size);
-	mem_comblco = NULL;
+	memcpy(sorted_kmers, mem_ctxobj, file_size);
+	free_read_from_file(mem_ctxobj, file_size);
+	mem_ctxobj = NULL;
 
 	sort_uint64_values(sorted_kmers, in_kmer_ct, set_opt->p);
 
 	if (set_opt->operation == 2)
 	{ // -u: normal union mode
 		const size_t union_ct = compact_union_or_unique_uint64(sorted_kmers, in_kmer_ct, false);
-		write_to_file(test_create_fullpath(set_opt->outdir, lpan_prefix),
+		write_to_file(test_create_fullpath(set_opt->outdir, minco_pan_prefix),
 					  sorted_kmers, union_ct * sizeof(sorted_kmers[0]));
 	}
 	else if (set_opt->operation == 3)
@@ -378,7 +932,7 @@ int lsketch_union(set_opt_t *set_opt)
 		const size_t unique_ct = compact_union_or_unique_uint64(sorted_kmers, in_kmer_ct, true);
 		if (!set_opt->q2markerdb)
 		{
-			write_to_file(test_create_fullpath(set_opt->outdir, luniq_pan_prefix),
+			write_to_file(test_create_fullpath(set_opt->outdir, minco_uniq_pan_prefix),
 						  sorted_kmers, unique_ct * sizeof(sorted_kmers[0]));
 		}
 		else
@@ -394,32 +948,32 @@ int lsketch_union(set_opt_t *set_opt)
 				unique_ct,
 				bucket_bits);
 
-			mem_comblco = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
+			mem_ctxobj = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
 			const size_t comb_file_size = file_size;
 			uint64_t *fco_pos = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, idx_sketch_suffix), &file_size);
-			uint64_t *post_fco_pos = calloc((lco_stat_readin.infile_num + 1), sizeof(uint64_t));
+			uint64_t *post_fco_pos = calloc((minco_stat_readin.infile_num + 1), sizeof(uint64_t));
 			if (!post_fco_pos)
 				err(errno, "%s(): OOM output index", __func__);
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, 64) num_threads(set_opt->p)
 #endif
-			for (uint32_t i = 0; i < lco_stat_readin.infile_num; i++)
+			for (uint32_t i = 0; i < minco_stat_readin.infile_num; i++)
 			{
 				uint64_t count = 0;
 				for (uint64_t n = fco_pos[i]; n < fco_pos[i + 1]; n++)
 				{
-					if (u64_bucketed_contains(sorted_kmers, bucket_offsets, bucket_bits, mem_comblco[n]))
+					if (u64_bucketed_contains(sorted_kmers, bucket_offsets, bucket_bits, mem_ctxobj[n]))
 						count++;
 				}
 				post_fco_pos[i + 1] = count;
 			}
 
-			for (uint32_t i = 0; i < lco_stat_readin.infile_num; i++)
+			for (uint32_t i = 0; i < minco_stat_readin.infile_num; i++)
 				post_fco_pos[i + 1] += post_fco_pos[i];
-			if (post_fco_pos[lco_stat_readin.infile_num] != unique_ct)
+			if (post_fco_pos[minco_stat_readin.infile_num] != unique_ct)
 				err(EINVAL, "%s(): markerdb output count %lu != unique count %zu",
-					__func__, post_fco_pos[lco_stat_readin.infile_num], unique_ct);
+					__func__, post_fco_pos[minco_stat_readin.infile_num], unique_ct);
 
 			char *out_comb_path = test_create_fullpath(set_opt->outdir, combined_sketch_suffix);
 			int outfd = open(out_comb_path, O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -431,7 +985,7 @@ int lsketch_union(set_opt_t *set_opt)
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, 64) num_threads(set_opt->p)
 #endif
-			for (uint32_t i = 0; i < lco_stat_readin.infile_num; i++)
+			for (uint32_t i = 0; i < minco_stat_readin.infile_num; i++)
 			{
 				const uint64_t sample_count = post_fco_pos[i + 1] - post_fco_pos[i];
 				if (sample_count == 0)
@@ -442,8 +996,8 @@ int lsketch_union(set_opt_t *set_opt)
 				uint64_t out = 0;
 				for (uint64_t n = fco_pos[i]; n < fco_pos[i + 1]; n++)
 				{
-					if (u64_bucketed_contains(sorted_kmers, bucket_offsets, bucket_bits, mem_comblco[n]))
-						sample_markers[out++] = mem_comblco[n];
+					if (u64_bucketed_contains(sorted_kmers, bucket_offsets, bucket_bits, mem_ctxobj[n]))
+						sample_markers[out++] = mem_ctxobj[n];
 				}
 				if (out != sample_count)
 					err(EINVAL, "%s(): marker count changed for sample %u", __func__, i);
@@ -457,105 +1011,105 @@ int lsketch_union(set_opt_t *set_opt)
 			}
 			if (close(outfd) != 0)
 				err(errno, "%s(): close %s", __func__, out_comb_path);
-			write_to_file(format_string("%s/%s", set_opt->outdir, idx_sketch_suffix), post_fco_pos, (lco_stat_readin.infile_num + 1) * sizeof(post_fco_pos[0]));
+			write_to_file(format_string("%s/%s", set_opt->outdir, idx_sketch_suffix), post_fco_pos, (minco_stat_readin.infile_num + 1) * sizeof(post_fco_pos[0]));
 			free(out_comb_path);
 			free(bucket_offsets);
-			free_read_from_file(mem_comblco, comb_file_size);
-			mem_comblco = NULL;
+			free_read_from_file(mem_ctxobj, comb_file_size);
+			mem_ctxobj = NULL;
 			free_all(fco_pos, post_fco_pos, NULL);
 		}
 	}
 	else
 		err(EINVAL, "operation value %d neither 2 (-u: union) nor 3 (-q :uniq uion )", set_opt->operation);
 	write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), mem_stat, stat_file_size);
-	copy_lsketch_annotations(set_opt->insketchpath, set_opt->outdir, lco_stat_readin.infile_num);
+	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir, minco_stat_readin.infile_num);
 	free(sorted_kmers);
 	free_all(mem_stat, NULL);
 	return 1;
 }
 
-int lsketch_operate(set_opt_t *set_opt)
+int minco_sketch_operate(set_opt_t *set_opt)
 {
 	clock_t start_time = clock();
 	void *mem_stat_pan = read_from_file(test_get_fullpath(set_opt->pansketchpath, sketch_stat), &file_size);
-	memcpy(&lco_stat_pan, mem_stat_pan, sizeof(lco_stat_pan));
-	void *mem_stat_lco = read_from_file(test_get_fullpath(set_opt->insketchpath, sketch_stat), &file_size);
-	memcpy(&lco_stat_origin, mem_stat_lco, sizeof(lco_stat_origin));
-	if (lco_stat_pan.hash_id != lco_stat_origin.hash_id)
-		err(EXIT_FAILURE, "%s(): %s sketcing id %u != %s id %u", __func__, set_opt->pansketchpath, lco_stat_origin.hash_id, set_opt->insketchpath, lco_stat_pan.hash_id);
-	if (lco_stat_origin.koc)
+	memcpy(&minco_stat_pan, mem_stat_pan, sizeof(minco_stat_pan));
+	void *mem_stat_minco = read_from_file(test_get_fullpath(set_opt->insketchpath, sketch_stat), &file_size);
+	memcpy(&minco_stat_origin, mem_stat_minco, sizeof(minco_stat_origin));
+	if (minco_stat_pan.hash_id != minco_stat_origin.hash_id)
+		err(EXIT_FAILURE, "%s(): %s sketcing id %u != %s id %u", __func__, set_opt->pansketchpath, minco_stat_origin.hash_id, set_opt->insketchpath, minco_stat_pan.hash_id);
+	if (minco_stat_origin.koc)
 		printf("%s() Warning: k-mer abundances are dropped in this sketch operation\n ", __func__);
 	// copy sketch stat file to result sketch
-	write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), mem_stat_lco, file_size);
-	copy_lsketch_annotations(set_opt->insketchpath, set_opt->outdir, lco_stat_origin.infile_num);
+	write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), mem_stat_minco, file_size);
+	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir, minco_stat_origin.infile_num);
 
-	char *lco_fpath;
-	if (file_exists_in_folder(set_opt->pansketchpath, lpan_prefix))
-		lco_fpath = test_get_fullpath(set_opt->pansketchpath, lpan_prefix);
-	else if (file_exists_in_folder(set_opt->pansketchpath, luniq_pan_prefix))
-		lco_fpath = test_get_fullpath(set_opt->pansketchpath, luniq_pan_prefix);
+	char *ctxobj_fpath;
+	if (file_exists_in_folder(set_opt->pansketchpath, minco_pan_prefix))
+		ctxobj_fpath = test_get_fullpath(set_opt->pansketchpath, minco_pan_prefix);
+	else if (file_exists_in_folder(set_opt->pansketchpath, minco_uniq_pan_prefix))
+		ctxobj_fpath = test_get_fullpath(set_opt->pansketchpath, minco_uniq_pan_prefix);
 	else
-		err(EXIT_FAILURE, "%s():cannot find %s or %s under %s ", __func__, lpan_prefix, luniq_pan_prefix, set_opt->pansketchpath);
+		err(EXIT_FAILURE, "%s():cannot find %s or %s under %s ", __func__, minco_pan_prefix, minco_uniq_pan_prefix, set_opt->pansketchpath);
 
-	uint64_t *mem_pan = (uint64_t *)read_from_file(lco_fpath, &file_size);
+	uint64_t *mem_pan = (uint64_t *)read_from_file(ctxobj_fpath, &file_size);
 	khash_t(kmer_set) *h = kh_init(kmer_set);
 	uint32_t kmer_ct = file_size / sizeof(uint64_t);
 	for (int i = 0; i < kmer_ct; i++)
 		kh_put(kmer_set, h, mem_pan[i], &ret);
-	// read comblco.index to mem
+		// read sketch offset table to memory
 	uint64_t *fco_pos = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, idx_sketch_suffix), &file_size);
 	// post operation index	calloc
-	uint64_t *post_fco_pos = calloc((lco_stat_origin.infile_num + 1), sizeof(uint64_t));
-	// read comblco to mem
-	uint64_t *tmp_comblco_mem = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
-	uint64_t *post_comblco_mem = (uint64_t *)malloc(file_size);
+	uint64_t *post_fco_pos = calloc((minco_stat_origin.infile_num + 1), sizeof(uint64_t));
+		// read context-object payload to memory
+	uint64_t *tmp_ctxobj_mem = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
+	uint64_t *post_ctxobj_mem = (uint64_t *)malloc(file_size);
 	uint32_t post_kmer_ct = 0;
 
 	// sketch operation
-	for (uint32_t i = 0; i < lco_stat_origin.infile_num; i++)
+	for (uint32_t i = 0; i < minco_stat_origin.infile_num; i++)
 	{
 		for (uint64_t n = fco_pos[i]; n < fco_pos[i + 1]; n++)
 		{
 			// make sure set_opt->operation == 0 if subtract, == 1 if intersect
-			if (set_opt->operation == (kh_get(kmer_set, h, tmp_comblco_mem[n]) != kh_end(h)))
-				post_comblco_mem[post_kmer_ct++] = tmp_comblco_mem[n];
+			if (set_opt->operation == (kh_get(kmer_set, h, tmp_ctxobj_mem[n]) != kh_end(h)))
+				post_ctxobj_mem[post_kmer_ct++] = tmp_ctxobj_mem[n];
 		}
 		post_fco_pos[i + 1] = post_kmer_ct;
 	}
 	kh_destroy(kmer_set, h);
-	// write to result comblco
+		// write filtered context-object payload
 	sprintf(outfpath, "%s/%s", set_opt->outdir, combined_sketch_suffix);
-	write_to_file(outfpath, post_comblco_mem, post_kmer_ct * sizeof(post_comblco_mem[0]));
+	write_to_file(outfpath, post_ctxobj_mem, post_kmer_ct * sizeof(post_ctxobj_mem[0]));
 	// write index
 	sprintf(outfpath, "%s/%s", set_opt->outdir, idx_sketch_suffix);
-	write_to_file(outfpath, post_fco_pos, (lco_stat_origin.infile_num + 1) * sizeof(post_fco_pos[0]));
+	write_to_file(outfpath, post_fco_pos, (minco_stat_origin.infile_num + 1) * sizeof(post_fco_pos[0]));
 
-	free_all(mem_stat_pan, mem_stat_lco, lco_fpath, mem_pan, fco_pos, post_fco_pos, tmp_comblco_mem, post_comblco_mem, NULL);
+	free_all(mem_stat_pan, mem_stat_minco, ctxobj_fpath, mem_pan, fco_pos, post_fco_pos, tmp_ctxobj_mem, post_ctxobj_mem, NULL);
 	return 1;
 }
 
-int lgrouping_genomes(set_opt_t *set_opt)
-{ // for sorted lcombco only !!! old unsorted one not suportted
+int minco_group_samples(set_opt_t *set_opt)
+{ // for sorted minco context-object sketches
 
 	void *mem_stat = read_from_file(test_get_fullpath(set_opt->insketchpath, sketch_stat), &file_size);
-	memcpy(&lco_stat_readin, mem_stat, sizeof(lco_stat_readin));
+	memcpy(&minco_stat_readin, mem_stat, sizeof(minco_stat_readin));
 
 	compan_t *subset = organize_taxf(set_opt->subsetf);
-	if (lco_stat_readin.infile_num != subset->gn)
-		err(EXIT_FAILURE, "%s(): %s's genome number %d != %s's line number %d", __func__, set_opt->insketchpath, lco_stat_readin.infile_num, set_opt->subsetf, subset->gn);
+	if (minco_stat_readin.infile_num != subset->gn)
+		err(EXIT_FAILURE, "%s(): %s's genome number %d != %s's line number %d", __func__, set_opt->insketchpath, minco_stat_readin.infile_num, set_opt->subsetf, subset->gn);
 
-	// read index and comblco
+		// read offsets and context-object payload
 	uint64_t *tmp_idx = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, idx_sketch_suffix), &file_size);
-	uint64_t *mem_comblco = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
+	uint64_t *mem_ctxobj = (uint64_t *)read_from_file(test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix), &file_size);
 
 	if (tmp_idx[subset->gn] * sizeof(uint64_t) != file_size)
 		err(EXIT_FAILURE, "%s(): %s last(%u) index(%lu) * sizeof(uint64_t) != %s file size (%lu) ",
 			__func__, idx_sketch_suffix, subset->gn, tmp_idx[subset->gn], combined_sketch_suffix, file_size);
-	// out index and comblco
-	char *lcombco_f = test_create_fullpath(set_opt->outdir, combined_sketch_suffix);
-	int fd = open(lcombco_f, O_CREAT | O_RDWR, 0644);
-	ftruncate(fd, file_size); // allowing much larger grouped_comblco than using malloc
-	uint64_t *grouped_comblco = (uint64_t *)mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		// output offsets and context-object payload
+	char *ctxobj_fpath = test_create_fullpath(set_opt->outdir, combined_sketch_suffix);
+	int fd = open(ctxobj_fpath, O_CREAT | O_RDWR, 0644);
+	ftruncate(fd, file_size); // allowing much larger grouped_ctxobj than using malloc
+	uint64_t *grouped_ctxobj = (uint64_t *)mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	uint64_t *out_idx = calloc((subset->taxn + 1), sizeof(uint64_t));
 	int outfn = 0; // uint64_t grouped_kmer_ct = 0;
@@ -569,33 +1123,33 @@ int lgrouping_genomes(set_opt_t *set_opt)
 		for (int n = 1; n <= subset->tax[t].gids[0]; n++)
 		{
 			int gid = subset->tax[t].gids[n];
-			memcpy(grouped_comblco + start_offset, mem_comblco + tmp_idx[gid], (tmp_idx[gid + 1] - tmp_idx[gid]) * sizeof(grouped_comblco[0]));
+			memcpy(grouped_ctxobj + start_offset, mem_ctxobj + tmp_idx[gid], (tmp_idx[gid + 1] - tmp_idx[gid]) * sizeof(grouped_ctxobj[0]));
 			start_offset += (tmp_idx[gid + 1] - tmp_idx[gid]);
 		}
 
 		if (subset->tax[t].gids[0] > 1)
 		{
-			qsort(grouped_comblco + out_idx[outfn], start_offset - out_idx[outfn], sizeof(grouped_comblco[0]), qsort_comparator_uint64);
-			size_t len = dedup_sorted_uint64(grouped_comblco + out_idx[outfn], start_offset - out_idx[outfn]);
+			qsort(grouped_ctxobj + out_idx[outfn], start_offset - out_idx[outfn], sizeof(grouped_ctxobj[0]), qsort_comparator_uint64);
+			size_t len = dedup_sorted_uint64(grouped_ctxobj + out_idx[outfn], start_offset - out_idx[outfn]);
 			out_idx[outfn] += len;
 		}
 		else
 			out_idx[outfn] = start_offset;
 	}
 	// write grouped kmer and index to result
-	// write_to_file(test_create_fullpath(set_opt->outdir,combined_sketch_suffix), grouped_comblco, grouped_kmer_ct*sizeof(grouped_comblco[0]));
-	if (msync(grouped_comblco, out_idx[outfn] * sizeof(grouped_comblco[0]), MS_SYNC) == -1)
+	// write_to_file(test_create_fullpath(set_opt->outdir,combined_sketch_suffix), grouped_ctxobj, grouped_kmer_ct*sizeof(grouped_ctxobj[0]));
+	if (msync(grouped_ctxobj, out_idx[outfn] * sizeof(grouped_ctxobj[0]), MS_SYNC) == -1)
 		err(EXIT_FAILURE, "%s(): msync error", __func__);
-	if (ftruncate(fd, out_idx[outfn] * sizeof(grouped_comblco[0])) == -1)
+	if (ftruncate(fd, out_idx[outfn] * sizeof(grouped_ctxobj[0])) == -1)
 		err(EXIT_FAILURE, "%s(): ftrucate resize failed", __func__);
-	if (munmap(grouped_comblco, file_size) == -1)
+	if (munmap(grouped_ctxobj, file_size) == -1)
 		err(EXIT_FAILURE, "%s(): munmap", __func__);
 	close(fd);
 
 	write_to_file(test_create_fullpath(set_opt->outdir, idx_sketch_suffix), out_idx, (outfn + 1) * sizeof(out_idx[0]));
 	// write stat file
-	lco_stat_readin.infile_num = outfn;
-	lco_stat_readin.koc = 0;
+	minco_stat_readin.infile_num = outfn;
+	minco_stat_readin.koc = 0;
 	char (*input_anno)[PATHLEN] = NULL;
 	size_t input_anno_size = 0;
 	if (file_exists_in_folder(set_opt->insketchpath, sketch_anno_stat))
@@ -634,13 +1188,13 @@ int lgrouping_genomes(set_opt_t *set_opt)
 		}
 		free_all(subset->tax[t].gids, subset->tax[t].taxname, NULL);
 	}
-	concat_and_write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), &lco_stat_readin, sizeof(lco_stat_readin), tmpfname, PATHLEN * outfn);
+	concat_and_write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), &minco_stat_readin, sizeof(minco_stat_readin), tmpfname, PATHLEN * outfn);
 	if (tmpanno)
 		write_to_file(test_create_fullpath(set_opt->outdir, sketch_anno_stat), tmpanno, (size_t)outfn * PATHLEN);
-	if (munmap(mem_comblco, file_size) == -1)
+	if (munmap(mem_ctxobj, file_size) == -1)
 	{
-		if (mem_comblco != NULL)
-			free(mem_comblco);
+		if (mem_ctxobj != NULL)
+			free(mem_ctxobj);
 		else
 			err(EXIT_FAILURE, "%s(): munmap", __func__);
 	}

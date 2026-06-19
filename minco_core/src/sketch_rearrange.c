@@ -4,19 +4,19 @@ uint64_t ctxmask, tupmask, ho_mask_len, hc_mask_len, io_mask_len, ho_mask_left, 
 uint8_t iolen, klen, hclen, holen;
 uint32_t gid_mask;
 bitslen_t Bitslen;
-void const_comask_init(dim_sketch_stat_t *lco_stat_val)
+void const_comask_init(minco_sketch_stat_t *minco_stat)
 {
     //  init all public vars ;
-    klen = lco_stat_val->klen;
-    if (lco_stat_val->coden_len > 0)
+    klen = minco_stat->klen;
+    if (minco_stat->coden_len > 0)
     {
-        Bitslen.ctx = 4 * lco_stat_val->coden_len;
+        Bitslen.ctx = 4 * minco_stat->coden_len;
         ctxmask = generate_coden_pattern64();
     }
     else
     {
-        holen = lco_stat_val->holen;
-        hclen = lco_stat_val->hclen;
+        holen = minco_stat->holen;
+        hclen = minco_stat->hclen;
         iolen = klen - 2 * (hclen + holen);
 
         Bitslen.ctx = 4 * hclen;
