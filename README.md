@@ -118,6 +118,11 @@ observed_contexts_under_threshold / hash_threshold
 ```
 
 This sidecar is metadata only. It does not change `comblco` or `comblco.index`.
+`minco ani` uses it when available to estimate asymmetric real aligned
+fractions from the common bottom-k hash threshold. Detail output appends
+`Real_Qry_align_fraction`, `Real_Ref_align_fraction`,
+`Real_min_align_fraction`, and `AF_source`; without ctxmeta these fall back to
+the fixed-sketch aligned fractions.
 
 ## Benchmark Helper
 

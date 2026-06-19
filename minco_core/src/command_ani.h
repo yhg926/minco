@@ -62,6 +62,20 @@ typedef struct ani_opt
 	char **remaining_args;
 } ani_opt_t;
 
+typedef struct ani_ctxmeta_rec
+{
+	uint8_t valid;
+	uint32_t hash_bits;
+	uint64_t threshold;
+	uint64_t sketch_entries;
+	uint64_t selected_observed_ctx;
+	uint64_t selected_estimated_unique_ctx;
+	uint64_t preconflict_observed_ctx;
+	uint64_t preconflict_estimated_unique_ctx;
+	uint64_t postconflict_observed_ctx;
+	uint64_t postconflict_estimated_unique_ctx;
+} ani_ctxmeta_rec_t;
+
 static inline double ani_report_af_value(double af_qry, double af_ref)
 {
 	return af_qry > af_ref ? af_qry : af_ref;
@@ -153,6 +167,8 @@ void ani_block_print(
 	char (*refanno)[PATHLEN],
 	const infile_meta_t *qry_infile_meta,
 	const infile_meta_t *ref_infile_meta,
+	const ani_ctxmeta_rec_t *qry_ctxmeta,
+	const ani_ctxmeta_rec_t *ref_ctxmeta,
 	uint32_t *num_passid_block, idani_t **sort_idani_block,
 	FILE *outfp, ani_opt_t *ani_opt, int matrix_mode);
 

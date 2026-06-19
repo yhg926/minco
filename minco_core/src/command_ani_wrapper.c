@@ -79,7 +79,7 @@ static struct argp_option opt_ani[] =
 		{"ignoreconflict", 778, 0, 0, "Ignore reference-side contexts that contain conflicting objects.", ANI_GROUP_MODE},
 
 		{0, 0, 0, 0, "Filtering and metrics:", ANI_GROUP_FILTER},
-		{"afcut", 'f', "<FLOAT>", 0, "Skip reports with max(Qry_align_fraction, Ref_align_fraction) below this value. [0.5; 0.2 for --qraw]", ANI_GROUP_FILTER},
+		{"afcut", 'f', "<FLOAT>", 0, "Skip reports with max effective aligned fraction below this value; uses density-estimated Real_* AF when ctxmeta is available. [0.5; 0.2 for --qraw]", ANI_GROUP_FILTER},
 		{"anicut", 'n', "<FLOAT>", 0, "Skip reports with selected ANI below this value. [0.95]", ANI_GROUP_FILTER},
 		{"control", 'c', "<FLOAT>", 0, "Skip duplicated samples with distance below this value. [0]", ANI_GROUP_FILTER},
 		{"ctxcut", 't', "<INT>", 0, "Skip reports with shared context count below this value. [3]", ANI_GROUP_FILTER},
@@ -143,12 +143,14 @@ static char doc_ani[] =
 	"\n"
 	"Default filters are -n 0.95, -f 0.5, and -t 3. In --qraw mode, -f\n"
 	"defaults to 0.2. Use -f0 -n0 -t0 when every comparison must be reported.\n"
+	"When minco.ctxmeta.tsv is present, -f uses density-estimated Real_* aligned\n"
+	"fractions; otherwise it uses the fixed-sketch aligned fractions.\n"
 	"Build an index with `minco sketch -i DIR` before large reference or\n"
 	"all-vs-all runs.\n"
 	"\n"
 	"Output:\n"
 	"  -m0 detail: Qry, Ref, ANI, Distance, Confidence, Selected_metric,\n"
-	"      diagnostics, Ref_annotation.\n"
+	"      diagnostics, Ref_annotation, Real_*_align_fraction, AF_source.\n"
 	"  -m1 full matrix and -m2 lower triangle; one sketch gives self output.\n"
 	"  Positive -s values print distance in matrix/triangle formats.\n"
 	"  Negative -s values print ANI in matrix/triangle formats.\n"
@@ -918,6 +920,7 @@ static sketch_opt_t sketch_opt_from_stat(const dim_sketch_stat_t *stat, const ch
 		.conflict = stat->conflict,
 		.anno = ani_opt_val->sketch_anno,
 		.compute_meta = true,
+		.ctxmeta_mode = MINCO_CTXMETA_PRECONFLICT,
 		.merge_comblco = false,
 		.sketch_qc = false,
 		.split_mfa = ani_opt_val->sketch_split_mfa,

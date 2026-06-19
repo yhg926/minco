@@ -234,6 +234,13 @@ Default detail ANI filters are:
 -t/--ctxcut  3 shared contexts
 ```
 
+When `minco.ctxmeta.tsv` is available, `-f/--afcut` uses density-estimated
+real aligned fractions rather than the fixed-sketch fractions. Detail output
+keeps `Qry_align_fraction` and `Ref_align_fraction` for compatibility and
+appends `Real_Qry_align_fraction`, `Real_Ref_align_fraction`,
+`Real_min_align_fraction`, and `AF_source`. Without ctxmeta, `AF_source` is
+`sketch` and the real-AF columns fall back to the fixed-sketch values.
+
 Disable these filters when you need every pair:
 
 ```bash

@@ -12,6 +12,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <math.h>
 #include <libgen.h>
 #include <dirent.h>
@@ -29,11 +30,12 @@
 #define CONFLICT_OBJ UINT32_MAX
 // pulic vars
 const char gid_obj_prefix[] = "gidobj", ctx_idx_prefix[] = "ctx.index";
+static const char minco_ctxmeta_stat[] = "minco.ctxmeta.tsv";
 extern const char sorted_comb_ctxgid64obj32[];
 extern double C9O7_98[6], C9O7_96[6];
 size_t file_size;
 
-const char unified_detail_header[] = "Qry\tRef\tANI\tDistance\tConfidence\tSelected_metric\tXnY_ctx\tQry_align_fraction\tblastn_Qry_align_fraction\tRef_align_fraction\tblastn_Ref_align_fraction\tN_diff_obj\tN_diff_obj_section\tN_mut2_ctx\tRef_annotation";
+const char unified_detail_header[] = "Qry\tRef\tANI\tDistance\tConfidence\tSelected_metric\tXnY_ctx\tQry_align_fraction\tblastn_Qry_align_fraction\tRef_align_fraction\tblastn_Ref_align_fraction\tN_diff_obj\tN_diff_obj_section\tN_mut2_ctx\tRef_annotation\tReal_Qry_align_fraction\tReal_Ref_align_fraction\tReal_min_align_fraction\tAF_source";
 #define ANI_SELECTED_METRIC_COUNT 8
 const char select_metrics_header[ANI_SELECTED_METRIC_COUNT][20] = {
 	"BestDist", "RecalDist", "CtxMoE", "Naive",
@@ -200,6 +202,208 @@ static infile_meta_t *read_optional_sketch_infile_meta_stats(const char *sketch_
 		err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
 			__func__, sketch_dir, sketch_infile_meta_stat, meta_file_size, expected_size);
 	return stats;
+}
+
+static int split_tsv_fields(char *line, char **fields, int max_fields)
+{
+	int n = 0;
+	char *p = line;
+	while (n < max_fields) {
+		fields[n++] = p;
+		char *tab = strchr(p, '\t');
+		if (!tab)
+			break;
+		*tab = '\0';
+		p = tab + 1;
+	}
+	return n;
+}
+
+static bool parse_u64_field(const char *s, uint64_t *out)
+{
+	if (!s || !*s)
+		return false;
+	errno = 0;
+	char *end = NULL;
+	unsigned long long value = strtoull(s, &end, 10);
+	if (errno != 0 || end == s || *end != '\0')
+		return false;
+	*out = (uint64_t)value;
+	return true;
+}
+
+static ani_ctxmeta_rec_t *read_optional_ani_ctxmeta_stats(const char *sketch_dir, int infile_num)
+{
+	if (infile_num <= 0 || !file_exists_in_folder(sketch_dir, minco_ctxmeta_stat))
+		return NULL;
+
+	char *ctxmeta_path = test_get_fullpath(sketch_dir, minco_ctxmeta_stat);
+	FILE *fp = fopen(ctxmeta_path, "r");
+	if (!fp)
+		err(errno, "%s", ctxmeta_path);
+
+	ani_ctxmeta_rec_t *stats = calloc((size_t)infile_num, sizeof(stats[0]));
+	if (!stats)
+		err(EXIT_FAILURE, "%s(): calloc ctxmeta", __func__);
+
+	char *line = NULL;
+	size_t cap = 0;
+	ssize_t len = getline(&line, &cap, fp);
+	if (len < 0) {
+		free(line);
+		fclose(fp);
+		free(ctxmeta_path);
+		free(stats);
+		return NULL;
+	}
+
+	int line_no = 1;
+	while ((len = getline(&line, &cap, fp)) >= 0) {
+		++line_no;
+		line[strcspn(line, "\r\n")] = '\0';
+		if (line[0] == '\0')
+			continue;
+
+		char *fields[13] = {0};
+		const int nfields = split_tsv_fields(line, fields, 13);
+		if (nfields < 13) {
+			warnx("%s(): skipping malformed %s line %d: expected 13 columns, found %d",
+				  __func__, ctxmeta_path, line_no, nfields);
+			continue;
+		}
+
+		uint64_t sample_id = 0, valid = 0, hash_bits = 0, threshold = 0;
+		uint64_t sketch_entries = 0, selected_obs = 0, selected_est = 0;
+		uint64_t pre_obs = 0, pre_est = 0, post_obs = 0, post_est = 0;
+		if (!parse_u64_field(fields[0], &sample_id) ||
+			!parse_u64_field(fields[3], &valid) ||
+			!parse_u64_field(fields[4], &hash_bits) ||
+			!parse_u64_field(fields[5], &threshold) ||
+			!parse_u64_field(fields[6], &sketch_entries) ||
+			!parse_u64_field(fields[7], &selected_obs) ||
+			!parse_u64_field(fields[8], &selected_est) ||
+			!parse_u64_field(fields[9], &pre_obs) ||
+			!parse_u64_field(fields[10], &pre_est) ||
+			!parse_u64_field(fields[11], &post_obs) ||
+			!parse_u64_field(fields[12], &post_est)) {
+			warnx("%s(): skipping malformed numeric fields in %s line %d",
+				  __func__, ctxmeta_path, line_no);
+			continue;
+		}
+		if (sample_id >= (uint64_t)infile_num) {
+			warnx("%s(): skipping out-of-range sample_id %" PRIu64 " in %s line %d",
+				  __func__, sample_id, ctxmeta_path, line_no);
+			continue;
+		}
+
+		stats[sample_id] = (ani_ctxmeta_rec_t){
+			.valid = (uint8_t)(valid != 0),
+			.hash_bits = (uint32_t)hash_bits,
+			.threshold = threshold,
+			.sketch_entries = sketch_entries,
+			.selected_observed_ctx = selected_obs,
+			.selected_estimated_unique_ctx = selected_est,
+			.preconflict_observed_ctx = pre_obs,
+			.preconflict_estimated_unique_ctx = pre_est,
+			.postconflict_observed_ctx = post_obs,
+			.postconflict_estimated_unique_ctx = post_est,
+		};
+	}
+
+	free(line);
+	if (fclose(fp) != 0)
+		err(errno, "%s", ctxmeta_path);
+	free(ctxmeta_path);
+	return stats;
+}
+
+typedef struct ani_density_af
+{
+	double qry;
+	double ref;
+	unsigned char available;
+} ani_density_af_t;
+
+static inline const ani_ctxmeta_rec_t *ani_ctxmeta_at(const ani_ctxmeta_rec_t *stats, uint32_t idx)
+{
+	return stats ? &stats[idx] : NULL;
+}
+
+static inline bool ani_ctxmeta_usable(const ani_ctxmeta_rec_t *m)
+{
+	return m && m->valid && m->hash_bits > 0 && m->hash_bits < 64 &&
+		   m->selected_estimated_unique_ctx > 0;
+}
+
+static inline ani_density_af_t ani_density_af_fallback(double sketch_af_qry, double sketch_af_ref)
+{
+	return (ani_density_af_t){
+		.qry = bounded_align_fraction(sketch_af_qry),
+		.ref = bounded_align_fraction(sketch_af_ref),
+		.available = 0,
+	};
+}
+
+static ani_density_af_t ani_estimate_density_af(const ani_ctxmeta_rec_t *qry_meta,
+												const ani_ctxmeta_rec_t *ref_meta,
+												uint32_t shared_ctx,
+												double sketch_af_qry,
+												double sketch_af_ref)
+{
+	ani_density_af_t out = ani_density_af_fallback(sketch_af_qry, sketch_af_ref);
+	if (shared_ctx == 0 || !ani_ctxmeta_usable(qry_meta) || !ani_ctxmeta_usable(ref_meta) ||
+		qry_meta->hash_bits != ref_meta->hash_bits)
+		return out;
+
+	const uint64_t common_threshold =
+		qry_meta->threshold < ref_meta->threshold ? qry_meta->threshold : ref_meta->threshold;
+	const long double hash_space = ldexpl(1.0L, (int)qry_meta->hash_bits);
+	const long double common_fraction = ((long double)common_threshold + 1.0L) / hash_space;
+	if (common_fraction <= 0.0L)
+		return out;
+
+	const long double intersection = (long double)shared_ctx / common_fraction;
+	if (intersection <= 0.0L)
+		return out;
+
+	out.qry = bounded_align_fraction((double)(intersection /
+		(long double)qry_meta->selected_estimated_unique_ctx));
+	out.ref = bounded_align_fraction((double)(intersection /
+		(long double)ref_meta->selected_estimated_unique_ctx));
+	out.available = 1;
+	return out;
+}
+
+static uint32_t ani_density_af_needed_ctx(const ani_opt_t *ani_opt,
+										  uint32_t qry_ctx,
+										  uint32_t ref_ctx,
+										  const ani_ctxmeta_rec_t *qry_meta,
+										  const ani_ctxmeta_rec_t *ref_meta)
+{
+	uint32_t need = ani_report_af_needed_ctx(ani_opt, qry_ctx, ref_ctx);
+	if (!ani_opt || ani_opt->afcut <= 0.0f ||
+		!ani_ctxmeta_usable(qry_meta) || !ani_ctxmeta_usable(ref_meta) ||
+		qry_meta->hash_bits != ref_meta->hash_bits)
+		return need;
+
+	const uint64_t common_threshold =
+		qry_meta->threshold < ref_meta->threshold ? qry_meta->threshold : ref_meta->threshold;
+	const long double hash_space = ldexpl(1.0L, (int)qry_meta->hash_bits);
+	const long double common_fraction = ((long double)common_threshold + 1.0L) / hash_space;
+	if (common_fraction <= 0.0L)
+		return need;
+
+	const long double min_total =
+		qry_meta->selected_estimated_unique_ctx < ref_meta->selected_estimated_unique_ctx
+			? (long double)qry_meta->selected_estimated_unique_ctx
+			: (long double)ref_meta->selected_estimated_unique_ctx;
+	const long double need_ld =
+		(long double)ani_opt->afcut * min_total * common_fraction;
+	if (need_ld <= 0.0L)
+		return 0;
+	if (need_ld >= (long double)UINT32_MAX)
+		return UINT32_MAX;
+	return (uint32_t)ceill(need_ld);
 }
 
 static inline bool ani_best_guard_enabled(const ani_opt_t *ani_opt)
@@ -398,6 +602,13 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 		enable_best_guard ? read_optional_sketch_infile_meta_stats(ani_opt->qrydir, qry_infile_num) : NULL;
 	infile_meta_t *ref_infile_meta =
 		enable_best_guard ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, ref_infile_num) : NULL;
+	ani_ctxmeta_rec_t *qry_ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry_infile_num);
+	ani_ctxmeta_rec_t *ref_ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->refdir, ref_infile_num);
+	ani_opt_t scan_opt = *ani_opt;
+	if ((qry_ctxmeta || ref_ctxmeta) && scan_opt.fmt == 0)
+		scan_opt.afcut = 0.0f;
 
 	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
 	if (outfp == NULL)
@@ -441,8 +652,8 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 
 		memset(ctx, 0, ref_infile_num * block_size * sizeof(ctx_mut2_t));
 		memset(obj, 0, ref_infile_num * block_size * sizeof(obj_section_t)); // memset(obj,0,ref_infile_num * block_size * sizeof(uint32_t));
-		count_ctx_obj_frm_comb_sketch_section(ctx, obj, sortedcomb_ctxgid64obj32, ref_sketch_size, ref_infile_num, ref_ctx_count, qry_ctx_count + offset_gid, this_block_size, tmp_ctxobj, this_sketch_index, num_passid_block, sort_idani_block, ani_opt);
-		ani_block_print(ref_infile_num, offset_gid, this_block_size, ref_sketch_index, qry_sketch_index, ref_ctx_count, qry_ctx_count, ctx, obj, refname, qryname, refanno, qry_infile_meta, ref_infile_meta, num_passid_block, sort_idani_block, outfp, ani_opt, ani_opt->fmt);
+		count_ctx_obj_frm_comb_sketch_section(ctx, obj, sortedcomb_ctxgid64obj32, ref_sketch_size, ref_infile_num, ref_ctx_count, qry_ctx_count + offset_gid, this_block_size, tmp_ctxobj, this_sketch_index, num_passid_block, sort_idani_block, &scan_opt);
+		ani_block_print(ref_infile_num, offset_gid, this_block_size, ref_sketch_index, qry_sketch_index, ref_ctx_count, qry_ctx_count, ctx, obj, refname, qryname, refanno, qry_infile_meta, ref_infile_meta, qry_ctxmeta, ref_ctxmeta, num_passid_block, sort_idani_block, outfp, ani_opt, ani_opt->fmt);
 
 		offset_gid += this_block_size;
 	}
@@ -455,6 +666,8 @@ int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt)
 		free_read_from_file(qry_infile_meta, (size_t)qry_infile_num * sizeof(qry_infile_meta[0]));
 	if (ref_infile_meta)
 		free_read_from_file(ref_infile_meta, (size_t)ref_infile_num * sizeof(ref_infile_meta[0]));
+	free(qry_ctxmeta);
+	free(ref_ctxmeta);
 	free_all(ref_dim_sketch_stat, ref_sketch_index, ref_ctx_count, qry_dim_sketch_stat, qry_sketch_index, qry_ctx_count, tmp_ctxobj, ctx, obj, num_passid_block, sort_idani_block, NULL);
 	free_reference_sorted_index(sortedcomb_ctxgid64obj32, ctxgidobj_arr_fsize, sorted_index_is_mmap);
 	fclose(fp);
@@ -842,16 +1055,30 @@ typedef struct {
     unsigned char best_guarded;
     unsigned char af_pass;
     double   af_qry, blastn_af_qry, af_ref, blastn_af_ref;
+    double   real_af_qry, real_af_ref;
+    unsigned char real_af_available;
     int      XnY_ctx, N_diff_obj, N_diff_obj_section, N_mut2_ctx;
 } ani_row_t;
+
+static inline double ani_row_report_af_qry(const ani_row_t *r)
+{
+	return r && r->real_af_available ? r->real_af_qry : (r ? r->af_qry : 0.0);
+}
+
+static inline double ani_row_report_af_ref(const ani_row_t *r)
+{
+	return r && r->real_af_available ? r->real_af_ref : (r ? r->af_ref : 0.0);
+}
 
 static int cmp_ani_desc(const void *pa, const void *pb) {
     const ani_row_t *a = (const ani_row_t*)pa;
     const ani_row_t *b = (const ani_row_t*)pb;
     if (a->selected_ani < b->selected_ani) return  1;
     if (a->selected_ani > b->selected_ani) return -1;
-    if (a->af_qry < b->af_qry) return  1;
-    if (a->af_qry > b->af_qry) return -1;
+    const double a_af = ani_row_report_af_qry(a);
+    const double b_af = ani_row_report_af_qry(b);
+    if (a_af < b_af) return  1;
+    if (a_af > b_af) return -1;
     return (a->rn > b->rn) - (a->rn < b->rn);
 }
 
@@ -1006,6 +1233,7 @@ static inline ani_row_t make_selected_output_row(uint32_t rn,
 												 double blastn_af_qry,
 												 double af_ref,
 												 double blastn_af_ref,
+												 ani_density_af_t density_af,
 												 const infile_meta_t *qry_asm,
 												 const infile_meta_t *ref_asm)
 {
@@ -1016,11 +1244,16 @@ static inline ani_row_t make_selected_output_row(uint32_t rn,
 	row.blastn_af_qry = blastn_af_qry;
 	row.af_ref = af_ref;
 	row.blastn_af_ref = blastn_af_ref;
+	row.real_af_qry = density_af.qry;
+	row.real_af_ref = density_af.ref;
+	row.real_af_available = density_af.available;
 	row.XnY_ctx = features->XnY_ctx;
 	row.N_diff_obj = features->N_diff_obj;
 	row.N_diff_obj_section = features->N_diff_obj_section;
 	row.N_mut2_ctx = features->N_mut2_ctx;
-	fill_row_base_distances(&row, features, ani_opt, qry_ctx, ref_ctx, af_qry, af_ref);
+	fill_row_base_distances(&row, features, ani_opt, qry_ctx, ref_ctx,
+							ani_row_report_af_qry(&row),
+							ani_row_report_af_ref(&row));
 	row.ani = 1.0 - (ani_opt->v ? row.naive_dist : row.moe_dist);
 	if (!ani_opt->raw_output && row.af_pass)
 		fill_row_calibration(&row, ani_opt->unassembled, ani_best_guard_enabled(ani_opt),
@@ -1043,11 +1276,16 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
     const char *ref_annotation = annotation_or_na(annotation);
     const double blastn_af_qry = bounded_align_fraction(r->blastn_af_qry);
     const double blastn_af_ref = bounded_align_fraction(r->blastn_af_ref);
+    const double real_af_qry = bounded_align_fraction(r->real_af_qry);
+    const double real_af_ref = bounded_align_fraction(r->real_af_ref);
+    const double real_min_af = real_af_qry < real_af_ref ? real_af_qry : real_af_ref;
+    const char *af_source = r->real_af_available ? "density" : "sketch";
 
-    ksprintf(ks_out, "%s\t%s\t%lf\t%lf\t%s\t%s\t%d\t%f\t%f\t%f\t%f\t%d\t%d\t%d\t%s\n",
+    ksprintf(ks_out, "%s\t%s\t%lf\t%lf\t%s\t%s\t%d\t%f\t%f\t%f\t%f\t%d\t%d\t%d\t%s\t%f\t%f\t%f\t%s\n",
              qry_name, ref_name, selected_similarity, selected_distance, confidence, metric_name,
              r->XnY_ctx, r->af_qry, blastn_af_qry, r->af_ref, blastn_af_ref,
-             r->N_diff_obj, r->N_diff_obj_section, r->N_mut2_ctx, ref_annotation);
+             r->N_diff_obj, r->N_diff_obj_section, r->N_mut2_ctx, ref_annotation,
+             real_af_qry, real_af_ref, real_min_af, af_source);
 }
 
 static inline void print_unified_detail_row(FILE *outfp,
@@ -1076,7 +1314,9 @@ static inline double ani_matrix_diagonal_value(const ani_opt_t *ani_opt)
 
 static double ani_matrix_pair_value(const unify_sketch_t *qry_result, uint32_t qn,
 									const unify_sketch_t *ref_result, uint32_t rn,
-									const ani_opt_t *ani_opt)
+									const ani_opt_t *ani_opt,
+									const ani_ctxmeta_rec_t *qry_ctxmeta,
+									const ani_ctxmeta_rec_t *ref_ctxmeta)
 {
 	uint64_t *arr_qry = qry_result->comb_sketch + qry_result->sketch_index[qn];
 	size_t len_qry = qry_result->sketch_index[qn + 1] - qry_result->sketch_index[qn];
@@ -1105,10 +1345,14 @@ static double ani_matrix_pair_value(const unify_sketch_t *qry_result, uint32_t q
 	tmp = ani_features;
 	tmp.X_ctx = ref_ctx;
 	const double blastn_af_ref = lm3ways_af_ANIb_from_features(&tmp);
+	const ani_density_af_t density_af = ani_estimate_density_af(
+		ani_ctxmeta_at(qry_ctxmeta, qn), ani_ctxmeta_at(ref_ctxmeta, rn),
+		(uint32_t)ani_features.XnY_ctx, af_qry, af_ref);
 	ani_row_t outrow = make_selected_output_row(rn, &ani_features, ani_opt,
 												qry_ctx, ref_ctx,
 												af_qry, blastn_af_qry,
 												af_ref, blastn_af_ref,
+												density_af,
 												infile_meta_at(qry_result, qn),
 												infile_meta_at(ref_result, rn));
 	return ani_opt->s < 0 ? outrow.selected_ani : outrow.metric;
@@ -1248,7 +1492,8 @@ static double ani_indexed_self_pair_metric(const unify_sketch_t *sketch,
 										   int qgid, int rgid,
 										   const ani_features_t *features,
 										   const uint32_t *qry_ctx_count,
-										   const uint32_t *ref_ctx_count)
+										   const uint32_t *ref_ctx_count,
+										   const ani_ctxmeta_rec_t *ctxmeta)
 {
 	const uint32_t qry_ctx = qry_ctx_count[qgid];
 	const uint32_t ref_ctx = ref_ctx_count[rgid];
@@ -1262,10 +1507,14 @@ static double ani_indexed_self_pair_metric(const unify_sketch_t *sketch,
 		tmp = *features;
 		tmp.X_ctx = ref_ctx;
 		const double blastn_af_ref = lm3ways_af_ANIb_from_features(&tmp);
+		const ani_density_af_t density_af = ani_estimate_density_af(
+			ani_ctxmeta_at(ctxmeta, (uint32_t)qgid), ani_ctxmeta_at(ctxmeta, (uint32_t)rgid),
+			(uint32_t)features->XnY_ctx, af_qry, af_ref);
 		ani_row_t outrow = make_selected_output_row(
 			(uint32_t)rgid, features, ani_opt,
 			qry_ctx, ref_ctx, af_qry, blastn_af_qry,
 			af_ref, blastn_af_ref,
+			density_af,
 			infile_meta_at(sketch, (uint32_t)qgid),
 			infile_meta_at(sketch, (uint32_t)rgid));
 		metric = ani_opt->s < 0 ? outrow.selected_ani : outrow.metric;
@@ -1294,6 +1543,8 @@ bool comb_sortedsketch64_indexed_self_full(ani_opt_t *ani_opt)
 	uint32_t *ref_ctx_count = ani_opt->ignoreconflict
 								  ? ani_ctx_counts_for_sketch(sketch, true)
 								  : qry_ctx_count;
+	ani_ctxmeta_rec_t *ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, sketch->infile_num);
 
 	const int block_size = ani_choose_dense_matrix_block_size(n, n);
 	if (block_size <= 0)
@@ -1330,7 +1581,7 @@ bool comb_sortedsketch64_indexed_self_full(ani_opt_t *ani_opt)
 				};
 				const double metric = ani_indexed_self_pair_metric(
 					sketch, ani_opt, qgid, rgid, &features,
-					qry_ctx_count, ref_ctx_count);
+					qry_ctx_count, ref_ctx_count, ctxmeta);
 				lower[ani_lower_offset(qgid, rgid)] = ani_scale_fixed6(metric);
 			}
 		}
@@ -1373,6 +1624,7 @@ bool comb_sortedsketch64_indexed_self_full(ani_opt_t *ani_opt)
 	free(qry_ctx_count);
 	if (ref_ctx_count != qry_ctx_count)
 		free(ref_ctx_count);
+	free(ctxmeta);
 	free_self_sorted_index(sorted_index, index_bytes, index_from_file, index_is_mmap);
 	free_unify_sketch(sketch);
 	return true;
@@ -1399,6 +1651,8 @@ bool comb_sortedsketch64_indexed_self_triangle(ani_opt_t *ani_opt)
 	uint32_t *ref_ctx_count = ani_opt->ignoreconflict
 								  ? ani_ctx_counts_for_sketch(sketch, true)
 								  : qry_ctx_count;
+	ani_ctxmeta_rec_t *ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, sketch->infile_num);
 
 	const int block_size = ani_choose_dense_matrix_block_size(n, n);
 	if (block_size <= 0)
@@ -1437,7 +1691,7 @@ bool comb_sortedsketch64_indexed_self_triangle(ani_opt_t *ani_opt)
 				};
 				const double metric = ani_indexed_self_pair_metric(
 					sketch, ani_opt, qgid, rgid, &features,
-					qry_ctx_count, ref_ctx_count);
+					qry_ctx_count, ref_ctx_count, ctxmeta);
 				ksprintf(&row, "\t%lf", metric);
 			}
 			if (ani_opt->d)
@@ -1455,6 +1709,7 @@ bool comb_sortedsketch64_indexed_self_triangle(ani_opt_t *ani_opt)
 	free(qry_ctx_count);
 	if (ref_ctx_count != qry_ctx_count)
 		free(ref_ctx_count);
+	free(ctxmeta);
 	free_self_sorted_index(sorted_index, index_bytes, index_from_file, index_is_mmap);
 	free_unify_sketch(sketch);
 	return true;
@@ -1505,8 +1760,10 @@ static inline int compute_row_if_survivor(
 
     const double af_q = (double)f.XnY_ctx / (double)qry_ctx;
     const double af_r = (double)f.XnY_ctx / (double)ref_ctx;
+	const ani_density_af_t density_af = ani_estimate_density_af(NULL, NULL,
+		(uint32_t)f.XnY_ctx, af_q, af_r);
 
-	if (!ani_report_af_pass(opt, af_q, af_r)) return 0;
+	if (!ani_report_af_pass(opt, density_af.qry, density_af.ref)) return 0;
 
     ani_features_t tmp = f;
     tmp.X_ctx = qry_ctx;
@@ -1517,6 +1774,7 @@ static inline int compute_row_if_survivor(
 
     ani_row_t r = make_selected_output_row(rn, &f, opt, qry_ctx, ref_ctx,
                                            af_q, blastn_af_q, af_r, blastn_af_r,
+                                           density_af,
                                            infile_meta_at(qry, qn), infile_meta_at(ref, rn));
     if (r.selected_ani <= opt->anicut) return 0;
 
@@ -1733,6 +1991,8 @@ static int compute_streamed_ref_row_one_qry(
     uint32_t rn, const ani_opt_t *opt, bool ref_conflict,
     const infile_meta_t *qry_asm,
     const infile_meta_t *ref_asm,
+    const ani_ctxmeta_rec_t *qry_meta,
+    const ani_ctxmeta_rec_t *ref_meta,
     ani_row_t *row_out)
 {
     const uint32_t qry_ctx = lookup_mode == QRAW_LOOKUP_HASH
@@ -1747,7 +2007,8 @@ static int compute_streamed_ref_row_one_qry(
         : (uint32_t)ref_len;
     if (ref_ctx_total == 0)
         return 0;
-    const uint32_t need_X = ani_report_af_needed_ctx(opt, qry_ctx, ref_ctx_total);
+    const uint32_t need_X = ani_density_af_needed_ctx(opt, qry_ctx, ref_ctx_total,
+                                                      qry_meta, ref_meta);
 
     const uint8_t nobjbits = Bitslen.obj;
     const uint64_t objmask = (nobjbits == 64) ? UINT64_MAX : ((1ULL << nobjbits) - 1ULL);
@@ -1795,7 +2056,9 @@ static int compute_streamed_ref_row_one_qry(
 
     const double af_q = (double)f.XnY_ctx / (double)qry_ctx;
     const double af_r = (double)f.XnY_ctx / (double)ref_ctx;
-	if (!ani_report_af_pass(opt, af_q, af_r))
+	const ani_density_af_t density_af = ani_estimate_density_af(qry_meta, ref_meta,
+		(uint32_t)f.XnY_ctx, af_q, af_r);
+	if (!ani_report_af_pass(opt, density_af.qry, density_af.ref))
 		return 0;
 
     ani_features_t tmp = f;
@@ -1807,6 +2070,7 @@ static int compute_streamed_ref_row_one_qry(
 
     ani_row_t row = make_selected_output_row(rn, &f, opt, qry_ctx, ref_ctx,
                                              af_q, blastn_af_q, af_r, blastn_af_r,
+                                             density_af,
                                              qry_asm, ref_asm);
     if (row.selected_ani < opt->anicut)
         return 0;
@@ -1846,6 +2110,10 @@ int stream_ref_sketches_one_qraw_lookup(ani_opt_t *ani_opt)
     char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, (int)ref_n);
     infile_meta_t *ref_infile_meta =
         ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
+    ani_ctxmeta_rec_t *qry_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry->infile_num);
+    ani_ctxmeta_rec_t *ref_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->refdir, (int)ref_n);
 
     const uint64_t *qry_arr = qry->comb_sketch + qry->sketch_index[0];
     const size_t qry_len = (size_t)(qry->sketch_index[1] - qry->sketch_index[0]);
@@ -1942,6 +2210,8 @@ int stream_ref_sketches_one_qraw_lookup(ani_opt_t *ani_opt)
                                                      rn, ani_opt, ref_stat->conflict,
                                                      infile_meta_at(qry, 0),
                                                      ref_infile_meta ? &ref_infile_meta[rn] : NULL,
+                                                     ani_ctxmeta_at(qry_ctxmeta, 0),
+                                                     ani_ctxmeta_at(ref_ctxmeta, rn),
                                                      &row))
                     kv_push(ani_row_t, tls[tid], row);
             }
@@ -1979,6 +2249,8 @@ int stream_ref_sketches_one_qraw_lookup(ani_opt_t *ani_opt)
         free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
     if (ref_infile_meta)
         free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
+    free(qry_ctxmeta);
+    free(ref_ctxmeta);
     free_read_from_file(ref_idx, ref_idx_size);
     free_read_from_file(ref_stat, ref_stat_size);
     free_unify_sketch(qry);
@@ -2142,6 +2414,10 @@ int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt)
     char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, (int)ref_n);
     infile_meta_t *ref_infile_meta =
         ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
+    ani_ctxmeta_rec_t *qry_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry->infile_num);
+    ani_ctxmeta_rec_t *ref_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->refdir, (int)ref_n);
     qraw_multi_lookup_t lookup;
     build_qraw_multi_lookup(qry, &lookup);
 
@@ -2259,10 +2535,18 @@ int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt)
                     const uint32_t qry_ctx = lookup.qry_ctx_counts[q];
                     if (qry_ctx == 0 || (uint32_t)f.XnY_ctx < (uint32_t)ani_opt->ctxcut)
                         continue;
+                    const ani_ctxmeta_rec_t *qmeta = ani_ctxmeta_at(qry_ctxmeta, q);
+                    const ani_ctxmeta_rec_t *rmeta = ani_ctxmeta_at(ref_ctxmeta, rn);
+                    const uint32_t need_X = ani_density_af_needed_ctx(ani_opt, qry_ctx, ref_ctx,
+                                                                      qmeta, rmeta);
+                    if ((uint32_t)f.XnY_ctx < need_X)
+                        continue;
 
                     const double af_q = (double)f.XnY_ctx / (double)qry_ctx;
                     const double af_r = (double)f.XnY_ctx / (double)ref_ctx;
-					if (!ani_report_af_pass(ani_opt, af_q, af_r))
+                    const ani_density_af_t density_af = ani_estimate_density_af(
+                        qmeta, rmeta, (uint32_t)f.XnY_ctx, af_q, af_r);
+					if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref))
 						continue;
 
                     ani_features_t tmp = f;
@@ -2274,6 +2558,7 @@ int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt)
 
                     ani_row_t row = make_selected_output_row(rn, &f, ani_opt, qry_ctx, ref_ctx,
                                                              af_q, blastn_af_q, af_r, blastn_af_r,
+                                                             density_af,
                                                              infile_meta_at(qry, q),
                                                              ref_infile_meta ? &ref_infile_meta[rn] : NULL);
                     if (row.selected_ani < ani_opt->anicut)
@@ -2321,6 +2606,8 @@ int stream_ref_sketches_multi_qraw_sortedindex(ani_opt_t *ani_opt)
         free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
     if (ref_infile_meta)
         free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
+    free(qry_ctxmeta);
+    free(ref_ctxmeta);
     free_read_from_file(ref_idx, ref_idx_size);
     free_read_from_file(ref_stat, ref_stat_size);
     free_unify_sketch(qry);
@@ -2335,6 +2622,10 @@ void comb_sortedsketch64Xcomb_sortedsketch64_filter_and_sort_survivors(ani_opt_t
     unify_sketch_t *ref = generic_sketch_parse(ani_opt->refdir, ani_ref_parse_flags(ani_opt));
     load_infile_meta_for_best_guard(qry, ani_opt->qrydir, ani_opt);
     load_infile_meta_for_best_guard(ref, ani_opt->refdir, ani_opt);
+    ani_ctxmeta_rec_t *qry_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry->infile_num);
+    ani_ctxmeta_rec_t *ref_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->refdir, ref->infile_num);
     if (ref->conflict)
         errx(EXIT_FAILURE, "%s(): ref '%s' contains conflicting objects!", __func__, ani_opt->refdir);
 
@@ -2526,6 +2817,11 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 	load_infile_meta_for_best_guard(qry_result, ani_opt->qrydir, ani_opt);
 	load_infile_meta_for_best_guard(ref_result, ani_opt->refdir, ani_opt);
 	const bool same_sketch = strcmp(ani_opt->qrydir, ani_opt->refdir) == 0;
+	ani_ctxmeta_rec_t *qry_ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry_result->infile_num);
+	ani_ctxmeta_rec_t *ref_ctxmeta = same_sketch
+		? qry_ctxmeta
+		: read_optional_ani_ctxmeta_stats(ani_opt->refdir, ref_result->infile_num);
 
 	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
 	if (outfp == NULL)
@@ -2547,16 +2843,21 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 				{
 					const uint32_t q = qn > rn ? qn : rn;
 					const uint32_t r = qn > rn ? rn : qn;
-					metric = ani_matrix_pair_value(qry_result, q, ref_result, r, ani_opt);
+					metric = ani_matrix_pair_value(qry_result, q, ref_result, r, ani_opt,
+												   qry_ctxmeta, ref_ctxmeta);
 				}
 				else
-					metric = ani_matrix_pair_value(qry_result, qn, ref_result, rn, ani_opt);
+					metric = ani_matrix_pair_value(qry_result, qn, ref_result, rn, ani_opt,
+												   qry_ctxmeta, ref_ctxmeta);
 				fprintf(outfp, "\t%lf", metric);
 			}
 			fprintf(outfp, "\n");
 		}
 		if (outfp != stdout)
 			fclose(outfp);
+		if (ref_ctxmeta != qry_ctxmeta)
+			free(ref_ctxmeta);
+		free(qry_ctxmeta);
 		free_unify_sketch(qry_result);
 		free_unify_sketch(ref_result);
 		return;
@@ -2569,13 +2870,17 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 		{
 			fprintf(outfp, "%s", qry_result->gname[qn]);
 			for (uint32_t rn = 0; rn < qn; rn++)
-				fprintf(outfp, "\t%lf", ani_matrix_pair_value(qry_result, qn, ref_result, rn, ani_opt));
+				fprintf(outfp, "\t%lf", ani_matrix_pair_value(qry_result, qn, ref_result, rn, ani_opt,
+															  qry_ctxmeta, ref_ctxmeta));
 			if (ani_opt->d)
 				fprintf(outfp, "\t%lf", ani_matrix_diagonal_value(ani_opt));
 			fprintf(outfp, "\n");
 		}
 		if (outfp != stdout)
 			fclose(outfp);
+		if (ref_ctxmeta != qry_ctxmeta)
+			free(ref_ctxmeta);
+		free(qry_ctxmeta);
 		free_unify_sketch(qry_result);
 		free_unify_sketch(ref_result);
 		return;
@@ -2598,8 +2903,11 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 			get_ani_features_from_two_sorted_ctxobj64(arr_ref, len_ref, arr_qry, len_qry, &ani_features);
 			double af_qry = (double)ani_features.XnY_ctx / len_qry;
 			double af_ref = (double)ani_features.XnY_ctx / len_ref;
+			const ani_density_af_t density_af = ani_estimate_density_af(
+				ani_ctxmeta_at(qry_ctxmeta, qn), ani_ctxmeta_at(ref_ctxmeta, rn),
+				(uint32_t)ani_features.XnY_ctx, af_qry, af_ref);
 
-			if (!ani_report_af_pass(ani_opt, af_qry, af_ref))
+			if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref))
 				continue;
 			ani_features.X_ctx = len_qry;
 			double blastn_af_qry = lm3ways_af_ANIb_from_features(&ani_features);
@@ -2610,6 +2918,7 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 														(uint32_t)len_ref,
 														af_qry, blastn_af_qry,
 														af_ref, blastn_af_ref,
+														density_af,
 														infile_meta_at(qry_result, qn),
 														infile_meta_at(ref_result, rn));
 			if (outrow.selected_ani < ani_opt->anicut)
@@ -2620,6 +2929,9 @@ void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 	}
 	if (outfp != stdout)
 		fclose(outfp);
+	if (ref_ctxmeta != qry_ctxmeta)
+		free(ref_ctxmeta);
+	free(qry_ctxmeta);
 	free_unify_sketch(qry_result);
 	free_unify_sketch(ref_result);
 }
@@ -2628,6 +2940,8 @@ void comb_sortedsketch64_self_matrix(ani_opt_t *ani_opt)
 {
 	unify_sketch_t *sketch = generic_sketch_parse(ani_opt->qrydir, SKETCH_PARSE_NONE);
 	load_infile_meta_for_best_guard(sketch, ani_opt->qrydir, ani_opt);
+	ani_ctxmeta_rec_t *ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, sketch->infile_num);
 
 	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
 	if (outfp == NULL)
@@ -2650,7 +2964,8 @@ void comb_sortedsketch64_self_matrix(ani_opt_t *ani_opt)
 				{
 					const uint32_t q = qn > rn ? qn : rn;
 					const uint32_t r = qn > rn ? rn : qn;
-					metric = ani_matrix_pair_value(sketch, q, sketch, r, ani_opt);
+					metric = ani_matrix_pair_value(sketch, q, sketch, r, ani_opt,
+												   ctxmeta, ctxmeta);
 				}
 				fprintf(outfp, "\t%lf", metric);
 			}
@@ -2663,7 +2978,8 @@ void comb_sortedsketch64_self_matrix(ani_opt_t *ani_opt)
 		{
 			fprintf(outfp, "%s", sketch->gname[qn]);
 			for (uint32_t rn = 0; rn < qn; rn++)
-				fprintf(outfp, "\t%lf", ani_matrix_pair_value(sketch, qn, sketch, rn, ani_opt));
+				fprintf(outfp, "\t%lf", ani_matrix_pair_value(sketch, qn, sketch, rn, ani_opt,
+															  ctxmeta, ctxmeta));
 			if (ani_opt->d)
 				fprintf(outfp, "\t%lf", ani_matrix_diagonal_value(ani_opt));
 			fprintf(outfp, "\n");
@@ -2674,6 +2990,7 @@ void comb_sortedsketch64_self_matrix(ani_opt_t *ani_opt)
 
 	if (outfp != stdout)
 		fclose(outfp);
+	free(ctxmeta);
 	free_unify_sketch(sketch);
 }
 
@@ -2756,6 +3073,8 @@ void ani_block_print(
 	char (*refanno)[PATHLEN],
 	const infile_meta_t *qry_infile_meta,
 	const infile_meta_t *ref_infile_meta,
+	const ani_ctxmeta_rec_t *qry_ctxmeta,
+	const ani_ctxmeta_rec_t *ref_ctxmeta,
 	uint32_t *num_passid_block, idani_t **sort_idani_block,
 	FILE *outfp, ani_opt_t *ani_opt, int matrix_mode)
 {
@@ -2792,6 +3111,11 @@ void ani_block_print(
 				}
 			float af_qry = (float)ani_features.XnY_ctx / qry_sketch_size;
 			float af_ref = (float)ani_features.XnY_ctx / ref_sketch_size;
+			const ani_density_af_t density_af = ani_estimate_density_af(
+				ani_ctxmeta_at(qry_ctxmeta, (uint32_t)qry_gid),
+				ani_ctxmeta_at(ref_ctxmeta, (uint32_t)j),
+				(uint32_t)ani_features.XnY_ctx,
+				(double)af_qry, (double)af_ref);
 			ani_features.X_ctx = qry_sketch_size;
 			float blastn_af_qry = lm3ways_af_ANIb_from_features(&ani_features);
 			ani_features.X_ctx = ref_sketch_size;
@@ -2802,6 +3126,7 @@ void ani_block_print(
 															(uint32_t)ref_sketch_size,
 															af_qry, blastn_af_qry,
 															af_ref, blastn_af_ref,
+															density_af,
 															qry_infile_meta ? &qry_infile_meta[qry_gid] : NULL,
 															ref_infile_meta ? &ref_infile_meta[j] : NULL);
 				double metric = ani_opt->s < 0 ? outrow.selected_ani : outrow.metric;
@@ -2810,7 +3135,7 @@ void ani_block_print(
 				{
 					fprintf(outfp, "\t%lf", metric);
 				}
-				else if (outrow.selected_ani >= ani_opt->anicut)
+				else if (outrow.af_pass && outrow.selected_ani >= ani_opt->anicut)
 				{
 					print_unified_detail_row(outfp, ani_opt, qryfname[qry_gid], refname[j],
 											 &outrow, annotation_at(refanno, (uint32_t)j));
@@ -2852,18 +3177,21 @@ void simple_sortedsketch64Xcomb_sortedsketch64(simple_sketch_t *simple_sketch, i
 		float af_qry = (double)ani_features.XnY_ctx / qry_sketch_size;
 
 		float af_ref = (double)ani_features.XnY_ctx / ref_sketch_size;
+		const ani_density_af_t density_af =
+			ani_density_af_fallback((double)af_qry, (double)af_ref);
 		ani_features.X_ctx = qry_sketch_size;
 		float blastn_af_qry = lm3ways_af_ANIb_from_features(&ani_features);
 		ani_features.X_ctx = ref_sketch_size;
 		float blastn_af_ref = lm3ways_af_ANIb_from_features(&ani_features);
 
-		if (!ani_report_af_pass(ani_opt, af_qry, af_ref))
+		if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref))
 			continue;
 		ani_row_t outrow = make_selected_output_row(0, &ani_features, ani_opt,
 													(uint32_t)qry_sketch_size,
 													(uint32_t)ref_sketch_size,
 													af_qry, blastn_af_qry,
 													af_ref, blastn_af_ref,
+													density_af,
 													NULL, NULL);
 		if (outrow.selected_ani >= ani_opt->anicut)
 		{
@@ -3136,6 +3464,10 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
     unify_sketch_t *ref = generic_sketch_parse(ani_opt->refdir, ani_ref_parse_flags(ani_opt));
     load_infile_meta_for_best_guard(qry, ani_opt->qrydir, ani_opt);
     load_infile_meta_for_best_guard(ref, ani_opt->refdir, ani_opt);
+    ani_ctxmeta_rec_t *qry_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry->infile_num);
+    ani_ctxmeta_rec_t *ref_ctxmeta =
+        read_optional_ani_ctxmeta_stats(ani_opt->refdir, ref->infile_num);
 
     const uint32_t Q = qry->infile_num;
     const uint32_t R = ref->infile_num;
@@ -3183,7 +3515,10 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
                 if (m_ctx == 0 || n_ctx == 0)
                     continue;
 
-				const uint32_t need_X = ani_report_af_needed_ctx(ani_opt, n_ctx, m_ctx);
+                const ani_ctxmeta_rec_t *qmeta = ani_ctxmeta_at(qry_ctxmeta, qn);
+                const ani_ctxmeta_rec_t *rmeta = ani_ctxmeta_at(ref_ctxmeta, rn);
+				const uint32_t need_X = ani_density_af_needed_ctx(ani_opt, n_ctx, m_ctx,
+                                                                  qmeta, rmeta);
 
                 ani_features_t f;
                 get_features_scan_b_hash_a(a, n, b, m, &ht, need_X, ani_opt->ignoreconflict && ref->conflict, &f);
@@ -3191,8 +3526,10 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
 
                 const double af_q = (double)f.XnY_ctx / (double)n_ctx;
                 const double af_r = (double)f.XnY_ctx / (double)m_ctx;
+                const ani_density_af_t density_af = ani_estimate_density_af(
+                    qmeta, rmeta, (uint32_t)f.XnY_ctx, af_q, af_r);
 
-				if (!ani_report_af_pass(ani_opt, af_q, af_r)) continue;
+				if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref)) continue;
 
 	                ani_features_t tmp = f;
 	                tmp.X_ctx = n_ctx;
@@ -3203,6 +3540,7 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
 
 	                row = make_selected_output_row(rn, &f, ani_opt, n_ctx, m_ctx,
 	                                               af_q, blastn_af_q, af_r, blastn_af_r,
+	                                               density_af,
 	                                               infile_meta_at(qry, qn), infile_meta_at(ref, rn));
 	                if (row.selected_ani <= ani_opt->anicut) continue;
 
@@ -3239,4 +3577,6 @@ void comb_manysmall_sortedsketch64Xcomb_fewlarge_sortedsketch64_filter_and_sort_
     free(ks_arr);
 
     if (outfp != stdout) fclose(outfp);
+    free(qry_ctxmeta);
+    free(ref_ctxmeta);
 }

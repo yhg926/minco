@@ -1266,6 +1266,8 @@ void gen_inverted_index4comblco(const char *refdir)
 static void write_sketch_input_annotations(const char *outdir, infile_tab_t *infile_stat);
 static void remove_sketch_annotations(const char *outdir);
 static void remove_minco_ctxmeta(const char *outdir);
+static void merge_minco_ctxmeta_stats(const char *outdir, char **input_dirs,
+                                      int input_count, int expected_samples);
 static void write_minco_ctxmeta_stats(const char *outdir, infile_tab_t *infile_stat,
                                          const minco_ctxmeta_t *stats,
                                          size_t sample_count);
@@ -1353,6 +1355,79 @@ static void remove_minco_ctxmeta(const char *outdir)
     if (unlink(ctxmeta_path) != 0 && errno != ENOENT)
         err(errno, "%s(): cannot remove stale %s", __func__, ctxmeta_path);
     free(ctxmeta_path);
+}
+
+static void merge_minco_ctxmeta_stats(const char *outdir, char **input_dirs,
+                                      int input_count, int expected_samples)
+{
+    if (!outdir || !input_dirs || input_count <= 0 || expected_samples <= 0) {
+        remove_minco_ctxmeta(outdir);
+        return;
+    }
+
+    for (int i = 0; i < input_count; ++i) {
+        if (!file_exists_in_folder(input_dirs[i], minco_ctxmeta_stat)) {
+            remove_minco_ctxmeta(outdir);
+            return;
+        }
+    }
+
+    char *out_path = format_string("%s/%s", outdir, minco_ctxmeta_stat);
+    if (!out_path)
+        err(errno, "%s(): OOM merged ctxmeta path", __func__);
+    char *tmp_path = format_string("%s/%s.tmp", outdir, minco_ctxmeta_stat);
+    if (!tmp_path)
+        err(errno, "%s(): OOM merged ctxmeta tmp path", __func__);
+    FILE *out = fopen(tmp_path, "w");
+    if (!out)
+        err(errno, "%s(): cannot open %s", __func__, tmp_path);
+
+    uint64_t merged_sample_id = 0;
+    bool wrote_header = false;
+    char *line = NULL;
+    size_t cap = 0;
+
+    for (int i = 0; i < input_count; ++i) {
+        char *in_path = format_string("%s/%s", input_dirs[i], minco_ctxmeta_stat);
+        if (!in_path)
+            err(errno, "%s(): OOM input ctxmeta path", __func__);
+        FILE *in = fopen(in_path, "r");
+        if (!in)
+            err(errno, "%s(): cannot open %s", __func__, in_path);
+
+        ssize_t len = getline(&line, &cap, in);
+        if (len < 0)
+            errx(EXIT_FAILURE, "%s(): empty ctxmeta file %s", __func__, in_path);
+        if (!wrote_header) {
+            fputs(line, out);
+            wrote_header = true;
+        }
+
+        while ((len = getline(&line, &cap, in)) >= 0) {
+            if (len == 0 || line[0] == '\n' || line[0] == '\r')
+                continue;
+            char *tab = strchr(line, '\t');
+            if (!tab)
+                errx(EXIT_FAILURE, "%s(): malformed ctxmeta line in %s", __func__, in_path);
+            fprintf(out, "%" PRIu64 "%s", merged_sample_id++, tab);
+        }
+        if (ferror(in))
+            err(errno, "%s(): failed reading %s", __func__, in_path);
+        if (fclose(in) != 0)
+            err(errno, "%s(): cannot close %s", __func__, in_path);
+        free(in_path);
+    }
+
+    free(line);
+    if ((int)merged_sample_id != expected_samples)
+        errx(EXIT_FAILURE, "%s(): merged %" PRIu64 " ctxmeta records, expected %d",
+             __func__, merged_sample_id, expected_samples);
+    if (fclose(out) != 0)
+        err(errno, "%s(): cannot close %s", __func__, tmp_path);
+    if (rename(tmp_path, out_path) != 0)
+        err(errno, "%s(): cannot replace %s", __func__, out_path);
+    free(out_path);
+    free(tmp_path);
 }
 
 static void write_minco_ctxmeta_stats(const char *outdir, infile_tab_t *infile_stat,
@@ -2214,6 +2289,9 @@ int merge_comblco(sketch_opt_t *sketch_opt_val)
     }
     if (write_merged_annotations)
         write_sketch_annotations(sketch_opt_val->outdir, merged_annotations, (size_t)comblco_stat_one.infile_num);
+    merge_minco_ctxmeta_stats(sketch_opt_val->outdir, sketch_opt_val->remaining_args,
+                              sketch_opt_val->num_remaining_args,
+                              comblco_stat_one.infile_num);
     free_read_from_file(mem_stat, first_stat_size);
     free(index_arry);
     free(tmpname);
