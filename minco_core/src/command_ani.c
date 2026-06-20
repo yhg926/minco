@@ -3583,6 +3583,7 @@ size_t *minco_find_first_occurrences_fenceposts(const uint64_t *a, size_t a_size
 #define ANI_APPLY_SOURCE_FILTER (!MINCO_HASH_BOTTOMK || MINCO_KEEP_SOURCE_FILTER)
 #define ANI_U64SET_MAX_LOAD_NUM 7u
 #define ANI_U64SET_MAX_LOAD_DEN 10u
+#define ANI_READWISE_BATCH_READS 16384u
 
 typedef struct {
 	uint64_t *keys;
@@ -3629,6 +3630,31 @@ typedef struct {
 	time_t last_at;
 } ani_readwise_progress_t;
 
+typedef kvec_t(size_t) kv_size_t;
+
+typedef struct {
+	char *seq;
+	int len;
+} ani_readwise_seq_rec_t;
+
+typedef struct {
+	u64vec vec;
+	uint64_t id;
+	uint64_t reads_with_density_ctx;
+} ani_density_unit_t;
+
+typedef kvec_t(ani_density_unit_t) kv_density_unit_t;
+
+typedef struct {
+	ani_readwise_acc_t *acc;
+	uint64_t *read_marks;
+	uint8_t *ref_hit_bits;
+	ani_u64_set_t qry_ctx_seen;
+	ani_u64_set_t qry_ref_ctx_seen;
+	kv_size_t ref_ctx_hit_positions;
+	kv_size_t ref_ctx_cov_hits;
+} ani_readwise_thread_state_t;
+
 #define ANI_READWISE_PROGRESS_READ_INTERVAL 1000000ULL
 #define ANI_READWISE_PROGRESS_TIME_INTERVAL 30
 
@@ -3659,6 +3685,40 @@ static void ani_u64_set_destroy(ani_u64_set_t *set)
 	free(set->keys);
 	free(set->used);
 	memset(set, 0, sizeof(*set));
+}
+
+static void ani_u64_set_clear(ani_u64_set_t *set)
+{
+	if (!set || !set->used)
+		return;
+	memset(set->used, 0, set->cap * sizeof(set->used[0]));
+	set->n = 0;
+}
+
+static size_t ani_u64_set_capacity_for_expected(size_t expected)
+{
+	if (!expected)
+		return 1024;
+	if (expected > (SIZE_MAX - ANI_U64SET_MAX_LOAD_NUM) / ANI_U64SET_MAX_LOAD_DEN)
+		errx(EXIT_FAILURE, "%s(): hash set too large", __func__);
+	const size_t min_cap =
+		(expected * ANI_U64SET_MAX_LOAD_DEN + ANI_U64SET_MAX_LOAD_NUM - 1) /
+		ANI_U64SET_MAX_LOAD_NUM;
+	return ani_next_pow2_size(min_cap < 1024 ? 1024 : min_cap);
+}
+
+static void ani_u64_set_reset_for_expected(ani_u64_set_t *set, size_t expected)
+{
+	if (!set)
+		return;
+	free(set->keys);
+	free(set->used);
+	memset(set, 0, sizeof(*set));
+	set->cap = ani_u64_set_capacity_for_expected(expected);
+	set->keys = calloc(set->cap, sizeof(set->keys[0]));
+	set->used = calloc(set->cap, sizeof(set->used[0]));
+	if (!set->keys || !set->used)
+		err(EXIT_FAILURE, "%s(): OOM hash set", __func__);
 }
 
 static void ani_u64_set_grow(ani_u64_set_t *set)
@@ -3723,6 +3783,154 @@ static inline void ani_u32_saturating_inc(uint32_t *x)
 {
 	if (*x != UINT32_MAX)
 		++*x;
+}
+
+static void ani_density_units_destroy(kv_density_unit_t *units)
+{
+	if (!units)
+		return;
+	for (size_t i = 0; i < kv_size(*units); ++i)
+		v_free(&kv_A(*units, i).vec);
+	kv_destroy(*units);
+}
+
+static void ani_readwise_seq_batch_destroy(ani_readwise_seq_rec_t *batch,
+										   size_t n)
+{
+	if (!batch)
+		return;
+	for (size_t i = 0; i < n; ++i)
+		free(batch[i].seq);
+}
+
+static void ani_readwise_thread_state_init(ani_readwise_thread_state_t *st,
+										   uint32_t ref_n,
+										   size_t index_n,
+										   bool need_ref_cov_hits)
+{
+	memset(st, 0, sizeof(*st));
+	st->acc = calloc((size_t)ref_n, sizeof(st->acc[0]));
+	st->read_marks = calloc((size_t)ref_n, sizeof(st->read_marks[0]));
+	st->ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
+	if (!st->acc || !st->read_marks || !st->ref_hit_bits)
+		err(EXIT_FAILURE, "%s(): OOM readwise thread state", __func__);
+	ani_u64_set_init(&st->qry_ctx_seen, 1u << 14);
+	ani_u64_set_init(&st->qry_ref_ctx_seen, 1u << 15);
+	kv_init(st->ref_ctx_hit_positions);
+	if (need_ref_cov_hits)
+		kv_init(st->ref_ctx_cov_hits);
+}
+
+static void ani_readwise_thread_state_destroy(ani_readwise_thread_state_t *st)
+{
+	if (!st)
+		return;
+	free(st->acc);
+	free(st->read_marks);
+	free(st->ref_hit_bits);
+	ani_u64_set_destroy(&st->qry_ctx_seen);
+	ani_u64_set_destroy(&st->qry_ref_ctx_seen);
+	kv_destroy(st->ref_ctx_hit_positions);
+	kv_destroy(st->ref_ctx_cov_hits);
+	memset(st, 0, sizeof(*st));
+}
+
+static void ani_readwise_thread_state_clear_batch(ani_readwise_thread_state_t *st,
+												  uint32_t ref_n)
+{
+	if (!st)
+		return;
+	if (st->acc)
+		memset(st->acc, 0, (size_t)ref_n * sizeof(st->acc[0]));
+	if (st->ref_hit_bits) {
+		for (size_t i = 0; i < kv_size(st->ref_ctx_hit_positions); ++i) {
+			const size_t idx = kv_A(st->ref_ctx_hit_positions, i);
+			st->ref_hit_bits[idx >> 3] &= (uint8_t)~(1u << (idx & 7u));
+		}
+	}
+	kv_size(st->ref_ctx_hit_positions) = 0;
+	kv_size(st->ref_ctx_cov_hits) = 0;
+	ani_u64_set_clear(&st->qry_ctx_seen);
+	ani_u64_set_clear(&st->qry_ref_ctx_seen);
+}
+
+static void ani_u64_set_merge(ani_u64_set_t *dst,
+							  const ani_u64_set_t *src)
+{
+	if (!dst || !src)
+		return;
+	for (size_t i = 0; i < src->cap; ++i)
+		if (src->used[i])
+			(void)ani_u64_set_insert(dst, src->keys[i]);
+}
+
+static void ani_qry_ref_set_merge_into_acc(ani_u64_set_t *dst,
+										   const ani_u64_set_t *src,
+										   ani_readwise_acc_t *acc,
+										   uint64_t gidmask_local,
+										   uint32_t ref_n)
+{
+	if (!dst || !src || !acc)
+		return;
+	for (size_t i = 0; i < src->cap; ++i) {
+		if (!src->used[i])
+			continue;
+		const uint64_t key = src->keys[i];
+		if (!ani_u64_set_insert(dst, key))
+			continue;
+		const uint32_t gid = (uint32_t)(key & gidmask_local);
+		if (gid < ref_n)
+			acc[gid].qry_ctx_hit++;
+	}
+}
+
+static void ani_merge_readwise_thread_batch(
+	ani_readwise_thread_state_t *states,
+	int n_states,
+	ani_readwise_acc_t *acc,
+	uint8_t *ref_hit_bits,
+	uint32_t *ref_ctx_cov,
+	ani_u64_set_t *qry_ctx_seen,
+	ani_u64_set_t *qry_ref_ctx_seen,
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	uint64_t gidmask_local)
+{
+	if (!states || n_states < 1)
+		return;
+	for (int t = 0; t < n_states; ++t) {
+		ani_readwise_thread_state_t *st = &states[t];
+		for (uint32_t rn = 0; rn < ref_n; ++rn) {
+			acc[rn].XnY_ctx += st->acc[rn].XnY_ctx;
+			acc[rn].N_diff_obj += st->acc[rn].N_diff_obj;
+			acc[rn].N_diff_obj_section += st->acc[rn].N_diff_obj_section;
+			acc[rn].N_mut2_ctx += st->acc[rn].N_mut2_ctx;
+			acc[rn].reads_with_ctx_match += st->acc[rn].reads_with_ctx_match;
+			acc[rn].blocks_with_ctx_match += st->acc[rn].blocks_with_ctx_match;
+		}
+		ani_u64_set_merge(qry_ctx_seen, &st->qry_ctx_seen);
+		ani_qry_ref_set_merge_into_acc(qry_ref_ctx_seen, &st->qry_ref_ctx_seen,
+										acc, gidmask_local, ref_n);
+		for (size_t i = 0; i < kv_size(st->ref_ctx_hit_positions); ++i) {
+			const size_t idx = kv_A(st->ref_ctx_hit_positions, i);
+			if (idx >= index_n)
+				continue;
+			if (!ani_bitset_test_set(ref_hit_bits, idx)) {
+				const uint32_t gid = (uint32_t)(index[idx].ctxgid & gidmask_local);
+				if (gid < ref_n)
+					acc[gid].ref_ctx_hit++;
+			}
+		}
+		if (ref_ctx_cov) {
+			for (size_t i = 0; i < kv_size(st->ref_ctx_cov_hits); ++i) {
+				const size_t idx = kv_A(st->ref_ctx_cov_hits, i);
+				if (idx < index_n)
+					ani_u32_saturating_inc(&ref_ctx_cov[idx]);
+			}
+		}
+		ani_readwise_thread_state_clear_batch(st, ref_n);
+	}
 }
 
 static char *ani_shell_quote_arg(const char *arg)
@@ -4093,6 +4301,8 @@ static void ani_process_density_ctxobj_unit(
 	uint64_t *read_marks,
 	uint8_t *ref_hit_bits,
 	uint32_t *ref_ctx_cov,
+	kv_size_t *ref_ctx_hit_positions,
+	kv_size_t *ref_ctx_cov_hits,
 	ani_u64_set_t *qry_ctx_seen,
 	ani_u64_set_t *qry_ref_ctx_seen,
 	ani_readwise_acc_t *acc)
@@ -4133,8 +4343,13 @@ static void ani_process_density_ctxobj_unit(
 			acc[gid].XnY_ctx++;
 			if (ref_ctx_cov)
 				ani_u32_saturating_inc(&ref_ctx_cov[ref_begin]);
-			if (!ani_bitset_test_set(ref_hit_bits, ref_begin))
+			else if (ref_ctx_cov_hits)
+				kv_push(size_t, *ref_ctx_cov_hits, ref_begin);
+			if (!ani_bitset_test_set(ref_hit_bits, ref_begin)) {
 				acc[gid].ref_ctx_hit++;
+				if (ref_ctx_hit_positions)
+					kv_push(size_t, *ref_ctx_hit_positions, ref_begin);
+			}
 			const uint64_t pair_key = (qctx << GID_NBITS) | gid;
 			if (ani_u64_set_insert(qry_ref_ctx_seen, pair_key))
 				acc[gid].qry_ctx_hit++;
@@ -4149,6 +4364,56 @@ static void ani_process_density_ctxobj_unit(
 			}
 		}
 	}
+}
+
+static void ani_process_density_units_parallel(
+	kv_density_unit_t *units,
+	ani_readwise_thread_state_t *states,
+	int worker_n,
+	const ctxgidobj_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	uint8_t nobjbits,
+	uint64_t gidmask_local,
+	uint64_t objmask,
+	bool need_ref_ctx_cov)
+{
+	const size_t unit_n = units ? kv_size(*units) : 0;
+	if (!unit_n)
+		return;
+#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 64)
+	for (size_t i = 0; i < unit_n; ++i) {
+		const int tid = omp_get_thread_num();
+		ani_readwise_thread_state_t *st = &states[tid];
+		ani_density_unit_t *unit = &kv_A(*units, i);
+		ani_process_density_ctxobj_unit(
+			&unit->vec, unit->id, unit->reads_with_density_ctx,
+			index, index_n, fence, fence_k, ref_n, ignoreconflict,
+			nobjbits, gidmask_local, objmask, st->read_marks,
+			st->ref_hit_bits, NULL,
+			&st->ref_ctx_hit_positions,
+			need_ref_ctx_cov ? &st->ref_ctx_cov_hits : NULL,
+			&st->qry_ctx_seen, &st->qry_ref_ctx_seen, st->acc);
+	}
+}
+
+static void ani_density_unit_push_move(kv_density_unit_t *units,
+									   u64vec *vec,
+									   uint64_t id,
+									   uint64_t reads_with_density_ctx)
+{
+	if (!vec || vec->n == 0)
+		return;
+	ani_density_unit_t unit = {
+		.vec = *vec,
+		.id = id,
+		.reads_with_density_ctx = reads_with_density_ctx ? reads_with_density_ctx : 1,
+	};
+	kv_push(ani_density_unit_t, *units, unit);
+	v_init(vec, 0);
 }
 
 static uint32_t *ani_ref_ctx_counts_from_sorted_index(const ctxgidobj_t *index,
@@ -4289,12 +4554,11 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		errx(EXIT_FAILURE, "%s(): failed to build reference fenceposts", __func__);
 
 	ani_readwise_acc_t *acc = calloc((size_t)ref_n, sizeof(acc[0]));
-	uint64_t *read_marks = calloc((size_t)ref_n, sizeof(read_marks[0]));
 	uint8_t *ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
 	uint32_t *ref_ctx_cov = ani_opt->abundance_model != ANI_ABUNDANCE_NONE
 		? calloc(index_n, sizeof(ref_ctx_cov[0]))
 		: NULL;
-	if (!acc || !read_marks || !ref_hit_bits)
+	if (!acc || !ref_hit_bits)
 		err(EXIT_FAILURE, "%s(): OOM readwise accumulators", __func__);
 	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE && !ref_ctx_cov)
 		err(EXIT_FAILURE, "%s(): OOM readwise abundance coverage", __func__);
@@ -4302,6 +4566,20 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	ani_u64_set_t qry_ref_ctx_seen;
 	ani_u64_set_init(&qry_ctx_seen, 1u << 16);
 	ani_u64_set_init(&qry_ref_ctx_seen, 1u << 18);
+
+	int worker_n = ani_opt->p > 0 ? ani_opt->p : 1;
+	const int omp_max = omp_get_max_threads();
+	if (worker_n > omp_max)
+		worker_n = omp_max;
+	if (worker_n < 1)
+		worker_n = 1;
+	ani_readwise_thread_state_t *thread_states =
+		calloc((size_t)worker_n, sizeof(thread_states[0]));
+	if (!thread_states)
+		err(EXIT_FAILURE, "%s(): OOM readwise thread states", __func__);
+	for (int t = 0; t < worker_n; ++t)
+		ani_readwise_thread_state_init(&thread_states[t], ref_n, index_n,
+										ref_ctx_cov != NULL);
 
 	ani_fastx_stream_t stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
 	(void)gzbuffer(stream.gz, 4u << 20);
@@ -4316,9 +4594,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	uint64_t total_reads = 0;
 	uint64_t total_density_blocks = 0;
 	uint64_t block_reads_with_density_ctx = 0;
-	u64vec read_vec;
 	u64vec block_vec;
-	v_init(&read_vec, 2048);
 	v_init(&block_vec, ani_opt->density_block_ctx > 2048u ? ani_opt->density_block_ctx : 2048u);
 	const uint32_t density_block_ctx = ani_opt->density_block_ctx;
 	const bool density_block_mode = density_block_ctx > 1u;
@@ -4326,53 +4602,110 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		fprintf(stderr,
 				"minco readwise: density block mode active; density_block_ctx=%u\n",
 				density_block_ctx);
+	if (worker_n > 1)
+		fprintf(stderr,
+				"minco readwise: parallel density processing active; threads=%d; batch_reads=%u\n",
+				worker_n, (unsigned)ANI_READWISE_BATCH_READS);
 
-	while (kseq_read(seq) >= 0) {
-		++total_reads;
-		ani_readwise_progress_update(&stream, &progress, total_reads, false);
-		read_vec.n = 0;
-		ani_extract_read_density_ctxobjs(seq->seq.s, (int)seq->seq.l, &read_vec,
-										 nobjbits, density_threshold);
-		if (!read_vec.n)
-			continue;
-		if (density_block_mode) {
-			v_reserve(&block_vec, block_vec.n + read_vec.n);
-			memcpy(block_vec.a + block_vec.n, read_vec.a,
-				   read_vec.n * sizeof(read_vec.a[0]));
-			block_vec.n += read_vec.n;
-			block_reads_with_density_ctx++;
-			if (block_vec.n < (size_t)density_block_ctx)
-				continue;
-			++total_density_blocks;
-			ani_process_density_ctxobj_unit(
-				&block_vec, total_density_blocks, block_reads_with_density_ctx,
-				index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
-				nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
-				ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
-			block_vec.n = 0;
-			block_reads_with_density_ctx = 0;
-		} else {
-			++total_density_blocks;
-			ani_process_density_ctxobj_unit(
-				&read_vec, total_density_blocks, 1,
-				index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
-				nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
-				ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
+	for (;;) {
+		ani_readwise_seq_rec_t batch[ANI_READWISE_BATCH_READS];
+		memset(batch, 0, sizeof(batch));
+		size_t batch_n = 0;
+		while (batch_n < ANI_READWISE_BATCH_READS && kseq_read(seq) >= 0) {
+			const size_t len = seq->seq.l;
+			char *copy = malloc(len + 1u);
+			if (!copy)
+				err(EXIT_FAILURE, "%s(): OOM read batch sequence", __func__);
+			memcpy(copy, seq->seq.s, len);
+			copy[len] = '\0';
+			batch[batch_n].seq = copy;
+			batch[batch_n].len = (int)len;
+			++batch_n;
+			++total_reads;
+			ani_readwise_progress_update(&stream, &progress, total_reads, false);
 		}
+		if (!batch_n)
+			break;
+
+		u64vec *read_vecs = calloc(batch_n, sizeof(read_vecs[0]));
+		if (!read_vecs)
+			err(EXIT_FAILURE, "%s(): OOM read density vectors", __func__);
+#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 256)
+		for (size_t i = 0; i < batch_n; ++i) {
+			v_init(&read_vecs[i], 128);
+			ani_extract_read_density_ctxobjs(batch[i].seq, batch[i].len,
+											 &read_vecs[i], nobjbits,
+											 density_threshold);
+		}
+
+		kv_density_unit_t units;
+		kv_init(units);
+		for (size_t i = 0; i < batch_n; ++i) {
+			if (read_vecs[i].n == 0) {
+				v_free(&read_vecs[i]);
+				continue;
+			}
+			if (density_block_mode) {
+				v_reserve(&block_vec, block_vec.n + read_vecs[i].n);
+				memcpy(block_vec.a + block_vec.n, read_vecs[i].a,
+					   read_vecs[i].n * sizeof(read_vecs[i].a[0]));
+				block_vec.n += read_vecs[i].n;
+				block_reads_with_density_ctx++;
+				v_free(&read_vecs[i]);
+				if (block_vec.n < (size_t)density_block_ctx)
+					continue;
+				++total_density_blocks;
+				ani_density_unit_push_move(&units, &block_vec,
+										   total_density_blocks,
+										   block_reads_with_density_ctx);
+				v_init(&block_vec, ani_opt->density_block_ctx > 2048u
+										? ani_opt->density_block_ctx
+										: 2048u);
+				block_reads_with_density_ctx = 0;
+			} else {
+				++total_density_blocks;
+				ani_density_unit_push_move(&units, &read_vecs[i],
+										   total_density_blocks, 1);
+			}
+		}
+		free(read_vecs);
+		ani_readwise_seq_batch_destroy(batch, batch_n);
+
+		ani_process_density_units_parallel(
+			&units, thread_states, worker_n,
+			index, index_n, fence, fence_k, ref_n,
+			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
+			ref_ctx_cov != NULL);
+		ani_merge_readwise_thread_batch(
+			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+			&qry_ctx_seen, &qry_ref_ctx_seen, index, index_n,
+			ref_n, gidmask_local);
+		ani_density_units_destroy(&units);
 	}
 	if (density_block_mode && block_vec.n > 0) {
+		kv_density_unit_t units;
+		kv_init(units);
 		++total_density_blocks;
-		ani_process_density_ctxobj_unit(
-			&block_vec, total_density_blocks, block_reads_with_density_ctx,
-			index, index_n, fence, fence_k, ref_n, ani_opt->ignoreconflict,
-			nobjbits, gidmask_local, objmask, read_marks, ref_hit_bits,
-			ref_ctx_cov, &qry_ctx_seen, &qry_ref_ctx_seen, acc);
+		ani_density_unit_push_move(&units, &block_vec, total_density_blocks,
+								   block_reads_with_density_ctx);
+		ani_process_density_units_parallel(
+			&units, thread_states, worker_n,
+			index, index_n, fence, fence_k, ref_n,
+			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
+			ref_ctx_cov != NULL);
+		ani_merge_readwise_thread_batch(
+			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+			&qry_ctx_seen, &qry_ref_ctx_seen, index, index_n,
+			ref_n, gidmask_local);
+		ani_density_units_destroy(&units);
 	}
 	ani_readwise_progress_done(&stream, &progress, total_reads);
-	v_free(&read_vec);
 	v_free(&block_vec);
 	kseq_destroy(seq);
 	ani_close_fastx_stream(&stream);
+	for (int t = 0; t < worker_n; ++t)
+		ani_readwise_thread_state_destroy(&thread_states[t]);
+	free(thread_states);
 
 	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
 	if (!outfp)
@@ -4525,7 +4858,6 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	ani_u64_set_destroy(&qry_ctx_seen);
 	ani_u64_set_destroy(&qry_ref_ctx_seen);
 	free(acc);
-	free(read_marks);
 	free(ref_hit_bits);
 	free(ref_ctx_cov);
 	free(fence);

@@ -160,6 +160,7 @@ static char doc_sketch[] =
     "Build an index with `minco sketch -i DIR` before large reference or all-vs-all comparisons.\n"
     "Use '-' as one input to read FASTA/FASTQ from stdin.\n"
     "Use --pipecmd CMD to stream each input through a command; '{}' is replaced by the input path, otherwise the path is appended.\n"
+    "--keep and --remove preserve minco.ctxmeta when present and refresh the density summary in minco.stat.\n"
     "\n"
     "Examples:\n"
     "  minco sketch -p8 --ctxmeta both -o genomes.minco genomes/*.fna.gz\n"

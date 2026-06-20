@@ -3234,7 +3234,8 @@ static void remove_file_if_exists(const char *target_dir, const char *suffix)
 
 static void remove_stale_optional_outputs(const char *target_dir,
                                           bool has_abundance, bool has_positions,
-                                          bool has_qc, bool has_meta, bool has_anno)
+                                          bool has_qc, bool has_meta, bool has_anno,
+                                          bool has_ctxmeta)
 {
     if (!has_abundance)
         remove_file_if_exists(target_dir, combined_ab_suffix);
@@ -3246,7 +3247,8 @@ static void remove_stale_optional_outputs(const char *target_dir,
         remove_file_if_exists(target_dir, sketch_infile_meta_stat);
     if (!has_anno)
         remove_file_if_exists(target_dir, sketch_anno_stat);
-    remove_minco_ctxmeta(target_dir);
+    if (!has_ctxmeta)
+        remove_minco_ctxmeta(target_dir);
 }
 
 static void append_truncate_path(const char *path)
@@ -3305,11 +3307,29 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         target->has_meta && kept_samples > 0 ? (infile_meta_t *)calloc(kept_count, sizeof(new_meta[0])) : NULL;
     char (*new_anno)[PATHLEN] =
         target->has_anno && kept_samples > 0 ? (char (*)[PATHLEN])calloc(kept_count, PATHLEN) : NULL;
+    const bool has_ctxmeta = file_exists_in_folder(input_dir, minco_ctxmeta_bin_stat);
+    minco_ctxmeta_record_t *target_ctxmeta = NULL;
+    size_t target_ctxmeta_size = 0;
+    minco_ctxmeta_record_t *new_ctxmeta =
+        has_ctxmeta && kept_samples > 0 ? (minco_ctxmeta_record_t *)calloc(kept_count, sizeof(new_ctxmeta[0])) : NULL;
     if (!new_index || (kept_samples > 0 && !new_names) ||
         (target->has_qc && kept_samples > 0 && !new_qc) ||
         (target->has_meta && kept_samples > 0 && !new_meta) ||
-        (target->has_anno && kept_samples > 0 && !new_anno))
+        (target->has_anno && kept_samples > 0 && !new_anno) ||
+        (has_ctxmeta && kept_samples > 0 && !new_ctxmeta))
         err(EXIT_FAILURE, "%s(): OOM filtered sketch auxiliary data", __func__);
+
+    if (has_ctxmeta) {
+        char *ctxmeta_path = append_read_path(input_dir, minco_ctxmeta_bin_stat);
+        target_ctxmeta = read_from_file(ctxmeta_path, &target_ctxmeta_size);
+        free(ctxmeta_path);
+        const size_t expected_ctxmeta_size =
+            (size_t)target->stat.infile_num * sizeof(target_ctxmeta[0]);
+        if (target_ctxmeta_size != expected_ctxmeta_size)
+            errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+                 __func__, input_dir, minco_ctxmeta_bin_stat,
+                 target_ctxmeta_size, expected_ctxmeta_size);
+    }
 
     char (*target_names)[PATHLEN] = append_part_names(target);
     int out_i = 0;
@@ -3327,6 +3347,8 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
             new_meta[out_i] = target->meta[i];
         if (new_anno)
             memcpy(new_anno[out_i], target->anno[i], PATHLEN);
+        if (new_ctxmeta)
+            new_ctxmeta[out_i] = target_ctxmeta[i];
         new_index[out_i + 1] = kept_entries;
         ++out_i;
     }
@@ -3342,6 +3364,7 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
     char *tmp_qc = target->has_qc ? append_tmp_path(output_dir, sketch_qc_stat) : NULL;
     char *tmp_meta = target->has_meta ? append_tmp_path(output_dir, sketch_infile_meta_stat) : NULL;
     char *tmp_anno = target->has_anno ? append_tmp_path(output_dir, sketch_anno_stat) : NULL;
+    char *tmp_ctxmeta = has_ctxmeta ? append_tmp_path(output_dir, minco_ctxmeta_bin_stat) : NULL;
 
     remove_copy_filtered_payload(input_dir, combined_sketch_suffix, tmp_comb,
                                  target->index, target->stat.infile_num, remove_sample,
@@ -3365,6 +3388,9 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         write_to_file(tmp_meta, new_meta ? (const void *)new_meta : "", kept_count * sizeof(new_meta[0]));
     if (target->has_anno)
         write_to_file(tmp_anno, new_anno ? (const void *)new_anno : "", kept_count * PATHLEN);
+    if (has_ctxmeta)
+        write_to_file(tmp_ctxmeta, new_ctxmeta ? (const void *)new_ctxmeta : "",
+                      kept_count * sizeof(new_ctxmeta[0]));
 
     remove_stale_sorted_index(output_dir);
     remove_replace_tmp(tmp_comb, output_dir, combined_sketch_suffix);
@@ -3380,8 +3406,16 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         remove_replace_tmp(tmp_meta, output_dir, sketch_infile_meta_stat);
     if (target->has_anno)
         remove_replace_tmp(tmp_anno, output_dir, sketch_anno_stat);
+    if (has_ctxmeta)
+        remove_replace_tmp(tmp_ctxmeta, output_dir, minco_ctxmeta_bin_stat);
     remove_stale_optional_outputs(output_dir, target->stat.koc, keep_positions,
-                                  target->has_qc, target->has_meta, target->has_anno);
+                                  target->has_qc, target->has_meta, target->has_anno,
+                                  has_ctxmeta);
+    if (has_ctxmeta) {
+        minco_stat_density_summary_t density = {0};
+        if (read_minco_ctxmeta_density_summary(output_dir, kept_samples, &density))
+            refresh_minco_stat_density_summary(output_dir, &density);
+    }
 
     free(tmp_comb);
     free(tmp_ab);
@@ -3391,11 +3425,15 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
     free(tmp_qc);
     free(tmp_meta);
     free(tmp_anno);
+    free(tmp_ctxmeta);
     free(new_index);
     free(new_names);
     free(new_qc);
     free(new_meta);
     free(new_anno);
+    free(new_ctxmeta);
+    if (target_ctxmeta)
+        free_read_from_file(target_ctxmeta, target_ctxmeta_size);
 
     if (removed_samples_out)
         *removed_samples_out = removed_samples;
@@ -3963,7 +4001,8 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         if (any_anno)
             remove_replace_tmp(tmp_anno, sketch_opt_val->outdir, sketch_anno_stat);
         remove_stale_optional_outputs(sketch_opt_val->outdir, parts[0].stat.koc,
-                                      parts[0].has_positions, any_qc, any_meta, any_anno);
+                                      parts[0].has_positions, any_qc, any_meta, any_anno,
+                                      false);
     } else {
         rollback.ctxobj_path = append_join_path(sketch_opt_val->outdir, combined_sketch_suffix);
         rollback.has_abundance = parts[0].stat.koc;

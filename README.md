@@ -104,8 +104,11 @@ uses auxiliary unique context coverage to report AF. Detail output appends
 `Reads_with_ctx_match`, `Total_reads`, `Read_match_fraction`,
 `Unique_query_ctx`, `Unique_query_ctx_hit`, `Unique_ref_ctx_hit`, and
 experimental density-block counters.
-During long FASTQ runs it writes progress to stderr: reads processed, read
-rate, and input-file percent when the query is a regular file.
+With OpenMP builds and `-p > 1`, direct readwise FASTQ density scans process
+reads in parallel batches and merge batch-level state as they stream, avoiding a
+large end-of-run merge. During long FASTQ runs minco writes progress to stderr:
+reads processed, read rate, and input-file percent when the query is a regular
+file.
 By default minco uses `--density-block-ctx 100`: it accumulates consecutive
 reads until at least 100 retained density contexts are available before lookup.
 For example, on an `S=1000` reference this tests 100-context pseudo-read blocks
@@ -161,6 +164,7 @@ bin/minco matrix --help
 ```
 
 The longer user manual is in `docs/USER_MANUAL.md`.
+Release notes are in `CHANGELOG.md`.
 
 ## Metadata
 
@@ -196,6 +200,12 @@ aligned fractions from the common bottom-k hash threshold. Detail output appends
 `Real_Qry_align_fraction`, `Real_Ref_align_fraction`,
 `Real_min_align_fraction`, and `AF_source`; without ctxmeta these fall back to
 the fixed-sketch aligned fractions.
+
+Sketch maintenance commands preserve this metadata when possible:
+`minco sketch --keep` and `minco sketch --remove` filter `minco.ctxmeta`
+alongside the sketch entries and refresh the density summary in `minco.stat`.
+Filtered reference sketches can therefore still be used directly with
+`minco ani --query-density ref`.
 
 ## Benchmark Helper
 

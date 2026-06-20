@@ -253,6 +253,11 @@ AF, and appends `Reads_with_ctx_match`, `Total_reads`,
 `Block_match_fraction`; by default `Density_block_ctx` is 100. `AF_source` is
 reported as `readwise_coverage`. Long runs report progress to stderr with reads
 processed, read rate, and input-file percent when the query is a regular file.
+When minco is built with OpenMP and `-p` is greater than 1, the direct readwise
+FASTQ density path reads batches of 16,384 reads, processes retained density
+contexts in parallel, and merges each batch before reading the next one. This
+keeps memory bounded for large streamed FASTQ files while preserving the same
+output fields and read counts.
 By default minco accumulates consecutive reads into pseudo-read blocks before
 lookup. The block is processed when it has at least 100 retained density
 contexts, and the final partial block is processed at end of file. Use
@@ -438,6 +443,12 @@ Keep or remove listed samples:
 minco sketch --keep keep_names.txt -o kept.minco genomes.minco
 minco sketch --remove remove_names.txt -o filtered.minco genomes.minco
 ```
+
+`--keep` and `--remove` filter per-sample sidecars together with the sketch
+payload. If the input sketch has `minco.ctxmeta`, the output keeps only the
+selected metadata records and refreshes the compact density summary in
+`minco.stat`; filtered reference sketches therefore remain compatible with
+`minco ani --query-density ref`.
 
 Deduplicate:
 

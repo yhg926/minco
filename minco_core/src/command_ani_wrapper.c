@@ -156,6 +156,8 @@ static char doc_ani[] =
 	"columns. By default --density-block-ctx 100 batches consecutive reads into\n"
 	"pseudo-read blocks with at least 100 retained density contexts before lookup;\n"
 	"use --density-block-ctx 0 for exact per-read lookup.\n"
+	"OpenMP builds with -p > 1 process this direct FASTQ path in parallel\n"
+	"read batches and merge batch state while streaming to keep memory bounded.\n"
 	"It reports reads processed, rate, and file percent when available to stderr.\n"
 	"Use --save-query-sketch DIR to keep the generated query sketch for debug.\n"
 	"For sequence files, -q keeps conflicts only with --conflict; --qraw keeps\n"
