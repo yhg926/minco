@@ -41,6 +41,7 @@ typedef struct ani_opt
 	bool unassembled; // query sketch is unassembled;
 	bool unified_metric; // honor -s in unassembled mode instead of forcing naive
 	bool readwise_query; // direct FASTQ query is streamed readwise with coverage AF
+	bool readwise_profile_only; // skip unbounded query-context sets for abundance profiles
 	bool ignoreconflict; // ignore reference contexts with conflicting objects
 	bool raw_output; // skip calibrated/best ANI; print NULLs in unified detail fields
 	int e;
@@ -77,6 +78,9 @@ typedef struct ani_opt
 	char reflist[PATHLEN];
 	char sketch_pipecmd[PATHLEN];
 	char save_query_sketch[PATHLEN];
+	char cami_profile[PATHLEN];
+	char cami_taxmap[PATHLEN];
+	char cami_sample_id[PATHLEN];
 	char outf[PATHLEN];
 	char gl[PATHLEN]; // genome list with selection code
 	char model[PATHLEN];

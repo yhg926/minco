@@ -1160,19 +1160,43 @@ typedef enum ani_readwise_default_call
 	ANI_READWISE_CALL_MAJOR = 2
 } ani_readwise_default_call_t;
 
+static inline uint64_t ani_readwise_default_support_cut(void)
+{
+	uint64_t target = ani_model_target_sketch_size
+						  ? (uint64_t)ani_model_target_sketch_size
+						  : (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	if (!target)
+		target = (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	uint64_t cut = (target + 99u) / 100u;
+	if (cut < 100u)
+		cut = 100u;
+	if (cut > target)
+		cut = target;
+	return cut;
+}
+
+static inline bool ani_readwise_default_support_pass(const ani_row_t *r,
+													 uint64_t support_cut)
+{
+	return r &&
+		   (uint64_t)(r->XnY_ctx > 0 ? r->XnY_ctx : 0) >= support_cut &&
+		   r->readwise_unique_ref_ctx_hit >= support_cut;
+}
+
 static inline ani_readwise_default_call_t ani_readwise_default_call(const ani_row_t *r)
 {
 	if (!r)
 		return ANI_READWISE_CALL_WEAK;
+	const uint64_t support_cut = ani_readwise_default_support_cut();
 	if (r->abundance_ref_breadth >= 0.5 &&
 		r->abundance_relative_depth >= 1e-4 &&
-		r->XnY_ctx >= 50000 &&
-		r->selected_ani >= 0.95)
+		ani_readwise_default_support_pass(r, support_cut) &&
+		r->selected_ani >= 0.96)
 		return ANI_READWISE_CALL_MAJOR;
 	if (r->abundance_ref_breadth >= 0.5 &&
 		r->abundance_relative_depth >= 1e-5 &&
-		r->XnY_ctx >= 1000 &&
-		r->selected_ani >= 0.95)
+		ani_readwise_default_support_pass(r, support_cut) &&
+		r->selected_ani >= 0.96)
 		return ANI_READWISE_CALL_LOW_ABUNDANCE;
 	return ANI_READWISE_CALL_WEAK;
 }
@@ -1196,9 +1220,9 @@ static inline const char *ani_readwise_default_call_rule(ani_readwise_default_ca
 	switch (call)
 	{
 	case ANI_READWISE_CALL_MAJOR:
-		return "breadth>=0.5;rel_depth>=1e-4;XnY>=50000;ANI>=0.95";
+		return "breadth>=0.5;rel_depth>=1e-4;support>=min(S,max(100,ceil(S/100)));ANI>=0.96";
 	case ANI_READWISE_CALL_LOW_ABUNDANCE:
-		return "breadth>=0.5;rel_depth>=1e-5;XnY>=1000;ANI>=0.95";
+		return "breadth>=0.5;rel_depth>=1e-5;support>=min(S,max(100,ceil(S/100)));ANI>=0.96";
 	case ANI_READWISE_CALL_WEAK:
 	default:
 		return "below_default_call_thresholds";
@@ -1263,6 +1287,431 @@ static void normalize_readwise_abundance_depth(kv_ani_row_t *rows, size_t out_n)
 				? (double)((long double)row->abundance_relative_depth / sum)
 				: 0.0;
 	}
+}
+
+typedef struct ani_cami_tax_record
+{
+	char *key;
+	char *taxid;
+	char *rank;
+	char *taxpath;
+	char *taxpathsn;
+	char *genome_id;
+	char *otu;
+} ani_cami_tax_record_t;
+
+typedef kvec_t(ani_cami_tax_record_t) kv_cami_tax_record_t;
+
+typedef struct ani_cami_profile_entry
+{
+	const ani_cami_tax_record_t *tax;
+	long double abundance;
+} ani_cami_profile_entry_t;
+
+typedef kvec_t(ani_cami_profile_entry_t) kv_cami_profile_entry_t;
+
+static char *ani_cami_strdup_field(const char *s)
+{
+	if (!s || s[0] == '\0')
+		s = "NA";
+	char *out = strdup(s);
+	if (!out)
+		err(EXIT_FAILURE, "%s(): OOM string copy", __func__);
+	return out;
+}
+
+static char *ani_cami_trim(char *s)
+{
+	if (!s)
+		return s;
+	while (*s && isspace((unsigned char)*s))
+		++s;
+	char *end = s + strlen(s);
+	while (end > s && isspace((unsigned char)end[-1]))
+		*--end = '\0';
+	return s;
+}
+
+static void ani_cami_tax_record_destroy(ani_cami_tax_record_t *rec)
+{
+	if (!rec)
+		return;
+	free(rec->key);
+	free(rec->taxid);
+	free(rec->rank);
+	free(rec->taxpath);
+	free(rec->taxpathsn);
+	free(rec->genome_id);
+	free(rec->otu);
+	memset(rec, 0, sizeof(*rec));
+}
+
+static void ani_cami_tax_records_destroy(kv_cami_tax_record_t *records)
+{
+	if (!records)
+		return;
+	for (size_t i = 0; i < kv_size(*records); ++i)
+		ani_cami_tax_record_destroy(&kv_A(*records, i));
+	kv_destroy(*records);
+}
+
+static int ani_cami_tax_record_key_cmp(const void *a, const void *b)
+{
+	const ani_cami_tax_record_t *ra = (const ani_cami_tax_record_t *)a;
+	const ani_cami_tax_record_t *rb = (const ani_cami_tax_record_t *)b;
+	return strcmp(ra->key, rb->key);
+}
+
+static bool ani_cami_looks_like_header(const char *field0, const char *field1)
+{
+	if (!field0)
+		return false;
+	return strcasecmp(field0, "ref") == 0 ||
+		   strcasecmp(field0, "key") == 0 ||
+		   strcasecmp(field0, "sample") == 0 ||
+		   strcasecmp(field0, "ref_key") == 0 ||
+		   strcasecmp(field0, "accession") == 0 ||
+		   (field1 && strcasecmp(field1, "taxid") == 0);
+}
+
+static void ani_cami_load_taxmap(const char *path, kv_cami_tax_record_t *records)
+{
+	kv_init(*records);
+	FILE *fp = fopen(path, "r");
+	if (!fp)
+		err(errno, "%s(): cannot open --cami-taxmap %s", __func__, path);
+
+	char *line = NULL;
+	size_t cap = 0;
+	ssize_t len = 0;
+	uint64_t line_no = 0;
+	while ((len = getline(&line, &cap, fp)) >= 0) {
+		++line_no;
+		while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r'))
+			line[--len] = '\0';
+		char *cur = ani_cami_trim(line);
+		if (cur[0] == '\0' || cur[0] == '#')
+			continue;
+
+		char *fields[7] = {0};
+		int nf = 0;
+		fields[nf++] = cur;
+		for (char *p = cur; *p && nf < 7; ++p) {
+			if (*p == '\t') {
+				*p = '\0';
+				fields[nf++] = p + 1;
+			}
+		}
+		for (int i = 0; i < nf; ++i)
+			fields[i] = ani_cami_trim(fields[i]);
+		if (ani_cami_looks_like_header(fields[0], nf > 1 ? fields[1] : NULL))
+			continue;
+		if (nf < 5)
+			errx(EINVAL,
+				 "%s(): %s line %" PRIu64 " needs at least 5 tab-separated fields: ref_key TAXID RANK TAXPATH TAXPATHSN",
+				 __func__, path, line_no);
+		if (fields[0][0] == '\0' || fields[1][0] == '\0' ||
+			fields[2][0] == '\0' || fields[3][0] == '\0' ||
+			fields[4][0] == '\0')
+			errx(EINVAL, "%s(): %s line %" PRIu64 " has an empty required CAMI field",
+				 __func__, path, line_no);
+
+		ani_cami_tax_record_t rec = {
+			.key = ani_cami_strdup_field(fields[0]),
+			.taxid = ani_cami_strdup_field(fields[1]),
+			.rank = ani_cami_strdup_field(fields[2]),
+			.taxpath = ani_cami_strdup_field(fields[3]),
+			.taxpathsn = ani_cami_strdup_field(fields[4]),
+			.genome_id = ani_cami_strdup_field(nf > 5 ? fields[5] : "NA"),
+			.otu = ani_cami_strdup_field(nf > 6 ? fields[6] : "NA"),
+		};
+		kv_push(ani_cami_tax_record_t, *records, rec);
+	}
+	free(line);
+	if (fclose(fp) != 0)
+		err(errno, "%s(): cannot close --cami-taxmap %s", __func__, path);
+	if (kv_size(*records) == 0)
+		errx(EINVAL, "%s(): --cami-taxmap %s contains no usable records", __func__, path);
+	qsort(&kv_A(*records, 0), kv_size(*records), sizeof(kv_A(*records, 0)),
+		  ani_cami_tax_record_key_cmp);
+}
+
+static const ani_cami_tax_record_t *ani_cami_find_tax_record(
+	const kv_cami_tax_record_t *records, const char *key)
+{
+	if (!records || kv_size(*records) == 0 || !key || key[0] == '\0')
+		return NULL;
+	ani_cami_tax_record_t needle = {.key = (char *)key};
+	return (const ani_cami_tax_record_t *)bsearch(
+		&needle, &kv_A(*records, 0), kv_size(*records),
+		sizeof(kv_A(*records, 0)), ani_cami_tax_record_key_cmp);
+}
+
+static bool ani_cami_find_tax_record_range(
+	const kv_cami_tax_record_t *records, const char *key,
+	size_t *begin, size_t *end)
+{
+	if (begin)
+		*begin = 0;
+	if (end)
+		*end = 0;
+	const ani_cami_tax_record_t *hit = ani_cami_find_tax_record(records, key);
+	if (!hit)
+		return false;
+	const ani_cami_tax_record_t *base = &kv_A(*records, 0);
+	size_t b = (size_t)(hit - base);
+	size_t e = b + 1u;
+	while (b > 0 && strcmp(kv_A(*records, b - 1u).key, key) == 0)
+		--b;
+	while (e < kv_size(*records) && strcmp(kv_A(*records, e).key, key) == 0)
+		++e;
+	if (begin)
+		*begin = b;
+	if (end)
+		*end = e;
+	return e > b;
+}
+
+static void ani_cami_copy_basename(const char *path, char *out, size_t out_size)
+{
+	if (!out || out_size == 0)
+		return;
+	out[0] = '\0';
+	if (!path || path[0] == '\0')
+		return;
+	const char *base = strrchr(path, '/');
+	base = base ? base + 1 : path;
+	snprintf(out, out_size, "%s", base);
+}
+
+static bool ani_cami_extract_accession(const char *s, char *out, size_t out_size)
+{
+	if (!out || out_size == 0)
+		return false;
+	out[0] = '\0';
+	if (!s)
+		return false;
+
+	const char *best = NULL;
+	const char *prefixes[] = {"GCF_", "GCA_", "NC_", "NZ_"};
+	for (size_t p = 0; p < sizeof(prefixes) / sizeof(prefixes[0]); ++p) {
+		const char *hit = strstr(s, prefixes[p]);
+		if (hit && (!best || hit < best))
+			best = hit;
+	}
+	if (!best)
+		return false;
+
+	size_t n = 0;
+	if (strncmp(best, "GCF_", 4) == 0 || strncmp(best, "GCA_", 4) == 0) {
+		const char *p = best;
+		for (int i = 0; i < 4 && p[i]; ++i)
+			out[n++] = p[i];
+		p += 4;
+		while (*p && isdigit((unsigned char)*p) && n + 1 < out_size)
+			out[n++] = *p++;
+		if (*p == '.' && n + 1 < out_size) {
+			out[n++] = *p++;
+			while (*p && isdigit((unsigned char)*p) && n + 1 < out_size)
+				out[n++] = *p++;
+		}
+	} else {
+		const char *p = best;
+		while (*p && (isalnum((unsigned char)*p) || *p == '_' || *p == '.') &&
+			   n + 1 < out_size)
+			out[n++] = *p++;
+	}
+	out[n] = '\0';
+	return n > 0;
+}
+
+static void ani_cami_profile_add(kv_cami_profile_entry_t *entries,
+								 const ani_cami_tax_record_t *tax,
+								 long double abundance)
+{
+	if (!entries || !tax || abundance <= 0.0L)
+		return;
+	for (size_t i = 0; i < kv_size(*entries); ++i) {
+		ani_cami_profile_entry_t *entry = &kv_A(*entries, i);
+		if (strcmp(entry->tax->taxid, tax->taxid) == 0 &&
+			strcmp(entry->tax->rank, tax->rank) == 0 &&
+			strcmp(entry->tax->taxpath, tax->taxpath) == 0) {
+			entry->abundance += abundance;
+			return;
+		}
+	}
+	ani_cami_profile_entry_t entry = {.tax = tax, .abundance = abundance};
+	kv_push(ani_cami_profile_entry_t, *entries, entry);
+}
+
+static size_t ani_cami_profile_add_key_matches(
+	const kv_cami_tax_record_t *records,
+	const char *key,
+	kv_cami_profile_entry_t *entries,
+	long double abundance)
+{
+	size_t begin = 0;
+	size_t end = 0;
+	if (!ani_cami_find_tax_record_range(records, key, &begin, &end))
+		return 0;
+	for (size_t i = begin; i < end; ++i)
+		ani_cami_profile_add(entries, &kv_A(*records, i), abundance);
+	return end - begin;
+}
+
+static size_t ani_cami_profile_add_ref_tax_matches(
+	const kv_cami_tax_record_t *records,
+	const char *ref_name,
+	const char *annotation,
+	kv_cami_profile_entry_t *entries,
+	long double abundance)
+{
+	size_t n = ani_cami_profile_add_key_matches(records, ref_name,
+												entries, abundance);
+	if (n)
+		return n;
+	char buf[PATHLEN];
+	ani_cami_copy_basename(ref_name, buf, sizeof(buf));
+	n = ani_cami_profile_add_key_matches(records, buf, entries, abundance);
+	if (n)
+		return n;
+	if (ani_cami_extract_accession(ref_name, buf, sizeof(buf))) {
+		n = ani_cami_profile_add_key_matches(records, buf, entries, abundance);
+		if (n)
+			return n;
+	}
+	n = ani_cami_profile_add_key_matches(records, annotation,
+										 entries, abundance);
+	if (n)
+		return n;
+	if (ani_cami_extract_accession(annotation, buf, sizeof(buf)))
+		return ani_cami_profile_add_key_matches(records, buf, entries, abundance);
+	return 0;
+}
+
+static int ani_cami_rank_index(const char *rank)
+{
+	static const char *ranks[] = {
+		"superkingdom", "phylum", "class", "order",
+		"family", "genus", "species", "strain"};
+	for (int i = 0; i < (int)(sizeof(ranks) / sizeof(ranks[0])); ++i)
+		if (rank && strcasecmp(rank, ranks[i]) == 0)
+			return i;
+	return -1;
+}
+
+static void ani_cami_write_ranks_header(FILE *fp,
+										const kv_cami_profile_entry_t *entries)
+{
+	static const char *ranks[] = {
+		"superkingdom", "phylum", "class", "order",
+		"family", "genus", "species", "strain"};
+	bool present[8] = {0};
+	for (size_t i = 0; entries && i < kv_size(*entries); ++i) {
+		int idx = ani_cami_rank_index(kv_A(*entries, i).tax->rank);
+		if (idx >= 0)
+			present[idx] = true;
+	}
+	bool any = false;
+	fputs("@Ranks:", fp);
+	for (int i = 0; i < 8; ++i) {
+		if (!present[i])
+			continue;
+		fprintf(fp, "%s%s", any ? "|" : "", ranks[i]);
+		any = true;
+	}
+	if (!any)
+		fputs("species", fp);
+	fputc('\n', fp);
+}
+
+static void ani_cami_default_sample_id(const char *query_path, char *out,
+									   size_t out_size)
+{
+	if (!out || out_size == 0)
+		return;
+	if (!query_path || query_path[0] == '\0' || strcmp(query_path, "-") == 0) {
+		snprintf(out, out_size, "minco_sample");
+		return;
+	}
+	ani_cami_copy_basename(query_path, out, out_size);
+	if (out[0] == '\0')
+		snprintf(out, out_size, "minco_sample");
+}
+
+static void ani_write_cami_profile(const ani_opt_t *ani_opt,
+								   const char *query_path,
+								   char (*refname)[PATHLEN],
+								   char (*refanno)[PATHLEN],
+								   const kv_ani_row_t *rows,
+								   size_t out_n)
+{
+	if (!ani_opt || ani_opt->cami_profile[0] == '\0')
+		return;
+	if (ani_opt->abundance_model == ANI_ABUNDANCE_NONE)
+		errx(EINVAL, "%s(): --cami-profile requires --abundance-est depth", __func__);
+	if (ani_opt->cami_taxmap[0] == '\0')
+		errx(EINVAL, "%s(): --cami-profile requires --cami-taxmap", __func__);
+
+	kv_cami_tax_record_t taxmap;
+	ani_cami_load_taxmap(ani_opt->cami_taxmap, &taxmap);
+	kv_cami_profile_entry_t entries;
+	kv_init(entries);
+	size_t missing = 0;
+	for (size_t i = 0; rows && i < out_n && i < kv_size(*rows); ++i) {
+		const ani_row_t *row = &kv_A(*rows, i);
+		const char *annotation = annotation_at(refanno, row->rn);
+		const size_t added = ani_cami_profile_add_ref_tax_matches(
+			&taxmap, refname[row->rn], annotation, &entries,
+			(long double)row->abundance_normalized_depth);
+		if (!added) {
+			++missing;
+			continue;
+		}
+	}
+
+	FILE *fp = strcmp(ani_opt->cami_profile, "-") == 0
+				   ? stdout
+				   : fopen(ani_opt->cami_profile, "w");
+	if (!fp)
+		err(errno, "%s(): cannot open --cami-profile %s", __func__,
+			ani_opt->cami_profile);
+
+	char sample_id[PATHLEN];
+	if (ani_opt->cami_sample_id[0] != '\0')
+		snprintf(sample_id, sizeof(sample_id), "%s", ani_opt->cami_sample_id);
+	else
+		ani_cami_default_sample_id(query_path, sample_id, sizeof(sample_id));
+
+	fprintf(fp, "@SampleID:%s\n", sample_id);
+	fputs("@Version:0.9.1\n", fp);
+	ani_cami_write_ranks_header(fp, &entries);
+	fputs("@@TAXID\tRANK\tTAXPATH\tTAXPATHSN\tPERCENTAGE\t_CAMI_genomeID\t_CAMI_OTU\n", fp);
+	for (size_t i = 0; i < kv_size(entries); ++i) {
+		const ani_cami_profile_entry_t *entry = &kv_A(entries, i);
+		const double pct = (double)(entry->abundance * 100.0L);
+		if (pct <= 0.0)
+			continue;
+		fprintf(fp, "%s\t%s\t%s\t%s\t%.10g\t%s\t%s\n",
+				entry->tax->taxid,
+				entry->tax->rank,
+				entry->tax->taxpath,
+				entry->tax->taxpathsn,
+				pct,
+				entry->tax->genome_id,
+				entry->tax->otu);
+	}
+	if (fp != stdout && fclose(fp) != 0)
+		err(errno, "%s(): cannot close --cami-profile %s", __func__,
+			ani_opt->cami_profile);
+	if (missing)
+		warnx("%s(): skipped %zu printed ANI rows missing --cami-taxmap records",
+			  __func__, missing);
+	if (kv_size(entries) == 0)
+		warnx("%s(): CAMI profile contains only headers because no printed rows matched --cami-taxmap",
+			  __func__);
+	kv_destroy(entries);
+	ani_cami_tax_records_destroy(&taxmap);
 }
 
 /* --- tiny helpers --- */
@@ -3631,6 +4080,7 @@ typedef struct {
 } ani_readwise_progress_t;
 
 typedef kvec_t(size_t) kv_size_t;
+typedef kvec_t(uint64_t) kv_u64_t;
 
 typedef struct {
 	char *seq;
@@ -3652,7 +4102,7 @@ typedef struct {
 	ani_u64_set_t qry_ctx_seen;
 	ani_u64_set_t qry_ref_ctx_seen;
 	kv_size_t ref_ctx_hit_positions;
-	kv_size_t ref_ctx_cov_hits;
+	kv_u64_t ref_ctx_cov_hits;
 } ani_readwise_thread_state_t;
 
 #define ANI_READWISE_PROGRESS_READ_INTERVAL 1000000ULL
@@ -3779,10 +4229,47 @@ static inline bool ani_bitset_test_set(uint8_t *bits, size_t idx)
 	return was_set;
 }
 
-static inline void ani_u32_saturating_inc(uint32_t *x)
+#define ANI_REFCOV_COV_MASK 0x0fffffffU
+#define ANI_REFCOV_DIFF_SHIFT 28u
+#define ANI_REFCOV_DIFF_MAX_STORED 14u
+
+static inline uint32_t ani_ref_covdiff_coverage(uint32_t x)
 {
-	if (*x != UINT32_MAX)
-		++*x;
+	return x & ANI_REFCOV_COV_MASK;
+}
+
+static inline uint32_t ani_ref_covdiff_clip_diff(uint32_t diff)
+{
+	return diff > ANI_REFCOV_DIFF_MAX_STORED
+			   ? ANI_REFCOV_DIFF_MAX_STORED
+			   : diff;
+}
+
+static inline uint32_t ani_ref_covdiff_encode_diff(uint32_t diff)
+{
+	return ani_ref_covdiff_clip_diff(diff) + 1u;
+}
+
+static inline uint32_t ani_ref_covdiff_decode_diff(uint32_t code)
+{
+	return code ? code - 1u : 0u;
+}
+
+static inline void ani_ref_covdiff_add_hit(uint32_t *x, uint32_t diff)
+{
+	uint32_t cov = ani_ref_covdiff_coverage(*x);
+	if (cov != ANI_REFCOV_COV_MASK)
+		++cov;
+	uint32_t code = *x >> ANI_REFCOV_DIFF_SHIFT;
+	const uint32_t new_code = ani_ref_covdiff_encode_diff(diff);
+	if (code == 0u || new_code < code)
+		code = new_code;
+	*x = (code << ANI_REFCOV_DIFF_SHIFT) | cov;
+}
+
+static inline uint64_t ani_ref_covdiff_pack_hit(size_t idx, uint32_t diff)
+{
+	return ((uint64_t)idx << 4) | (uint64_t)ani_ref_covdiff_clip_diff(diff);
 }
 
 static void ani_density_units_destroy(kv_density_unit_t *units)
@@ -3806,7 +4293,8 @@ static void ani_readwise_seq_batch_destroy(ani_readwise_seq_rec_t *batch,
 static void ani_readwise_thread_state_init(ani_readwise_thread_state_t *st,
 										   uint32_t ref_n,
 										   size_t index_n,
-										   bool need_ref_cov_hits)
+										   bool need_ref_cov_hits,
+										   bool track_query_sets)
 {
 	memset(st, 0, sizeof(*st));
 	st->acc = calloc((size_t)ref_n, sizeof(st->acc[0]));
@@ -3814,8 +4302,10 @@ static void ani_readwise_thread_state_init(ani_readwise_thread_state_t *st,
 	st->ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
 	if (!st->acc || !st->read_marks || !st->ref_hit_bits)
 		err(EXIT_FAILURE, "%s(): OOM readwise thread state", __func__);
-	ani_u64_set_init(&st->qry_ctx_seen, 1u << 14);
-	ani_u64_set_init(&st->qry_ref_ctx_seen, 1u << 15);
+	if (track_query_sets) {
+		ani_u64_set_init(&st->qry_ctx_seen, 1u << 14);
+		ani_u64_set_init(&st->qry_ref_ctx_seen, 1u << 15);
+	}
 	kv_init(st->ref_ctx_hit_positions);
 	if (need_ref_cov_hits)
 		kv_init(st->ref_ctx_cov_hits);
@@ -3909,9 +4399,11 @@ static void ani_merge_readwise_thread_batch(
 			acc[rn].reads_with_ctx_match += st->acc[rn].reads_with_ctx_match;
 			acc[rn].blocks_with_ctx_match += st->acc[rn].blocks_with_ctx_match;
 		}
-		ani_u64_set_merge(qry_ctx_seen, &st->qry_ctx_seen);
-		ani_qry_ref_set_merge_into_acc(qry_ref_ctx_seen, &st->qry_ref_ctx_seen,
-										acc, gidmask_local, ref_n);
+		if (qry_ctx_seen)
+			ani_u64_set_merge(qry_ctx_seen, &st->qry_ctx_seen);
+		if (qry_ref_ctx_seen)
+			ani_qry_ref_set_merge_into_acc(qry_ref_ctx_seen, &st->qry_ref_ctx_seen,
+											acc, gidmask_local, ref_n);
 		for (size_t i = 0; i < kv_size(st->ref_ctx_hit_positions); ++i) {
 			const size_t idx = kv_A(st->ref_ctx_hit_positions, i);
 			if (idx >= index_n)
@@ -3924,9 +4416,11 @@ static void ani_merge_readwise_thread_batch(
 		}
 		if (ref_ctx_cov) {
 			for (size_t i = 0; i < kv_size(st->ref_ctx_cov_hits); ++i) {
-				const size_t idx = kv_A(st->ref_ctx_cov_hits, i);
+				const uint64_t hit = kv_A(st->ref_ctx_cov_hits, i);
+				const size_t idx = (size_t)(hit >> 4);
+				const uint32_t diff = (uint32_t)(hit & 0xfu);
 				if (idx < index_n)
-					ani_u32_saturating_inc(&ref_ctx_cov[idx]);
+					ani_ref_covdiff_add_hit(&ref_ctx_cov[idx], diff);
 			}
 		}
 		ani_readwise_thread_state_clear_batch(st, ref_n);
@@ -4302,7 +4796,7 @@ static void ani_process_density_ctxobj_unit(
 	uint8_t *ref_hit_bits,
 	uint32_t *ref_ctx_cov,
 	kv_size_t *ref_ctx_hit_positions,
-	kv_size_t *ref_ctx_cov_hits,
+	kv_u64_t *ref_ctx_cov_hits,
 	ani_u64_set_t *qry_ctx_seen,
 	ani_u64_set_t *qry_ref_ctx_seen,
 	ani_readwise_acc_t *acc)
@@ -4321,7 +4815,8 @@ static void ani_process_density_ctxobj_unit(
 		const size_t qbeg = q;
 		do { ++q; } while (q < unit_vec->n && (unit_vec->a[q] >> nobjbits) == qctx);
 		const size_t qend = q;
-		(void)ani_u64_set_insert(qry_ctx_seen, qctx);
+		if (qry_ctx_seen)
+			(void)ani_u64_set_insert(qry_ctx_seen, qctx);
 
 		size_t pos = lb_in_bucket_ctxgid(index, fence, fence_k, qctx);
 		while (pos < index_n && (index[pos].ctxgid >> GID_NBITS) == qctx) {
@@ -4341,21 +4836,24 @@ static void ani_process_density_ctxobj_unit(
 				acc[gid].blocks_with_ctx_match++;
 			}
 			acc[gid].XnY_ctx++;
-			if (ref_ctx_cov)
-				ani_u32_saturating_inc(&ref_ctx_cov[ref_begin]);
-			else if (ref_ctx_cov_hits)
-				kv_push(size_t, *ref_ctx_cov_hits, ref_begin);
 			if (!ani_bitset_test_set(ref_hit_bits, ref_begin)) {
 				acc[gid].ref_ctx_hit++;
 				if (ref_ctx_hit_positions)
 					kv_push(size_t, *ref_ctx_hit_positions, ref_begin);
 			}
-			const uint64_t pair_key = (qctx << GID_NBITS) | gid;
-			if (ani_u64_set_insert(qry_ref_ctx_seen, pair_key))
-				acc[gid].qry_ctx_hit++;
+			if (qry_ref_ctx_seen) {
+				const uint64_t pair_key = (qctx << GID_NBITS) | gid;
+				if (ani_u64_set_insert(qry_ref_ctx_seen, pair_key))
+					acc[gid].qry_ctx_hit++;
+			}
 
 			const int min_diff = ani_min_diff_sections_read_run_vs_ref_index(
 				unit_vec->a, qbeg, qend, index, ref_begin, ref_end, objmask);
+			if (ref_ctx_cov)
+				ani_ref_covdiff_add_hit(&ref_ctx_cov[ref_begin], (uint32_t)min_diff);
+			else if (ref_ctx_cov_hits)
+				kv_push(uint64_t, *ref_ctx_cov_hits,
+						ani_ref_covdiff_pack_hit(ref_begin, (uint32_t)min_diff));
 			if (min_diff > 0) {
 				acc[gid].N_diff_obj++;
 				acc[gid].N_diff_obj_section += (uint64_t)min_diff;
@@ -4379,7 +4877,8 @@ static void ani_process_density_units_parallel(
 	uint8_t nobjbits,
 	uint64_t gidmask_local,
 	uint64_t objmask,
-	bool need_ref_ctx_cov)
+	bool need_ref_ctx_cov,
+	bool track_query_sets)
 {
 	const size_t unit_n = units ? kv_size(*units) : 0;
 	if (!unit_n)
@@ -4396,7 +4895,9 @@ static void ani_process_density_units_parallel(
 			st->ref_hit_bits, NULL,
 			&st->ref_ctx_hit_positions,
 			need_ref_ctx_cov ? &st->ref_ctx_cov_hits : NULL,
-			&st->qry_ctx_seen, &st->qry_ref_ctx_seen, st->acc);
+			track_query_sets ? &st->qry_ctx_seen : NULL,
+			track_query_sets ? &st->qry_ref_ctx_seen : NULL,
+			st->acc);
 	}
 }
 
@@ -4459,7 +4960,9 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
 		if (gid >= ref_n || (ignoreconflict && i - begin > 1))
 			continue;
-		const long double cov = ref_ctx_cov ? (long double)ref_ctx_cov[begin] : 0.0L;
+		const long double cov = ref_ctx_cov
+									? (long double)ani_ref_covdiff_coverage(ref_ctx_cov[begin])
+									: 0.0L;
 		sum[gid] += cov;
 		sumsq[gid] += cov * cov;
 	}
@@ -4495,6 +4998,43 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 	free(sum);
 	free(sumsq);
 	return stats;
+}
+
+static ani_readwise_acc_t *ani_unique_best_features_from_ref_covdiff(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov)
+{
+	if (!ref_ctx_cov)
+		return NULL;
+	ani_readwise_acc_t *features = calloc((size_t)ref_n, sizeof(features[0]));
+	if (!features)
+		err(EXIT_FAILURE, "%s(): OOM unique readwise ANI features", __func__);
+
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !ani_ref_covdiff_coverage(packed))
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		features[gid].XnY_ctx++;
+		if (diff > 0) {
+			features[gid].N_diff_obj++;
+			features[gid].N_diff_obj_section += (uint64_t)diff;
+			if (diff > 1)
+				features[gid].N_mut2_ctx++;
+		}
+	}
+	return features;
 }
 
 int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *query_path,
@@ -4562,10 +5102,16 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		err(EXIT_FAILURE, "%s(): OOM readwise accumulators", __func__);
 	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE && !ref_ctx_cov)
 		err(EXIT_FAILURE, "%s(): OOM readwise abundance coverage", __func__);
-	ani_u64_set_t qry_ctx_seen;
-	ani_u64_set_t qry_ref_ctx_seen;
-	ani_u64_set_init(&qry_ctx_seen, 1u << 16);
-	ani_u64_set_init(&qry_ref_ctx_seen, 1u << 18);
+	const bool profile_only = ani_opt->readwise_profile_only;
+	if (profile_only)
+		fprintf(stderr,
+				"minco readwise: profile-only mode active; exact query-context AF sets disabled\n");
+	ani_u64_set_t qry_ctx_seen = {0};
+	ani_u64_set_t qry_ref_ctx_seen = {0};
+	if (!profile_only) {
+		ani_u64_set_init(&qry_ctx_seen, 1u << 16);
+		ani_u64_set_init(&qry_ref_ctx_seen, 1u << 18);
+	}
 
 	int worker_n = ani_opt->p > 0 ? ani_opt->p : 1;
 	const int omp_max = omp_get_max_threads();
@@ -4579,7 +5125,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		err(EXIT_FAILURE, "%s(): OOM readwise thread states", __func__);
 	for (int t = 0; t < worker_n; ++t)
 		ani_readwise_thread_state_init(&thread_states[t], ref_n, index_n,
-										ref_ctx_cov != NULL);
+										ref_ctx_cov != NULL, !profile_only);
 
 	ani_fastx_stream_t stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
 	(void)gzbuffer(stream.gz, 4u << 20);
@@ -4675,10 +5221,12 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			&units, thread_states, worker_n,
 			index, index_n, fence, fence_k, ref_n,
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
-			ref_ctx_cov != NULL);
+			ref_ctx_cov != NULL, !profile_only);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
-			&qry_ctx_seen, &qry_ref_ctx_seen, index, index_n,
+			profile_only ? NULL : &qry_ctx_seen,
+			profile_only ? NULL : &qry_ref_ctx_seen,
+			index, index_n,
 			ref_n, gidmask_local);
 		ani_density_units_destroy(&units);
 	}
@@ -4692,10 +5240,12 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			&units, thread_states, worker_n,
 			index, index_n, fence, fence_k, ref_n,
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
-			ref_ctx_cov != NULL);
+			ref_ctx_cov != NULL, !profile_only);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
-			&qry_ctx_seen, &qry_ref_ctx_seen, index, index_n,
+			profile_only ? NULL : &qry_ctx_seen,
+			profile_only ? NULL : &qry_ref_ctx_seen,
+			index, index_n,
 			ref_n, gidmask_local);
 		ani_density_units_destroy(&units);
 	}
@@ -4725,20 +5275,15 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_opt->ntop < 0;
 	if (auto_readwise_abundance_report)
 	{
-		const uint64_t target = ani_model_target_sketch_size
-									? (uint64_t)ani_model_target_sketch_size
-									: (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
-		uint64_t auto_ctxcut = (target + 99u) / 100u;
-		if (auto_ctxcut < 3u)
-			auto_ctxcut = 3u;
+		uint64_t auto_ctxcut = ani_readwise_default_support_cut();
 		if (auto_ctxcut > (uint64_t)INT_MAX)
 			auto_ctxcut = (uint64_t)INT_MAX;
 		ani_opt->ctxcut = (int)auto_ctxcut;
 		ani_opt->afcut = 0.0f;
-		ani_opt->anicut = 0.95f;
+		ani_opt->anicut = 0.96f;
 		fprintf(stderr,
-				"minco readwise: default abundance report active; ctxcut=%d; anicut=0.95; "
-				"calls=major|low_abundance\n",
+				"minco readwise: default abundance report active; support_cut=%d; "
+				"breadth>=0.5; anicut=0.96; calls=major|low_abundance\n",
 				ani_opt->ctxcut);
 	}
 	ani_opt->readwise_query = true;
@@ -4751,22 +5296,32 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 
 	kv_ani_row_t survivors;
 	kv_init(survivors);
-	const uint64_t total_unique_qry_ctx = qry_ctx_seen.n;
-	const uint32_t qry_ctx_for_dist = ani_clamp_u64_to_u32(total_unique_qry_ctx);
+	const uint64_t total_unique_qry_ctx = profile_only ? 0 : qry_ctx_seen.n;
+	const uint32_t global_qry_ctx_for_dist = ani_clamp_u64_to_u32(total_unique_qry_ctx);
 	ani_readwise_abundance_t *abundance_stats = NULL;
 	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
 		abundance_stats = ani_depth_abundance_from_ref_coverage(
 			index, index_n, ref_n, ani_opt->ignoreconflict,
 			ref_ctx_cov, ref_ctx_total, acc);
+	ani_readwise_acc_t *unique_feature_acc =
+		ani_unique_best_features_from_ref_covdiff(
+			index, index_n, ref_n, ani_opt->ignoreconflict, ref_ctx_cov);
+	const ani_readwise_acc_t *feature_acc = unique_feature_acc ? unique_feature_acc : acc;
 	for (uint32_t rn = 0; rn < ref_n; ++rn) {
 		const ani_readwise_acc_t *a = &acc[rn];
-		const uint64_t unique_overlap = a->qry_ctx_hit < a->ref_ctx_hit ? a->qry_ctx_hit : a->ref_ctx_hit;
+		const ani_readwise_acc_t *fa = &feature_acc[rn];
+		const uint64_t qry_ctx_hit = profile_only ? a->ref_ctx_hit : a->qry_ctx_hit;
+		const uint64_t unique_overlap = qry_ctx_hit < a->ref_ctx_hit ? qry_ctx_hit : a->ref_ctx_hit;
 		if (unique_overlap < (uint64_t)ani_opt->ctxcut)
 			continue;
-		if (!a->XnY_ctx || !total_unique_qry_ctx || !ref_ctx_total[rn])
+		if (!fa->XnY_ctx || !ref_ctx_total[rn])
 			continue;
-		const double qry_af = (double)a->qry_ctx_hit / (double)total_unique_qry_ctx;
 		const double ref_af = (double)a->ref_ctx_hit / (double)ref_ctx_total[rn];
+		if (!profile_only && !total_unique_qry_ctx)
+			continue;
+		const double qry_af = profile_only
+								  ? ref_af
+								  : (double)qry_ctx_hit / (double)total_unique_qry_ctx;
 		ani_density_af_t density_af = {
 			.qry = qry_af,
 			.ref = ref_af,
@@ -4776,12 +5331,14 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			continue;
 
 		ani_features_t f = {
-			.XnY_ctx = ani_clamp_u64_to_u32(a->XnY_ctx),
-			.X_ctx = qry_ctx_for_dist,
-			.N_diff_obj_section = ani_clamp_u64_to_u32(a->N_diff_obj_section),
-			.N_mut2_ctx = ani_clamp_u64_to_u32(a->N_mut2_ctx),
-			.N_diff_obj = ani_clamp_u64_to_u32(a->N_diff_obj),
+			.XnY_ctx = ani_clamp_u64_to_u32(fa->XnY_ctx),
+			.X_ctx = profile_only ? ref_ctx_total[rn] : global_qry_ctx_for_dist,
+			.N_diff_obj_section = ani_clamp_u64_to_u32(fa->N_diff_obj_section),
+			.N_mut2_ctx = ani_clamp_u64_to_u32(fa->N_mut2_ctx),
+			.N_diff_obj = ani_clamp_u64_to_u32(fa->N_diff_obj),
 		};
+		const uint32_t qry_ctx_for_dist =
+			profile_only ? ref_ctx_total[rn] : global_qry_ctx_for_dist;
 		ani_row_t row = make_selected_output_row(
 			rn, &f, ani_opt,
 			qry_ctx_for_dist,
@@ -4791,14 +5348,14 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			density_af,
 			NULL,
 			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
-		row.XnY_ctx = ani_clamp_u64_to_int(a->XnY_ctx);
-		row.N_diff_obj = ani_clamp_u64_to_int(a->N_diff_obj);
-		row.N_diff_obj_section = ani_clamp_u64_to_int(a->N_diff_obj_section);
-		row.N_mut2_ctx = ani_clamp_u64_to_int(a->N_mut2_ctx);
+		row.XnY_ctx = ani_clamp_u64_to_int(fa->XnY_ctx);
+		row.N_diff_obj = ani_clamp_u64_to_int(fa->N_diff_obj);
+		row.N_diff_obj_section = ani_clamp_u64_to_int(fa->N_diff_obj_section);
+		row.N_mut2_ctx = ani_clamp_u64_to_int(fa->N_mut2_ctx);
 		row.readwise_total_reads = total_reads;
 		row.readwise_reads_with_ctx_match = a->reads_with_ctx_match;
 		row.readwise_unique_query_ctx = total_unique_qry_ctx;
-		row.readwise_unique_query_ctx_hit = a->qry_ctx_hit;
+		row.readwise_unique_query_ctx_hit = qry_ctx_hit;
 		row.readwise_unique_ref_ctx_hit = a->ref_ctx_hit;
 		row.readwise_density_block_ctx = density_block_mode ? density_block_ctx : 0u;
 		row.readwise_total_density_blocks = total_density_blocks;
@@ -4838,6 +5395,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		out_n = (size_t)ani_opt->ntop;
 	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
 		normalize_readwise_abundance_depth(&survivors, out_n);
+	ani_write_cami_profile(ani_opt, query_path, refname, refanno, &survivors, out_n);
 	for (size_t i = 0; i < out_n; ++i) {
 		const ani_row_t *r = &kv_A(survivors, i);
 		print_unified_detail_row(outfp, ani_opt, query_path, refname[r->rn],
@@ -4855,6 +5413,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	if (outfp != stdout)
 		fclose(outfp);
 	free(abundance_stats);
+	free(unique_feature_acc);
 	ani_u64_set_destroy(&qry_ctx_seen);
 	ani_u64_set_destroy(&qry_ref_ctx_seen);
 	free(acc);

@@ -99,8 +99,10 @@ building a query sketch:
 bin/minco ani -r ref.minco --qraw reads.fq.gz --query-density ref -m0 -o reads_vs_ref.tsv
 ```
 
-In this mode minco streams reads, accumulates readwise mutation features, and
-uses auxiliary unique context coverage to report AF. Detail output appends
+In this mode minco streams reads and uses auxiliary unique context coverage to
+report AF. With `--abundance-est depth`, depth remains coverage-based while ANI
+mutation features are reduced once per unique reference context entry using the
+best observed context-object difference. Detail output appends
 `Reads_with_ctx_match`, `Total_reads`, `Read_match_fraction`,
 `Unique_query_ctx`, `Unique_query_ctx_hit`, `Unique_ref_ctx_hit`, and
 experimental density-block counters.
@@ -119,13 +121,40 @@ Add `--abundance-est depth` to also append experimental per-reference
 breadth/depth metrics, including `Relative_abundance_depth` and
 `Normalized_abundance_depth`, plus `Default_call`. With no custom `-f`, `-n`,
 `-t`, or `--top`, minco applies the default readwise abundance report: it uses
-a sketch-size-scaled unique-context cutoff (`S/100`), requires ANI >= 0.95,
-and prints only `major` and `low_abundance` calls. The normalized column sums
-to 1 across printed rows.
+a sketch-size-scaled support cutoff
+`min(S, max(100, ceil(S/100)))`, requires `Ref_breadth >= 0.5` and
+`ANI >= 0.96`, and prints only `major` and `low_abundance` calls. The
+normalized column sums to 1 across printed rows.
 Use explicit filters such as `-f0 -n0 -t0` when every candidate comparison must
 be reported. This abundance option requires the direct readwise FASTQ density
 path, so do not combine it with `--readsQC`, `--abundance`, or
 `--save-query-sketch`.
+For very large metagenomes and large reference sets, add
+`--readwise-profile-only` with `--abundance-est depth`. This keeps the
+coverage/depth abundance path but skips exact global query-context sets, which
+prevents memory from growing with every unique metagenome context. In this
+mode `Unique_query_ctx` is reported as 0, query AF is approximated from
+reference breadth for filtering/reporting, and naive ANI still uses
+unique-best matched context-object differences.
+
+Write a CAMI taxonomic profile from the printed readwise abundance rows:
+
+```bash
+bin/minco ani -p16 -r ref.minco --qraw reads.fq.gz --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --cami-taxmap ref.cami_taxmap.tsv \
+  --cami-profile sample.profile --cami-sample-id sample_1 \
+  -m0 -o reads_vs_ref.tsv
+```
+
+`--cami-taxmap` is a tab-delimited map with at least five columns:
+`ref_key`, `TAXID`, `RANK`, `TAXPATH`, and `TAXPATHSN`, followed by optional
+`_CAMI_genomeID` and `_CAMI_OTU`. `ref_key` can be the stored minco reference
+path, the reference basename, an assembly accession such as `GCF_...`, or a
+sequence accession such as `NC_...`. To emit a full lineage profile, include
+multiple rows with the same `ref_key`, one per rank; minco aggregates rows with
+the same `TAXID/RANK/TAXPATH`. With a complete lineage taxmap, percentages sum
+to about 100 within each rank. Minco does not infer missing ranks on its own.
 
 Keep the generated query sketch for debugging:
 

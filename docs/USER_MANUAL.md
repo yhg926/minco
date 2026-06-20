@@ -244,9 +244,9 @@ minco ani -p8 -r ref.minco --qraw reads.fastq.gz --query-density ref -m0 -o read
 
 When `--qraw` receives FASTQ input, `--query-density ref` streams reads
 readwise by default unless `--save-query-sketch`, `--readsQC`, or `--abundance`
-requires the materialized sketch path. The readwise path sums mutation features
-over matched read contexts, tracks unique reference/query context coverage for
-AF, and appends `Reads_with_ctx_match`, `Total_reads`,
+requires the materialized sketch path. The readwise path tracks unique
+reference/query context coverage for AF and appends `Reads_with_ctx_match`,
+`Total_reads`,
 `Read_match_fraction`, `Unique_query_ctx`, `Unique_query_ctx_hit`, and
 `Unique_ref_ctx_hit` to detail output. It also reports
 `Density_block_ctx`, `Total_density_blocks`, `Blocks_with_ctx_match`, and
@@ -280,15 +280,21 @@ minco ani -p8 -r ref.minco --qraw reads.fastq.gz --query-density ref \
 This appends `Ref_breadth`, `Ref_mean_depth`, `Ref_hit_mean_depth`,
 `Ref_depth_variance`, `Ref_depth_cv`, `Ref_zero_fraction`,
 `Relative_abundance_depth`, `Normalized_abundance_depth`, and `Default_call`.
+Depth statistics use the occurrence coverage of each reference context entry.
+ANI mutation features (`XnY_ctx`, `N_diff_obj`, `N_diff_obj_section`, and
+`N_mut2_ctx`) are reduced once per unique reference context entry using the best
+observed context-object difference across reads or density blocks, so repeated
+coverage does not inflate the mutation-distance term.
 With no custom `-f`, `-n`, `-t`, or `--top`, minco applies the default readwise
-abundance report: it sets the unique-context support cutoff to `S/100`, removes
-the hidden AF cutoff, keeps the default ANI cutoff at 0.95, and prints only
-`major` and `low_abundance` calls.
+abundance report: it sets the unique-context support cutoff to
+`min(S, max(100, ceil(S/100)))`, removes the hidden AF cutoff, uses ANI cutoff
+0.96, and prints only `major` and `low_abundance` calls.
 Default calls use these rules:
 
 ```text
-major          Ref_breadth >= 0.5, Relative_abundance_depth >= 1e-4, XnY_ctx >= 50000, ANI >= 0.95
-low_abundance  Ref_breadth >= 0.5, Relative_abundance_depth >= 1e-5, XnY_ctx >= 1000, ANI >= 0.95
+support        min(S, max(100, ceil(S/100))); applied to XnY_ctx and Unique_ref_ctx_hit
+major          Ref_breadth >= 0.5, Relative_abundance_depth >= 1e-4, support pass, ANI >= 0.96
+low_abundance  Ref_breadth >= 0.5, Relative_abundance_depth >= 1e-5, support pass, ANI >= 0.96
 weak           below the default call thresholds
 ```
 
@@ -298,6 +304,76 @@ comparison must be reported. The estimate is a transparent breadth/depth
 baseline; it does not yet deconvolve shared contexts with EM or fit NB/ZINB
 mixture models. It currently requires direct FASTQ `--qraw --query-density ref`
 without `--readsQC`, `--abundance`, or `--save-query-sketch`.
+
+For very large metagenomes, use `--readwise-profile-only` together with
+`--abundance-est depth`. This mode keeps the reference coverage/depth
+accumulators but does not build the exact global query-context and query-ref
+context sets. It is intended for CAMI-style profiling and other large
+metagenome abundance runs where exact readwise query AF would otherwise grow
+with all unique sample contexts. In profile-only mode `Unique_query_ctx` is 0,
+`Unique_query_ctx_hit` is approximated from unique reference-context hits,
+query AF is reported as the reference breadth, and naive ANI is still computed
+from unique-best context-object differences.
+
+### CAMI Taxonomic Profile Output
+
+`minco ani` can write a CAMI-style taxonomic profile from the same final rows
+printed by direct readwise FASTQ abundance mode:
+
+```bash
+minco ani -p16 -r ref.minco --qraw reads.fastq.gz --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --cami-taxmap ref.cami_taxmap.tsv \
+  --cami-profile sample.profile --cami-sample-id sample_1 \
+  -m0 -o reads_vs_ref.tsv
+```
+
+`--cami-profile FILE` writes a profile with CAMI header lines:
+
+```text
+@SampleID:sample_1
+@Version:0.9.1
+@Ranks:...
+@@TAXID	RANK	TAXPATH	TAXPATHSN	PERCENTAGE	_CAMI_genomeID	_CAMI_OTU
+```
+
+`PERCENTAGE` is `Normalized_abundance_depth * 100` after normal minco filters
+and `--top` are applied. If several printed references map to the same
+`TAXID/RANK/TAXPATH`, minco sums them into one CAMI row. A taxmap may contain
+multiple rows for the same `ref_key`, one per rank, so minco can emit full
+lineage profiles when those lineage rows are provided. In a complete lineage
+taxmap, percentages are expected to sum to about 100 within each rank, not
+across all lineage rows together. References missing from the taxmap are
+skipped with a warning.
+
+`--cami-taxmap` is a tab-delimited file with this schema:
+
+```text
+ref_key	TAXID	RANK	TAXPATH	TAXPATHSN	[_CAMI_genomeID]	[_CAMI_OTU]
+```
+
+Header lines are accepted. `ref_key` may be the stored minco reference path,
+the reference basename, an assembly accession such as `GCF_009858895.2`, or a
+sequence accession from `minco.anno` such as `NC_045512.2`.
+To report a full lineage, repeat the same `ref_key` for each desired rank:
+
+```text
+GCF_000000001.1	2	superkingdom	2	Bacteria
+GCF_000000001.1	1224	phylum	2|1224	Bacteria|Pseudomonadota
+GCF_000000001.1	561	species	2|1224|...|561	Bacteria|Pseudomonadota|...|Escherichia coli
+```
+
+For a RefSeq viral sketch, a simple species-level map can be generated from
+`virus_assembly_summary.txt`:
+
+```bash
+awk -F'\t' '!/^#/ {
+  print $1 "\t" $7 "\tspecies\t10239|" $7 "\tViruses|" $8
+}' virus_assembly_summary.txt > refseq_virus.cami_taxmap.tsv
+```
+
+The CAMI writer is intentionally map-driven. minco can aggregate provided full
+lineages, but it does not infer missing lineage ranks from FASTA headers alone.
 
 Current `minco.stat` records the requested target sketch size and the compact
 density summary used by `--query-density ref`. `minco sketch --psmp DIR` shows

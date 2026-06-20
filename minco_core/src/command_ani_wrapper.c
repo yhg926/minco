@@ -54,7 +54,11 @@ enum
 	ANI_QUERY_DENSITY,
 	ANI_DENSITY_BLOCK_CTX,
 	ANI_SAVE_QUERY_SKETCH,
-	ANI_ABUNDANCE_EST
+	ANI_ABUNDANCE_EST,
+	ANI_CAMI_PROFILE,
+	ANI_CAMI_TAXMAP,
+	ANI_CAMI_SAMPLE_ID,
+	ANI_READWISE_PROFILE_ONLY
 };
 
 enum
@@ -99,6 +103,10 @@ static struct argp_option opt_ani[] =
 		{"outfile", 'o', "<FILE>", 0, "Output file. [STDOUT]", ANI_GROUP_REPORT},
 		{"raw-output", ANI_RAW_OUTPUT, 0, 0, "Skip calibrated/best ANI computation; selected calibrated metrics fall back to raw distances when unavailable.", ANI_GROUP_REPORT},
 		{"abundance-est", ANI_ABUNDANCE_EST, "<none|depth>", 0, "Experimental: append readwise breadth/depth abundance estimates for direct --qraw FASTQ --query-density ref; default output reports major and low-abundance calls unless filters are set. [none]", ANI_GROUP_REPORT},
+		{"cami-profile", ANI_CAMI_PROFILE, "<FILE>", 0, "Write a CAMI taxonomic profile from printed readwise abundance rows. Requires --abundance-est depth and --cami-taxmap.", ANI_GROUP_REPORT},
+		{"cami-taxmap", ANI_CAMI_TAXMAP, "<TSV>", 0, "TSV mapping ref key/accession to CAMI taxonomy: ref_key, TAXID, RANK, TAXPATH, TAXPATHSN, optional _CAMI_genomeID, _CAMI_OTU.", ANI_GROUP_REPORT},
+		{"cami-sample-id", ANI_CAMI_SAMPLE_ID, "<ID>", 0, "Sample ID for --cami-profile header. Defaults to query basename or minco_sample for stdin.", ANI_GROUP_REPORT},
+		{"readwise-profile-only", ANI_READWISE_PROFILE_ONLY, 0, 0, "Experimental: in direct readwise FASTQ abundance mode, skip exact global query-context sets to keep memory bounded for large metagenomes.", ANI_GROUP_REPORT},
 		{"top", 'N', "<INT>", 0, "Report at most top N references per query. [all]", ANI_GROUP_REPORT},
 
 		{0, 0, 0, 0, "Execution:", ANI_GROUP_EXECUTION},
@@ -158,6 +166,8 @@ static char doc_ani[] =
 	"use --density-block-ctx 0 for exact per-read lookup.\n"
 	"OpenMP builds with -p > 1 process this direct FASTQ path in parallel\n"
 	"read batches and merge batch state while streaming to keep memory bounded.\n"
+	"Use --readwise-profile-only with --abundance-est depth for large\n"
+	"metagenome abundance/CAMI profiling when exact query AF is not needed.\n"
 	"It reports reads processed, rate, and file percent when available to stderr.\n"
 	"Use --save-query-sketch DIR to keep the generated query sketch for debug.\n"
 	"For sequence files, -q keeps conflicts only with --conflict; --qraw keeps\n"
@@ -165,8 +175,9 @@ static char doc_ani[] =
 	"\n"
 	"Default filters are -n 0.95, -f 0.5, and -t 3. In direct readwise\n"
 	"--qraw FASTQ density mode with --abundance-est depth and no custom\n"
-	"-f/-n/-t/--top, minco applies the default abundance report: ctxcut=S/100,\n"
-	"anicut=0.95, no hidden AF cutoff, and only major or low_abundance calls are printed.\n"
+	"-f/-n/-t/--top, minco applies the default abundance report: support_cut=\n"
+	"min(S,max(100,ceil(S/100))), anicut=0.96, no hidden AF cutoff, and only\n"
+	"major or low_abundance calls are printed.\n"
 	"In readwise mode, -t is unique context overlap. Use -f0 -n0 -t0 when every\n"
 	"comparison must be reported. In --qraw mode without this abundance report,\n"
 	"-f defaults to 0.2.\n"
@@ -178,12 +189,20 @@ static char doc_ani[] =
 	"Output:\n"
 	"  -m0 detail: Qry, Ref, ANI, Distance, Confidence, Selected_metric,\n"
 	"      diagnostics, Ref_annotation, Real_*_align_fraction, AF_source.\n"
-	"  -m1 full matrix and -m2 lower triangle; one sketch gives self output.\n"
+		"  -m1 full matrix and -m2 lower triangle; one sketch gives self output.\n"
 		"  --abundance-est depth appends experimental breadth/depth abundance\n"
 		"  columns plus Default_call for direct readwise FASTQ density ANI.\n"
+		"  ANI mutation features use the best object difference per unique\n"
+		"  reference context entry; depth columns keep occurrence coverage.\n"
 		"  With no custom filters it prints default major/low_abundance calls;\n"
-		"  normalized abundance sums to 1 over printed rows. It is incompatible\n"
+		"  support is min(S,max(100,ceil(S/100))) and ANI cutoff is 0.96.\n"
+		"  Normalized abundance sums to 1 over printed rows. It is incompatible\n"
 		"  with --readsQC, --abundance, and --save-query-sketch.\n"
+		"  --readwise-profile-only keeps depth coverage but skips exact global\n"
+		"  query-context sets to avoid memory growth in large metagenomes.\n"
+		"  --cami-profile FILE writes a CAMI taxonomic profile from those printed\n"
+		"  rows using --cami-taxmap TSV taxonomy/lineage metadata. Repeat a\n"
+		"  ref_key on multiple rows to emit multiple lineage ranks.\n"
 	"  Positive -s values print distance in matrix/triangle formats.\n"
 	"  Negative -s values print ANI in matrix/triangle formats.\n"
 	"  --raw-output skips calibrated/best ANI fields when unavailable.\n"
@@ -207,6 +226,9 @@ static char doc_ani[] =
 	"  minco ani -S 20000 -p8 ref.fna query.fna -o ani.20k.tsv\n"
 	"  minco ani -p8 -r ref --qraw reads -m0 -o raw.tsv\n"
 	"  minco ani -p8 -r ref --qraw reads.fq.gz --readsQC -m0 -o raw.tsv\n"
+	"  minco ani -p16 -r ref --qraw reads.fq.gz --query-density ref \\\n"
+	"    --abundance-est depth --readwise-profile-only \\\n"
+	"    --cami-taxmap ref.cami_taxmap.tsv --cami-profile sample.profile -o raw.tsv\n"
 	"  minco ani -p8 -q genomes -m2 -s -1 -d -o ani.tri.tsv\n"
 	"  minco ani -f0 -n0 -t0 -o pair.tsv ref.fna qry.fna\n"
 	"  samtools fastq reads.bam | \\\n"
@@ -225,6 +247,7 @@ ani_opt_t ani_opt = {
 	.unassembled = 0,
 	.unified_metric = 0,
 	.readwise_query = 0,
+	.readwise_profile_only = 0,
 	.ignoreconflict = 0,
 	.raw_output = 0,
 	.ctxcut = 3,
@@ -260,6 +283,9 @@ ani_opt_t ani_opt = {
 	.qrylist[0] = '\0',
 	.sketch_pipecmd[0] = '\0',
 	.save_query_sketch[0] = '\0',
+	.cami_profile[0] = '\0',
+	.cami_taxmap[0] = '\0',
+	.cami_sample_id[0] = '\0',
 	.outf[0] = '\0',
 	.gl[0] = '\0',
 	//	.model[0] = '\0',
@@ -482,6 +508,26 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 		ani_opt.abundance_model = parse_abundance_model(state, arg);
 		break;
 	}
+	case ANI_CAMI_PROFILE:
+	{
+		copy_path_arg(state, "--cami-profile", ani_opt.cami_profile, sizeof(ani_opt.cami_profile), arg);
+		break;
+	}
+	case ANI_CAMI_TAXMAP:
+	{
+		copy_path_arg(state, "--cami-taxmap", ani_opt.cami_taxmap, sizeof(ani_opt.cami_taxmap), arg);
+		break;
+	}
+	case ANI_CAMI_SAMPLE_ID:
+	{
+		copy_path_arg(state, "--cami-sample-id", ani_opt.cami_sample_id, sizeof(ani_opt.cami_sample_id), arg);
+		break;
+	}
+	case ANI_READWISE_PROFILE_ONLY:
+	{
+		ani_opt.readwise_profile_only = true;
+		break;
+	}
 	case 't':
 	{
 		ani_opt.ctxcut = parse_int_range(state, "-t/--ctxcut", arg, 0, INT_MAX);
@@ -658,6 +704,17 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 			}
 		if (ani_opt.s < -8 || ani_opt.s > 8 || ani_opt.s == 0)
 			argp_error(state, "-s option should be within range 1..8 or -8..-1");
+		if (ani_opt.cami_profile[0] != '\0')
+		{
+			if (ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+				argp_error(state, "--cami-profile requires --abundance-est depth");
+			if (ani_opt.cami_taxmap[0] == '\0')
+				argp_error(state, "--cami-profile requires --cami-taxmap TSV");
+			if (strcmp(ani_opt.cami_profile, "-") == 0 && ani_opt.outf[0] == '\0')
+				argp_error(state, "--cami-profile - cannot be combined with ANI detail output on stdout; use -o or write the CAMI profile to a file");
+		}
+		if (ani_opt.readwise_profile_only && ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+			argp_error(state, "--readwise-profile-only requires --abundance-est depth");
 
 		break;
 		/*

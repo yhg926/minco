@@ -275,6 +275,18 @@ if "$BIN" ani -r "$WORK/ctx_one_5k" -q "$WORK/query_7k" -m 0 -f 0 -n 0 -t 0 -o "
 fi
 "$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_readwise_density.tsv"
 "$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref --abundance-est depth -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_readwise_abundance.tsv"
+{
+  printf '%s\t2\tsuperkingdom\t2\tBacteria\n' "$WORK/a.fna"
+  printf '%s\t111\tspecies\t2|111\tBacteria|a_species\n' "$WORK/a.fna"
+} > "$WORK/cami_taxmap.tsv"
+"$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref --abundance-est depth \
+  --cami-taxmap "$WORK/cami_taxmap.tsv" --cami-profile "$WORK/ani_readwise_abundance.profile" \
+  --cami-sample-id full_cli_sample -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_readwise_abundance_cami.tsv"
+"$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref --abundance-est depth \
+  --readwise-profile-only --cami-taxmap "$WORK/cami_taxmap.tsv" \
+  --cami-profile "$WORK/ani_readwise_abundance_profile_only.profile" \
+  --cami-sample-id full_cli_profile_only -m 0 -f 0 -n 0 -t 0 -p 2 \
+  -o "$WORK/ani_readwise_abundance_profile_only.tsv"
 "$BIN" ani -r "$WORK/ctx_both" -q "$WORK/b.fna" --query-density ref -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_query_density_combined.tsv"
 "$BIN" ani -r "$WORK/base" --qraw "$WORK/reads" -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_qraw.tsv"
 assert_nonempty "$WORK/ani_detail.tsv"
@@ -288,6 +300,10 @@ assert_nonempty "$WORK/ani_query_density_one.tsv"
 assert_nonempty "$WORK/ani_query_density_5k.tsv"
 assert_nonempty "$WORK/ani_readwise_density.tsv"
 assert_nonempty "$WORK/ani_readwise_abundance.tsv"
+assert_nonempty "$WORK/ani_readwise_abundance_cami.tsv"
+assert_nonempty "$WORK/ani_readwise_abundance.profile"
+assert_nonempty "$WORK/ani_readwise_abundance_profile_only.tsv"
+assert_nonempty "$WORK/ani_readwise_abundance_profile_only.profile"
 assert_nonempty "$WORK/ani_query_density_combined.tsv"
 assert_nonempty "$WORK/ani_qraw.tsv"
 grep -q 'Reads_with_ctx_match' "$WORK/ani_readwise_density.tsv"
@@ -295,6 +311,14 @@ grep -q 'readwise_coverage' "$WORK/ani_readwise_density.tsv"
 grep -q 'Relative_abundance_depth' "$WORK/ani_readwise_abundance.tsv"
 grep -q 'Normalized_abundance_depth' "$WORK/ani_readwise_abundance.tsv"
 grep -q 'Ref_mean_depth' "$WORK/ani_readwise_abundance.tsv"
+grep -q '^@SampleID:full_cli_sample$' "$WORK/ani_readwise_abundance.profile"
+grep -q '^@@TAXID' "$WORK/ani_readwise_abundance.profile"
+grep -q $'^2\tsuperkingdom\t2\tBacteria\t' "$WORK/ani_readwise_abundance.profile"
+grep -q $'^111\tspecies\t2|111\tBacteria|a_species\t' "$WORK/ani_readwise_abundance.profile"
+grep -q '^@SampleID:full_cli_profile_only$' "$WORK/ani_readwise_abundance_profile_only.profile"
+grep -q '^@@TAXID' "$WORK/ani_readwise_abundance_profile_only.profile"
+grep -q $'^2\tsuperkingdom\t2\tBacteria\t' "$WORK/ani_readwise_abundance_profile_only.profile"
+grep -q $'^111\tspecies\t2|111\tBacteria|a_species\t' "$WORK/ani_readwise_abundance_profile_only.profile"
 awk -F '\t' '
   NR == 1 {
     for (i = 1; i <= NF; i++) if ($i == "Normalized_abundance_depth") col = i
@@ -306,6 +330,15 @@ awk -F '\t' '
     if (n < 1 || sum < 0.999 || sum > 1.001) exit 1
   }
 ' "$WORK/ani_readwise_abundance.tsv"
+awk -F '\t' '
+  !/^@/ { sum[$2] += $5; n[$2]++ }
+  END {
+    if (!("superkingdom" in n) || !("species" in n)) exit 1
+    for (rank in n) {
+      if (sum[rank] < 99.999 || sum[rank] > 100.001) exit 1
+    }
+  }
+' "$WORK/ani_readwise_abundance.profile"
 assert_nonempty "$WORK/saved_query_one/minco.ctxobj64"
 assert_nonempty "$WORK/saved_query_one/minco.ctxobj64.offsets"
 assert_nonempty "$WORK/saved_query_one/minco.stat"

@@ -1,0 +1,30 @@
+# Artifacts
+
+- Minco TSV: `/tmp/minco_cami_marine_sample0_s1000.profileonly.tsv`
+- CAMI profile: `/tmp/minco_cami_marine_sample0_s1000.profileonly.profile`
+- Runtime log: `/tmp/minco_cami_marine_sample0_s1000.profileonly.log`
+- Permissive full-sample candidate TSV for threshold optimization: `/tmp/minco_cami_marine_sample0_s1000.profileonly.unfiltered.tsv`
+- Permissive full-sample runtime log: `/tmp/minco_cami_marine_sample0_s1000.profileonly.unfiltered.log`
+- CAMI gold profile: `/tmp/gs_marine_short.profile`
+- CAMI taxmap: `/tmp/gtdb232_refseqvirus_s1000.minco.cami_taxmap.tsv`
+- CAMI submission page: `https://cami-challenge.org/submission/9089740f62614e468422/`
+- CAMI OPAL metric table: `https://cami-challenge.org/opal_run/471/`
+- Threshold optimization summary: `threshold_optimization_s1000.tsv`
+- Cached CAMI sample 0 FASTQ gzip used for S=10000 runs: `/tmp/cami_marine_sample0_reads.fq.gz`
+- S=10000 GTDB-only default TSV: `/tmp/minco_cami_marine_sample0_s10000_gtdb.profileonly.tsv`
+- S=10000 GTDB-only default CAMI profile: `/tmp/minco_cami_marine_sample0_s10000_gtdb.profileonly.profile`
+- S=10000 GTDB-only default runtime log: `/tmp/minco_cami_marine_sample0_s10000_gtdb.profileonly.log`
+- S=10000 GTDB-only permissive candidate TSV: `/tmp/minco_cami_marine_sample0_s10000_gtdb.profileonly.unfiltered.tsv`
+- S=10000 GTDB-only permissive runtime log: `/tmp/minco_cami_marine_sample0_s10000_gtdb.profileonly.unfiltered.log`
+- S=10000 GTDB-only threshold optimization summary: `threshold_optimization_s10000_gtdb.tsv`
+- S=1000 GTDB-only default TSV: `/tmp/minco_cami_marine_sample0_s1000_gtdb.profileonly.tsv`
+- S=1000 GTDB-only default CAMI profile: `/tmp/minco_cami_marine_sample0_s1000_gtdb.profileonly.profile`
+- S=1000 GTDB-only default runtime log: `/tmp/minco_cami_marine_sample0_s1000_gtdb.profileonly.log`
+- S=1000-vs-S=10000 GTDB-only default lost-taxa diagnostic: `s1000_vs_s10000_gtdb_default_lost_taxa.tsv`
+- S=1000 density-block run summary: `s1000_density_block_sensitivity.tsv`
+- S=1000 density-block borderline ANI comparison: `s1000_density_block_borderline_ani.tsv`
+- S=1000/S=10000 Naive ANI feature decomposition for the nine lost taxa: `s1000_s10000_naive_ani_feature_decomposition.tsv`
+- S=1000 block=10 permissive TSV: `/tmp/minco_cami_marine_sample0_s1000_gtdb.block10.profileonly.unfiltered.tsv`
+- S=1000 block=10 runtime log: `/tmp/minco_cami_marine_sample0_s1000_gtdb.block10.profileonly.unfiltered.log`
+- S=1000 block=0 permissive TSV: `/tmp/minco_cami_marine_sample0_s1000_gtdb.block0.profileonly.unfiltered.tsv`
+- S=1000 block=0 runtime log: `/tmp/minco_cami_marine_sample0_s1000_gtdb.block0.profileonly.unfiltered.log`
