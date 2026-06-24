@@ -7,19 +7,35 @@ dual-evidence, abundance, ANI, and edge-EM experiments.
 
 ## Current Defaults
 
-Use different MinCO strategies for different goals. There is not yet one
-universal strategy that beats Sylph on F1, abundance L1, and ANI across all
-tested domains.
+Product rule: the user-facing MinCO default must become one fixed profiling
+recipe. It should not branch by dataset type. Dataset-specific winners are
+research diagnostics only, useful for understanding mechanisms and failure
+cases.
+
+There is not yet one validated strategy that beats Sylph on F1, abundance L1,
+and ANI across all tested domains. Until that final validation exists, the
+current universal-default candidate is the simplest robust readwise path:
 
 ```text
-Goal                     Current first choice
-Species F1, marine       S1000 GTDB unique ZIP-AAF
-Toy Mouse abundance      ctx-marker robust effective depth + intra-genus rescue
-Mixed mouse+CAMI3 F1     current mixed F1-priority ctxobj blend
-Mixed mouse+CAMI3 L1     current mixed L1-priority ctxobj/cami blend
-ANI reporting            coden15 Ref_zip_aaf_ani, not emitted naive ANI
-Future refdb work        full S2000 dual evidence, not physical markerdb copies
-Edge-EM                  diagnostic abundance module only
+Default candidate       S1000 GTDB full/unique readwise ZIP-AAF
+Refdb/coden             coden11 S1000, with unique-marker evidence from readwise hits
+Presence objective      F1 first
+Abundance objective     L1 second, using one fixed depth/coverage rule
+ANI objective           Report-only; do not use emitted naive ANI as final ANI
+No automatic branching  Do not select ctx-marker, coden15, edge-EM, or ctxobj by dataset label
+```
+
+Current research first choices, kept only as internal baselines:
+
+```text
+Goal / diagnostic target        Current first choice
+Species F1, marine              S1000 GTDB unique ZIP-AAF
+Toy Mouse abundance             ctx-marker robust effective depth + intra-genus rescue
+Mixed mouse+CAMI3 F1            current mixed F1-priority ctxobj blend
+Mixed mouse+CAMI3 L1            current mixed L1-priority ctxobj/cami blend
+ANI reporting                   coden15 Ref_zip_aaf_ani, not emitted naive ANI
+Future refdb work               full S2000 dual evidence, not physical markerdb copies
+Edge-EM                         diagnostic abundance module only
 ```
 
 ## Top Measured Rows
@@ -34,8 +50,8 @@ MinCO ctx-marker robust depth + rescue      0.999945      1.7945
 Sylph reported abundance                    0.999972      2.2870
 ```
 
-Use this as the first baseline for new abundance work on Toy Mouse-like data.
-Do not replace it with coden15 by default.
+Use this as the first internal baseline for abundance mechanism work. Do not
+make it a dataset-specific automatic user default.
 
 ### CAMI II Marine Presence
 
@@ -130,9 +146,21 @@ emitted naive ANI                   Saturates at 1.0; use coden15 Ref_zip_aaf_an
 
 ## Next Decision Point
 
-Validate the adaptive edge-EM trigger on a larger panel before changing any
-default. The useful next benchmark is not another same-sample beta sweep; it is
-multi-domain validation of the no-truth trigger policy with fixed thresholds.
+The next decision is a single universal default, not a data-type switchboard.
+Optimize and score one fixed preset on pooled multi-domain validation, with this
+priority order:
+
+```text
+1. Species F1
+2. Abundance L1
+3. ANI accuracy as a reporting metric only
+```
+
+The useful next benchmark is therefore not another same-sample beta sweep; it is
+multi-domain validation of one fixed no-truth policy. Adaptive edge-EM can be
+tested inside that benchmark, but it should not become a user-visible automatic
+branch unless it improves the pooled objective without hurting any held-out
+domain.
 
 Evidence:
 

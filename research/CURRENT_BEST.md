@@ -7,7 +7,20 @@ Date pinned: 2026-06-24
 Use `research/STAGE_SUMMARY_2026-06-24.md` as the quick-recall page for the
 current top strategies.
 
-Current practical choices:
+Product constraint: final MinCO should expose one normal profiling default, not
+choose a strategy from the sample's apparent data type. The rows below are
+current research baselines and diagnostics, not automatic user-facing branches.
+
+Current universal-default candidate:
+
+```text
+S1000 GTDB coden11 full/unique readwise ZIP-AAF
+Presence metric priority: F1
+Abundance metric priority: L1 after presence is acceptable
+ANI: report-only; avoid emitted naive ANI saturation
+```
+
+Current diagnostic first choices:
 
 ```text
 Species F1, marine       S1000 GTDB unique ZIP-AAF
@@ -88,6 +101,10 @@ Normalize abundance from Effective_abundance_depth over active plus rescued rows
 ## Practical Reminder
 
 For new abundance benchmarks, try this baseline before coden15, full/shared-context refdb, or new markerdb variants. Coden15 improved MinCO presence/F1 slightly in the later Toy Mouse test, but it did not reproduce this abundance advantage over Sylph.
+
+For product-default work, do not let this create a Toy Mouse-specific automatic
+branch. Any improvement must be folded into one fixed default recipe and
+retested on the pooled panel.
 
 Retest result: coden15 ctx-marker plus the same robust-depth rescue increased mean L1 from 1.7945 to 2.4022 percentage points on Toy Mouse samples 0-2. The old ctx-marker robust-rescue baseline remains the first try for abundance work.
 

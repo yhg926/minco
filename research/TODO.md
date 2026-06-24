@@ -88,7 +88,15 @@ minco ani -p16 -r REF_S1000 --qraw reads.fq.gz \
 
 ## Release Gate
 
-- Do not present the algorithm as a general default until it passes at least one
-  substantially different dataset.
-- After non-marine validation, update README defaults and command-line help to
-  recommend `S=1000` for readwise profiling.
+- Final product behavior must have one normal default profile command. Do not
+  auto-select different gates, refdb modes, or abundance models from the sample's
+  apparent data type.
+- Keep dataset-specific winners as research diagnostics or explicit expert
+  switches only.
+- Select the default by pooled multi-domain validation with priority order:
+  species F1, then abundance L1, then ANI accuracy as report-only.
+- Do not present the algorithm as a general default until the fixed recipe
+  passes at least one substantially different held-out dataset.
+- After validation, update README defaults and command-line help to recommend
+  the chosen fixed recipe, currently expected to start from `S=1000` readwise
+  ZIP-AAF profiling.
