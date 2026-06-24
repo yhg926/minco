@@ -214,8 +214,12 @@ Tracking forces exact per-read density units (`--density-block-ctx 0`), because
 block mode intentionally loses read identity and context offsets. A summary TSV
 is written to `<reads.track.tsv>.summary.tsv` unless
 `--readwise-track-summary` is set; it includes tracked-read percentage,
-density-positive no-hit percentage, and a density/read-length based estimate of
-reads from organisms not represented by the reference database.
+density-positive no-hit read percentage, and context-level reference-hit
+fractions. `estimated_ref_absent_ctx_pct` is estimated from sampled read
+contexts as `1 - total_matched_ctx / total_density_ctx`; it estimates
+whole-genome reference absence only when the reference database contains
+whole-genome density-sampled contexts. On markerdbs it measures absence from
+the retained marker context set.
 
 Write a CAMI taxonomic profile from the printed readwise abundance rows:
 

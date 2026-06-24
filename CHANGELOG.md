@@ -12,13 +12,15 @@
   `--ncbi-taxmap`, and `--readwise-track-summary`. Taxonomy maps reuse the
   existing CAMI taxmap schema.
 - Read tracking writes a summary with tracked-read percentage,
-  density-positive no-hit percentage, and a density/read-length based
-  diagnostic estimate of reads from non-reference organisms.
+  density-positive no-hit read percentage, and context-level reference-hit /
+  reference-absent percentages from sampled read contexts.
 
 ### Changed
 
 - `--readwise-track` forces per-read density units (`--density-block-ctx 0`)
   because block mode cannot preserve exact read ids or context offsets.
+- Renamed the previous read-level no-hit diagnostic in the tracking summary so
+  it is not confused with whole-genome non-reference context absence.
 
 ### Validation
 

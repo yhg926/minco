@@ -136,7 +136,8 @@ grep -q $'^read_id\tread_ord\tread_len\tpossible_ctx\tdensity_ctx\tmatched_ctx' 
 awk 'NR > 1 && $8 >= 1 && $11 != "NA" && $15 != "NA" { found = 1 } END { exit found ? 0 : 1 }' "$WORK/read.track.tsv"
 grep -q $'^total_reads\t1$' "$WORK/read.track.summary.tsv"
 grep -q $'^reads_with_ref_hit\t1$' "$WORK/read.track.summary.tsv"
-grep -q $'^estimated_nonref_read_pct\t' "$WORK/read.track.summary.tsv"
+grep -q $'^density_positive_no_ref_hit_read_pct\t' "$WORK/read.track.summary.tsv"
+grep -q $'^estimated_ref_absent_ctx_pct\t' "$WORK/read.track.summary.tsv"
 
 "$BIN" ani -q "$WORK/pair.minco" -m2 -s -1 -d -p 2 -o "$WORK/ani.tsv" > "$WORK/ani.log" 2>&1
 test -s "$WORK/ani.tsv"

@@ -440,11 +440,20 @@ use the same tab-delimited schema as `--cami-taxmap`.
 The summary file defaults to `<FILE>.summary.tsv` unless
 `--readwise-track-summary` is given. It reports `total_reads`,
 `reads_with_density_ctx`, `reads_with_ref_hit`, `tracked_read_pct`,
-`density_positive_no_ref_hit_pct`, and `estimated_nonref_read_pct`. The
-non-reference estimate uses the reference-density sampling probability and read
-length to estimate how many reads should have been trackable, then measures the
-fraction with retained density contexts but no reference hit. Treat it as a
-diagnostic estimate, not a taxonomic truth label.
+`density_positive_no_ref_hit_read_pct`, `total_density_ctx`,
+`total_matched_ctx`, `sampled_ctx_ref_hit_pct`, and
+`estimated_ref_absent_ctx_pct`. The context estimate is:
+
+```text
+estimated_ref_absent_ctx_pct =
+  100 * (1 - total_matched_ctx / total_density_ctx)
+```
+
+Because the density filter samples contexts uniformly, this estimates the
+fraction of all read contexts absent from the reference only when the reference
+database represents whole-genome density-sampled contexts. If the reference is
+a markerdb, the same metric measures absence from retained marker contexts, not
+absence from the original whole genomes.
 
 ### CAMI Taxonomic Profile Output
 

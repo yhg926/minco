@@ -6090,16 +6090,25 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 	const long double density_pct = 100.0L * (long double)tracker->reads_with_density_ctx / total;
 	const long double density_nohit_pct =
 		100.0L * (long double)tracker->reads_without_ref_hit_but_density_ctx / total;
-	long double estimated_nonref_pct = 0.0L;
+	long double density_trackable_nohit_pct = 0.0L;
 	if (tracker->expected_trackable_reads > 0.0L) {
-		estimated_nonref_pct =
+		density_trackable_nohit_pct =
 			100.0L * (long double)tracker->reads_without_ref_hit_but_density_ctx /
 			tracker->expected_trackable_reads;
-		if (estimated_nonref_pct < 0.0L)
-			estimated_nonref_pct = 0.0L;
-		if (estimated_nonref_pct > 100.0L)
-			estimated_nonref_pct = 100.0L;
+		if (density_trackable_nohit_pct < 0.0L)
+			density_trackable_nohit_pct = 0.0L;
+		if (density_trackable_nohit_pct > 100.0L)
+			density_trackable_nohit_pct = 100.0L;
 	}
+	const long double density_ctx_total =
+		tracker->total_density_ctx ? (long double)tracker->total_density_ctx : 1.0L;
+	long double ref_present_ctx_pct =
+		100.0L * (long double)tracker->total_matched_ctx / density_ctx_total;
+	if (ref_present_ctx_pct < 0.0L)
+		ref_present_ctx_pct = 0.0L;
+	if (ref_present_ctx_pct > 100.0L)
+		ref_present_ctx_pct = 100.0L;
+	const long double ref_absent_ctx_pct = 100.0L - ref_present_ctx_pct;
 	fputs("metric\tvalue\n", fp);
 	fprintf(fp, "query\t%s\n", tracker->query_path ? tracker->query_path : "NA");
 	fprintf(fp, "taxonomy_mode\t%d\n", (int)tracker->taxonomy_mode);
@@ -6112,14 +6121,20 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 			tracker->reads_without_ref_hit_but_density_ctx);
 	fprintf(fp, "tracked_read_pct\t%.10Lg\n", tracked_pct);
 	fprintf(fp, "density_positive_pct\t%.10Lg\n", density_pct);
-	fprintf(fp, "density_positive_no_ref_hit_pct\t%.10Lg\n", density_nohit_pct);
+	fprintf(fp, "density_positive_no_ref_hit_read_pct\t%.10Lg\n", density_nohit_pct);
 	fprintf(fp, "expected_trackable_reads\t%.10Lg\n", tracker->expected_trackable_reads);
-	fprintf(fp, "estimated_nonref_read_pct\t%.10Lg\n", estimated_nonref_pct);
+	fprintf(fp, "density_trackable_no_ref_hit_read_pct\t%.10Lg\n",
+			density_trackable_nohit_pct);
 	fprintf(fp, "total_possible_ctx\t%" PRIu64 "\n", tracker->total_possible_ctx);
 	fprintf(fp, "total_density_ctx\t%" PRIu64 "\n", tracker->total_density_ctx);
 	fprintf(fp, "total_matched_ctx\t%" PRIu64 "\n", tracker->total_matched_ctx);
 	fprintf(fp, "total_selected_ctx\t%" PRIu64 "\n", tracker->total_selected_ctx);
 	fprintf(fp, "total_selected_ref_events\t%" PRIu64 "\n", tracker->total_selected_ref_events);
+	fprintf(fp, "sampled_ctx_ref_hit_pct\t%.10Lg\n", ref_present_ctx_pct);
+	fprintf(fp, "estimated_ref_present_ctx_pct\t%.10Lg\n", ref_present_ctx_pct);
+	fprintf(fp, "estimated_ref_absent_ctx_pct\t%.10Lg\n", ref_absent_ctx_pct);
+	fprintf(fp, "estimated_ref_absent_ctx_basis\t%s\n",
+			"density_sampled_read_contexts;whole_genome_only_if_refdb_is_full_context_refdb");
 	if (fclose(fp) != 0)
 		err(errno, "%s(): cannot close readwise tracking summary %s", __func__,
 			tracker->summary_path);
@@ -6279,7 +6294,7 @@ static void ani_readwise_track_read64(
 		}
 		if (kv_size(candidates) == 0)
 			continue;
-		++matched_ctx;
+		matched_ctx += (uint64_t)(qend - qbeg);
 
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
@@ -6293,7 +6308,7 @@ static void ani_readwise_track_read64(
 				selected_n != 1)
 				continue;
 		}
-		++selected_ctx;
+		selected_ctx += (uint64_t)(qend - qbeg);
 		for (size_t oi = qbeg; oi < qend; ++oi)
 			ani_track_offset_push(&offsets, kv_A(vec, oi).offset,
 								  &offsets_truncated);
@@ -6302,7 +6317,7 @@ static void ani_readwise_track_read64(
 			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
 				continue;
 			ani_track_u32_push_unique(&gids, cand->gid);
-			++selected_ref_events;
+			selected_ref_events += (uint64_t)(qend - qbeg);
 		}
 	}
 
@@ -6409,7 +6424,7 @@ static void ani_readwise_track_read96(
 		}
 		if (kv_size(candidates) == 0)
 			continue;
-		++matched_ctx;
+		matched_ctx += (uint64_t)(qend - qbeg);
 
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
@@ -6423,7 +6438,7 @@ static void ani_readwise_track_read96(
 				selected_n != 1)
 				continue;
 		}
-		++selected_ctx;
+		selected_ctx += (uint64_t)(qend - qbeg);
 		for (size_t oi = qbeg; oi < qend; ++oi)
 			ani_track_offset_push(&offsets, kv_A(vec, oi).offset,
 								  &offsets_truncated);
@@ -6432,7 +6447,7 @@ static void ani_readwise_track_read96(
 			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
 				continue;
 			ani_track_u32_push_unique(&gids, cand->gid);
-			++selected_ref_events;
+			selected_ref_events += (uint64_t)(qend - qbeg);
 		}
 	}
 
