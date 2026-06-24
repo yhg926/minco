@@ -4433,6 +4433,20 @@ typedef struct {
 
 typedef kvec_t(size_t) kv_size_t;
 typedef kvec_t(uint64_t) kv_u64_t;
+typedef kvec_t(uint32_t) kv_u32_t;
+
+typedef struct {
+	uint64_t packed;
+	uint32_t offset;
+} ani_read_ctxobj64_t;
+
+typedef struct {
+	ctxobj96_t rec;
+	uint32_t offset;
+} ani_read_ctxobj96_t;
+
+typedef kvec_t(ani_read_ctxobj64_t) kv_read_ctxobj64_t;
+typedef kvec_t(ani_read_ctxobj96_t) kv_read_ctxobj96_t;
 
 typedef struct {
 	ctxobj96_t *a;
@@ -4499,6 +4513,38 @@ typedef struct {
 	bool ambiguous_only;
 	bool selected_only;
 } ani_readwise_edge_trace_t;
+
+typedef struct {
+	bool enabled;
+	kv_cami_tax_record_t records;
+	const ani_cami_tax_record_t **ref_tax;
+	const char *label;
+} ani_readwise_tax_namespace_t;
+
+typedef struct {
+	bool enabled;
+	FILE *fp;
+	char summary_path[PATHLEN];
+	ani_readwise_taxonomy_mode_t taxonomy_mode;
+	ani_readwise_tax_namespace_t gtdb;
+	ani_readwise_tax_namespace_t ncbi;
+	const char *query_path;
+	char (*refname)[PATHLEN];
+	char (*refanno)[PATHLEN];
+	uint32_t ref_n;
+	long double density_probability;
+	uint64_t total_reads;
+	uint64_t reads_with_density_ctx;
+	uint64_t reads_with_ref_hit;
+	uint64_t reads_with_multi_ref_hit;
+	uint64_t reads_without_ref_hit_but_density_ctx;
+	uint64_t total_possible_ctx;
+	uint64_t total_density_ctx;
+	uint64_t total_matched_ctx;
+	uint64_t total_selected_ctx;
+	uint64_t total_selected_ref_events;
+	long double expected_trackable_reads;
+} ani_readwise_tracker_t;
 
 typedef struct {
 	ani_readwise_acc_t *acc;
@@ -5468,6 +5514,946 @@ static void ani_readwise_edge_trace_emit_group(ani_readwise_edge_trace_t *edge,
 					cov_inc);
 		}
 	}
+}
+
+static inline uint64_t ani_make_hashed_ctxobj(uint64_t unituple,
+											  uint32_t n_obj_bits,
+											  uint64_t density_threshold);
+static inline __uint128_t ani_mask128_bits(unsigned bits);
+static inline ctxobj96_t ani_coden128_to_ctxobj96(__uint128_t tuple,
+												  int codens);
+
+#define ANI_READWISE_TRACK_MAX_LIST_ITEMS 64u
+#define ANI_READWISE_TRACK_MAX_OFFSETS 256u
+
+static int ani_read_ctxobj64_cmp(const void *pa, const void *pb)
+{
+	const ani_read_ctxobj64_t *a = (const ani_read_ctxobj64_t *)pa;
+	const ani_read_ctxobj64_t *b = (const ani_read_ctxobj64_t *)pb;
+	if (a->packed != b->packed)
+		return (a->packed > b->packed) - (a->packed < b->packed);
+	return (a->offset > b->offset) - (a->offset < b->offset);
+}
+
+static int ani_read_ctxobj96_cmp(const void *pa, const void *pb)
+{
+	const ani_read_ctxobj96_t *a = (const ani_read_ctxobj96_t *)pa;
+	const ani_read_ctxobj96_t *b = (const ani_read_ctxobj96_t *)pb;
+	if (a->rec.ctx != b->rec.ctx)
+		return (a->rec.ctx > b->rec.ctx) - (a->rec.ctx < b->rec.ctx);
+	if (a->rec.obj != b->rec.obj)
+		return (a->rec.obj > b->rec.obj) - (a->rec.obj < b->rec.obj);
+	return (a->offset > b->offset) - (a->offset < b->offset);
+}
+
+static void ani_read_ctxobj64_push(kv_read_ctxobj64_t *vec,
+								   uint64_t packed,
+								   uint32_t offset)
+{
+	ani_read_ctxobj64_t rec = {.packed = packed, .offset = offset};
+	kv_push(ani_read_ctxobj64_t, *vec, rec);
+}
+
+static void ani_read_ctxobj96_push(kv_read_ctxobj96_t *vec,
+								   ctxobj96_t packed,
+								   uint32_t offset)
+{
+	ani_read_ctxobj96_t rec = {.rec = packed, .offset = offset};
+	kv_push(ani_read_ctxobj96_t, *vec, rec);
+}
+
+static void ani_extract_read_density_ctxobjs_with_offsets(
+	const char *s,
+	int len,
+	kv_read_ctxobj64_t *vec,
+	uint32_t n_obj_bits,
+	uint64_t density_threshold)
+{
+	if (len < (int)klen)
+		return;
+	const uint32_t len_mv = (uint32_t)(2 * klen - 2);
+	uint64_t tuple = 0, crv = 0;
+	int base = 0;
+
+	for (int pos = 0; pos < len; ++pos) {
+		const int bmap = Basemap[(unsigned char)s[pos]];
+		if (unlikely(bmap == DEFAULT)) {
+			base = 0;
+			tuple = 0;
+			crv = 0;
+			continue;
+		}
+		const uint64_t b2 = (uint64_t)bmap;
+		tuple = (tuple << 2) | b2;
+		crv = (crv >> 2) | ((b2 ^ 3ull) << len_mv);
+		if (unlikely(++base < (int)klen))
+			continue;
+
+		const uint64_t t_ctx = tuple & ctxmask;
+		const uint64_t r_ctx = crv & ctxmask;
+		const uint64_t unictx = t_ctx < r_ctx ? t_ctx : r_ctx;
+#if ANI_APPLY_SOURCE_FILTER
+		if (unlikely((uint32_t)mix64(unictx) > FILTER))
+			continue;
+#endif
+		const uint64_t unituple = (t_ctx < r_ctx ? tuple : crv) & tupmask;
+		const uint64_t packed = ani_make_hashed_ctxobj(unituple, n_obj_bits,
+													   density_threshold);
+		if (packed != UINT64_MAX)
+			ani_read_ctxobj64_push(vec, packed, (uint32_t)(pos + 1 - (int)klen));
+	}
+}
+
+static void ani_extract_read_density_ctxobjs96_with_offsets(
+	const char *s,
+	int len,
+	kv_read_ctxobj96_t *vec,
+	uint64_t density_threshold)
+{
+	if (len < (int)klen)
+		return;
+	const unsigned tuple_bits = 2u * klen;
+	const __uint128_t tuple_mask = ani_mask128_bits(tuple_bits);
+	const unsigned rev_shift = 2u * (klen - 1u);
+	__uint128_t tuple = 0, crv = 0;
+	int base = 0;
+
+	for (int pos = 0; pos < len; ++pos) {
+		const int bmap = Basemap[(unsigned char)s[pos]];
+		if (unlikely(bmap == DEFAULT)) {
+			base = 0;
+			tuple = 0;
+			crv = 0;
+			continue;
+		}
+		const __uint128_t b2 = (uint64_t)bmap;
+		tuple = ((tuple << 2) | b2) & tuple_mask;
+		crv = (crv >> 2) | ((b2 ^ 3u) << rev_shift);
+		if (unlikely(++base < (int)klen))
+			continue;
+
+		const ctxobj96_t fwd = ani_coden128_to_ctxobj96(tuple, NUM_CODENS);
+		const ctxobj96_t rev = ani_coden128_to_ctxobj96(crv, NUM_CODENS);
+		const ctxobj96_t rec =
+			(fwd.ctx < rev.ctx || (fwd.ctx == rev.ctx && fwd.obj <= rev.obj))
+				? fwd
+				: rev;
+#if ANI_APPLY_SOURCE_FILTER
+		if (unlikely((uint32_t)mix64(rec.ctx) > FILTER))
+			continue;
+#endif
+		if (mix64(rec.ctx ^ (uint64_t)MINCO_SEED) > density_threshold)
+			continue;
+		ani_read_ctxobj96_push(vec, rec, (uint32_t)(pos + 1 - (int)klen));
+	}
+}
+
+static int ani_min_diff_sections_tracked64_vs_ref_index(
+	const ani_read_ctxobj64_t *qry,
+	size_t qry_begin,
+	size_t qry_end,
+	const ctxgidobj_t *ref,
+	size_t ref_begin,
+	size_t ref_end,
+	uint64_t objmask)
+{
+	int min_diff_sections = NUM_CODENS + 1;
+	for (size_t qi = qry_begin; qi < qry_end; ++qi) {
+		const uint32_t obj_q = (uint32_t)(qry[qi].packed & objmask);
+		for (size_t ri = ref_begin; ri < ref_end; ++ri) {
+			const uint32_t diff = obj_q ^ ref[ri].obj;
+			if (diff == 0)
+				return 0;
+			const int d = dna_popcount(diff);
+			if (d < min_diff_sections)
+				min_diff_sections = d;
+		}
+	}
+	return min_diff_sections;
+}
+
+static int ani_min_diff_sections_tracked96_vs_ref_index(
+	const ani_read_ctxobj96_t *qry,
+	size_t qry_begin,
+	size_t qry_end,
+	const ctxgidobj128_t *ref,
+	size_t ref_begin,
+	size_t ref_end)
+{
+	int min_diff_sections = NUM_CODENS + 1;
+	for (size_t qi = qry_begin; qi < qry_end; ++qi) {
+		const uint32_t obj_q = qry[qi].rec.obj;
+		for (size_t ri = ref_begin; ri < ref_end; ++ri) {
+			const uint32_t diff = obj_q ^ ref[ri].obj;
+			if (diff == 0)
+				return 0;
+			const int d = dna_popcount(diff);
+			if (d < min_diff_sections)
+				min_diff_sections = d;
+		}
+	}
+	return min_diff_sections;
+}
+
+static void ani_track_u32_push_unique(kv_u32_t *vec, uint32_t value)
+{
+	for (size_t i = 0; i < kv_size(*vec); ++i)
+		if (kv_A(*vec, i) == value)
+			return;
+	kv_push(uint32_t, *vec, value);
+}
+
+static void ani_track_offset_push(kv_u32_t *vec, uint32_t value, bool *truncated)
+{
+	if (kv_size(*vec) >= ANI_READWISE_TRACK_MAX_OFFSETS) {
+		if (truncated)
+			*truncated = true;
+		return;
+	}
+	kv_push(uint32_t, *vec, value);
+}
+
+static int ani_track_tax_record_depth(const ani_cami_tax_record_t *tax)
+{
+	if (!tax)
+		return -1;
+	const int rank_idx = ani_cami_rank_index(tax->rank);
+	if (rank_idx >= 0)
+		return rank_idx + 1;
+	int depth = 0;
+	const char *p = tax->taxpathsn;
+	if (!p || p[0] == '\0' || strcmp(p, "NA") == 0)
+		return 0;
+	for (;;) {
+		++depth;
+		const char *bar = strchr(p, '|');
+		if (!bar)
+			break;
+		p = bar + 1;
+	}
+	return depth;
+}
+
+static const ani_cami_tax_record_t *ani_track_best_tax_for_key(
+	const kv_cami_tax_record_t *records,
+	const char *key)
+{
+	size_t begin = 0;
+	size_t end = 0;
+	if (!ani_cami_find_tax_record_range(records, key, &begin, &end))
+		return NULL;
+	const ani_cami_tax_record_t *best = NULL;
+	int best_depth = -1;
+	for (size_t i = begin; i < end; ++i) {
+		const ani_cami_tax_record_t *tax = &kv_A(*records, i);
+		const int depth = ani_track_tax_record_depth(tax);
+		if (!best || depth > best_depth) {
+			best = tax;
+			best_depth = depth;
+		}
+	}
+	return best;
+}
+
+static const ani_cami_tax_record_t *ani_track_best_ref_tax_match(
+	const kv_cami_tax_record_t *records,
+	const char *ref_name,
+	const char *annotation)
+{
+	const ani_cami_tax_record_t *hit = ani_track_best_tax_for_key(records, ref_name);
+	if (hit)
+		return hit;
+	char buf[PATHLEN];
+	ani_cami_copy_basename(ref_name, buf, sizeof(buf));
+	hit = ani_track_best_tax_for_key(records, buf);
+	if (hit)
+		return hit;
+	if (ani_cami_extract_accession(ref_name, buf, sizeof(buf))) {
+		hit = ani_track_best_tax_for_key(records, buf);
+		if (hit)
+			return hit;
+	}
+	hit = ani_track_best_tax_for_key(records, annotation);
+	if (hit)
+		return hit;
+	if (ani_cami_extract_accession(annotation, buf, sizeof(buf)))
+		return ani_track_best_tax_for_key(records, buf);
+	return NULL;
+}
+
+static void ani_readwise_tax_namespace_load(
+	ani_readwise_tax_namespace_t *ns,
+	const char *label,
+	const char *path,
+	char (*refname)[PATHLEN],
+	char (*refanno)[PATHLEN],
+	uint32_t ref_n)
+{
+	memset(ns, 0, sizeof(*ns));
+	ns->enabled = true;
+	ns->label = label;
+	ani_cami_load_taxmap(path, &ns->records);
+	ns->ref_tax = calloc((size_t)ref_n, sizeof(ns->ref_tax[0]));
+	if (!ns->ref_tax)
+		err(EXIT_FAILURE, "%s(): OOM %s taxonomy refs", __func__, label ? label : "readwise");
+	size_t missing = 0;
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		ns->ref_tax[rn] = ani_track_best_ref_tax_match(
+			&ns->records, refname[rn], annotation_at(refanno, rn));
+		if (!ns->ref_tax[rn])
+			++missing;
+	}
+	if (missing)
+		warnx("%s(): %s taxonomy missing for %zu/%u reference entries",
+			  __func__, label ? label : "readwise", missing, ref_n);
+}
+
+static void ani_readwise_tax_namespace_destroy(ani_readwise_tax_namespace_t *ns)
+{
+	if (!ns)
+		return;
+	free(ns->ref_tax);
+	ns->ref_tax = NULL;
+	if (ns->enabled)
+		ani_cami_tax_records_destroy(&ns->records);
+	memset(ns, 0, sizeof(*ns));
+}
+
+static size_t ani_track_common_taxpath_prefix_len(const char *a,
+												  size_t a_len,
+												  const char *b)
+{
+	if (!a || !b || !a_len)
+		return 0;
+	size_t pa = 0;
+	size_t pb = 0;
+	size_t last_end = 0;
+	while (pa < a_len && b[pb]) {
+		size_t ea = pa;
+		while (ea < a_len && a[ea] != '|')
+			++ea;
+		size_t eb = pb;
+		while (b[eb] && b[eb] != '|')
+			++eb;
+		const size_t la = ea - pa;
+		const size_t lb = eb - pb;
+		if (la != lb || strncmp(a + pa, b + pb, la) != 0)
+			break;
+		last_end = ea;
+		if (ea >= a_len || b[eb] == '\0')
+			break;
+		pa = ea + 1u;
+		pb = eb + 1u;
+	}
+	return last_end;
+}
+
+static int ani_track_taxpath_token_count(const char *path, size_t prefix_len)
+{
+	if (!path || prefix_len == 0)
+		return 0;
+	int count = 1;
+	for (size_t i = 0; i < prefix_len; ++i)
+		if (path[i] == '|')
+			++count;
+	return count;
+}
+
+static void ani_track_taxpath_last_token(const char *path,
+										 size_t prefix_len,
+										 char *out,
+										 size_t out_size)
+{
+	if (!out || out_size == 0)
+		return;
+	out[0] = '\0';
+	if (!path || prefix_len == 0) {
+		snprintf(out, out_size, "root");
+		return;
+	}
+	size_t begin = 0;
+	for (size_t i = 0; i < prefix_len; ++i)
+		if (path[i] == '|')
+			begin = i + 1u;
+	const size_t len = prefix_len > begin ? prefix_len - begin : 0;
+	const size_t copy = len + 1u < out_size ? len : out_size - 1u;
+	memcpy(out, path + begin, copy);
+	out[copy] = '\0';
+	if (out[0] == '\0')
+		snprintf(out, out_size, "root");
+}
+
+static const char *ani_track_rank_for_depth(int depth)
+{
+	static const char *ranks[] = {
+		"root", "superkingdom", "phylum", "class", "order",
+		"family", "genus", "species", "strain"};
+	if (depth < 0)
+		depth = 0;
+	if (depth >= (int)(sizeof(ranks) / sizeof(ranks[0])))
+		depth = (int)(sizeof(ranks) / sizeof(ranks[0])) - 1;
+	return ranks[depth];
+}
+
+static void ani_track_lca_namespace(
+	const ani_readwise_tax_namespace_t *ns,
+	const kv_u32_t *gids,
+	char *rank_out,
+	size_t rank_size,
+	char *name_out,
+	size_t name_size)
+{
+	if (rank_out && rank_size)
+		snprintf(rank_out, rank_size, "NA");
+	if (name_out && name_size)
+		snprintf(name_out, name_size, "NA");
+	if (!ns || !ns->enabled || !ns->ref_tax || !gids || kv_size(*gids) == 0)
+		return;
+
+	const ani_cami_tax_record_t *first = NULL;
+	for (size_t i = 0; i < kv_size(*gids); ++i) {
+		const uint32_t gid = kv_A(*gids, i);
+		const ani_cami_tax_record_t *tax = ns->ref_tax[gid];
+		if (tax && tax->taxpathsn && tax->taxpathsn[0] &&
+			strcmp(tax->taxpathsn, "NA") != 0) {
+			first = tax;
+			break;
+		}
+	}
+	if (!first)
+		return;
+
+	size_t common_len = strlen(first->taxpathsn);
+	for (size_t i = 0; i < kv_size(*gids); ++i) {
+		const uint32_t gid = kv_A(*gids, i);
+		const ani_cami_tax_record_t *tax = ns->ref_tax[gid];
+		if (!tax || !tax->taxpathsn || !tax->taxpathsn[0] ||
+			strcmp(tax->taxpathsn, "NA") == 0)
+			continue;
+		common_len = ani_track_common_taxpath_prefix_len(
+			first->taxpathsn, common_len, tax->taxpathsn);
+		if (common_len == 0)
+			break;
+	}
+
+	const int depth = ani_track_taxpath_token_count(first->taxpathsn, common_len);
+	if (rank_out && rank_size)
+		snprintf(rank_out, rank_size, "%s", ani_track_rank_for_depth(depth));
+	if (name_out && name_size)
+		ani_track_taxpath_last_token(first->taxpathsn, common_len, name_out, name_size);
+}
+
+static long double ani_readwise_density_probability(uint64_t density_threshold,
+													bool ref_uses_ctxobj96,
+													uint8_t nobjbits)
+{
+	if (density_threshold == UINT64_MAX)
+		return 1.0L;
+	if (ref_uses_ctxobj96) {
+		return ((long double)density_threshold + 1.0L) / ldexpl(1.0L, 64);
+	}
+	const int hash_bits = 64 - (int)nobjbits;
+	if (hash_bits <= 0)
+		return 1.0L;
+	return ((long double)density_threshold + 1.0L) / ldexpl(1.0L, hash_bits);
+}
+
+static long double ani_readwise_trackable_probability(size_t possible_ctx,
+													  long double density_p)
+{
+	if (possible_ctx == 0 || density_p <= 0.0L)
+		return 0.0L;
+	if (density_p >= 1.0L)
+		return 1.0L;
+	return 1.0L - powl(1.0L - density_p, (long double)possible_ctx);
+}
+
+static void ani_track_fprint_text(FILE *fp, const char *s)
+{
+	if (!fp)
+		return;
+	if (!s || s[0] == '\0') {
+		fputs("NA", fp);
+		return;
+	}
+	for (const char *p = s; *p; ++p) {
+		const unsigned char c = (unsigned char)*p;
+		fputc((c == '\t' || c == '\n' || c == '\r') ? ' ' : (int)c, fp);
+	}
+}
+
+static void ani_track_fprint_u32_list(FILE *fp, const kv_u32_t *values)
+{
+	if (!fp || !values || kv_size(*values) == 0) {
+		fputs("NA", fp);
+		return;
+	}
+	const size_t n = kv_size(*values);
+	const size_t cap = n < ANI_READWISE_TRACK_MAX_LIST_ITEMS
+						   ? n
+						   : ANI_READWISE_TRACK_MAX_LIST_ITEMS;
+	for (size_t i = 0; i < cap; ++i) {
+		if (i)
+			fputc(',', fp);
+		fprintf(fp, "%u", kv_A(*values, i));
+	}
+	if (cap < n)
+		fputs(",...", fp);
+}
+
+static void ani_track_fprint_ref_list(FILE *fp,
+									  const kv_u32_t *gids,
+									  char (*refname)[PATHLEN])
+{
+	if (!fp || !gids || kv_size(*gids) == 0) {
+		fputs("NA", fp);
+		return;
+	}
+	const size_t n = kv_size(*gids);
+	const size_t cap = n < ANI_READWISE_TRACK_MAX_LIST_ITEMS
+						   ? n
+						   : ANI_READWISE_TRACK_MAX_LIST_ITEMS;
+	for (size_t i = 0; i < cap; ++i) {
+		if (i)
+			fputc(',', fp);
+		ani_track_fprint_text(fp, refname ? refname[kv_A(*gids, i)] : "NA");
+	}
+	if (cap < n)
+		fputs(",...", fp);
+}
+
+static void ani_readwise_tracker_init(
+	ani_readwise_tracker_t *tracker,
+	const ani_opt_t *ani_opt,
+	const char *query_path,
+	char (*refname)[PATHLEN],
+	char (*refanno)[PATHLEN],
+	uint32_t ref_n,
+	long double density_probability)
+{
+	memset(tracker, 0, sizeof(*tracker));
+	if (!ani_opt || ani_opt->readwise_track[0] == '\0')
+		return;
+	tracker->enabled = true;
+	tracker->query_path = query_path;
+	tracker->refname = refname;
+	tracker->refanno = refanno;
+	tracker->ref_n = ref_n;
+	tracker->taxonomy_mode = ani_opt->readwise_taxonomy_mode;
+	tracker->density_probability = density_probability;
+	if (ani_opt->readwise_track_summary[0] != '\0') {
+		snprintf(tracker->summary_path, sizeof(tracker->summary_path), "%s",
+				 ani_opt->readwise_track_summary);
+	} else if (strcmp(ani_opt->readwise_track, "-") == 0) {
+		snprintf(tracker->summary_path, sizeof(tracker->summary_path),
+				 "minco.readwise_track.summary.tsv");
+	} else {
+		snprintf(tracker->summary_path, sizeof(tracker->summary_path),
+				 "%s.summary.tsv", ani_opt->readwise_track);
+	}
+
+	if (tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_GTDB ||
+		tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH)
+		ani_readwise_tax_namespace_load(&tracker->gtdb, "GTDB",
+										ani_opt->gtdb_taxmap,
+										refname, refanno, ref_n);
+	if (tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_NCBI ||
+		tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH)
+		ani_readwise_tax_namespace_load(&tracker->ncbi, "NCBI",
+										ani_opt->ncbi_taxmap,
+										refname, refanno, ref_n);
+
+	tracker->fp = strcmp(ani_opt->readwise_track, "-") == 0
+					  ? stdout
+					  : fopen(ani_opt->readwise_track, "w");
+	if (!tracker->fp)
+		err(errno, "%s(): cannot open --readwise-track %s", __func__,
+			ani_opt->readwise_track);
+	fputs("read_id\tread_ord\tread_len\tpossible_ctx\tdensity_ctx\tmatched_ctx\tselected_ctx\ttarget_ref_count\ttarget_refs\ttarget_ref_ids\tgtdb_rank\tgtdb_name\tncbi_rank\tncbi_name\tctx_offsets\tctx_offsets_truncated\tassignment_status\n",
+		  tracker->fp);
+	fprintf(stderr,
+			"minco readwise: read tracking active; out=%s summary=%s taxonomy=%d density_p=%.6Lg\n",
+			ani_opt->readwise_track, tracker->summary_path,
+			(int)tracker->taxonomy_mode, tracker->density_probability);
+}
+
+static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tracker)
+{
+	if (!tracker || !tracker->enabled || tracker->summary_path[0] == '\0')
+		return;
+	FILE *fp = fopen(tracker->summary_path, "w");
+	if (!fp)
+		err(errno, "%s(): cannot open readwise tracking summary %s", __func__,
+			tracker->summary_path);
+	const long double total = tracker->total_reads ? (long double)tracker->total_reads : 1.0L;
+	const long double tracked_pct = 100.0L * (long double)tracker->reads_with_ref_hit / total;
+	const long double density_pct = 100.0L * (long double)tracker->reads_with_density_ctx / total;
+	const long double density_nohit_pct =
+		100.0L * (long double)tracker->reads_without_ref_hit_but_density_ctx / total;
+	long double estimated_nonref_pct = 0.0L;
+	if (tracker->expected_trackable_reads > 0.0L) {
+		estimated_nonref_pct =
+			100.0L * (long double)tracker->reads_without_ref_hit_but_density_ctx /
+			tracker->expected_trackable_reads;
+		if (estimated_nonref_pct < 0.0L)
+			estimated_nonref_pct = 0.0L;
+		if (estimated_nonref_pct > 100.0L)
+			estimated_nonref_pct = 100.0L;
+	}
+	fputs("metric\tvalue\n", fp);
+	fprintf(fp, "query\t%s\n", tracker->query_path ? tracker->query_path : "NA");
+	fprintf(fp, "taxonomy_mode\t%d\n", (int)tracker->taxonomy_mode);
+	fprintf(fp, "density_probability\t%.12Lg\n", tracker->density_probability);
+	fprintf(fp, "total_reads\t%" PRIu64 "\n", tracker->total_reads);
+	fprintf(fp, "reads_with_density_ctx\t%" PRIu64 "\n", tracker->reads_with_density_ctx);
+	fprintf(fp, "reads_with_ref_hit\t%" PRIu64 "\n", tracker->reads_with_ref_hit);
+	fprintf(fp, "reads_with_multi_ref_hit\t%" PRIu64 "\n", tracker->reads_with_multi_ref_hit);
+	fprintf(fp, "reads_without_ref_hit_but_density_ctx\t%" PRIu64 "\n",
+			tracker->reads_without_ref_hit_but_density_ctx);
+	fprintf(fp, "tracked_read_pct\t%.10Lg\n", tracked_pct);
+	fprintf(fp, "density_positive_pct\t%.10Lg\n", density_pct);
+	fprintf(fp, "density_positive_no_ref_hit_pct\t%.10Lg\n", density_nohit_pct);
+	fprintf(fp, "expected_trackable_reads\t%.10Lg\n", tracker->expected_trackable_reads);
+	fprintf(fp, "estimated_nonref_read_pct\t%.10Lg\n", estimated_nonref_pct);
+	fprintf(fp, "total_possible_ctx\t%" PRIu64 "\n", tracker->total_possible_ctx);
+	fprintf(fp, "total_density_ctx\t%" PRIu64 "\n", tracker->total_density_ctx);
+	fprintf(fp, "total_matched_ctx\t%" PRIu64 "\n", tracker->total_matched_ctx);
+	fprintf(fp, "total_selected_ctx\t%" PRIu64 "\n", tracker->total_selected_ctx);
+	fprintf(fp, "total_selected_ref_events\t%" PRIu64 "\n", tracker->total_selected_ref_events);
+	if (fclose(fp) != 0)
+		err(errno, "%s(): cannot close readwise tracking summary %s", __func__,
+			tracker->summary_path);
+}
+
+static void ani_readwise_tracker_destroy(ani_readwise_tracker_t *tracker)
+{
+	if (!tracker || !tracker->enabled)
+		return;
+	ani_readwise_tracker_write_summary(tracker);
+	if (tracker->fp && tracker->fp != stdout)
+		fclose(tracker->fp);
+	tracker->fp = NULL;
+	ani_readwise_tax_namespace_destroy(&tracker->gtdb);
+	ani_readwise_tax_namespace_destroy(&tracker->ncbi);
+	memset(tracker, 0, sizeof(*tracker));
+}
+
+static void ani_readwise_track_emit_row(
+	ani_readwise_tracker_t *tracker,
+	const char *read_name,
+	uint64_t read_ord,
+	int read_len,
+	uint64_t possible_ctx,
+	uint64_t density_ctx,
+	uint64_t matched_ctx,
+	uint64_t selected_ctx,
+	const kv_u32_t *target_gids,
+	const kv_u32_t *offsets,
+	bool offsets_truncated)
+{
+	if (!tracker || !tracker->enabled || !tracker->fp || !target_gids ||
+		kv_size(*target_gids) == 0)
+		return;
+	char gtdb_rank[64], gtdb_name[PATHLEN];
+	char ncbi_rank[64], ncbi_name[PATHLEN];
+	snprintf(gtdb_rank, sizeof(gtdb_rank), "NA");
+	snprintf(gtdb_name, sizeof(gtdb_name), "NA");
+	snprintf(ncbi_rank, sizeof(ncbi_rank), "NA");
+	snprintf(ncbi_name, sizeof(ncbi_name), "NA");
+	if (tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_GTDB ||
+		tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH)
+		ani_track_lca_namespace(&tracker->gtdb, target_gids,
+								gtdb_rank, sizeof(gtdb_rank),
+								gtdb_name, sizeof(gtdb_name));
+	if (tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_NCBI ||
+		tracker->taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH)
+		ani_track_lca_namespace(&tracker->ncbi, target_gids,
+								ncbi_rank, sizeof(ncbi_rank),
+								ncbi_name, sizeof(ncbi_name));
+
+	ani_track_fprint_text(tracker->fp, read_name);
+	fprintf(tracker->fp,
+			"\t%" PRIu64 "\t%d\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%zu\t",
+			read_ord, read_len, possible_ctx, density_ctx, matched_ctx,
+			selected_ctx, kv_size(*target_gids));
+	ani_track_fprint_ref_list(tracker->fp, target_gids, tracker->refname);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_u32_list(tracker->fp, target_gids);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_text(tracker->fp, gtdb_rank);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_text(tracker->fp, gtdb_name);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_text(tracker->fp, ncbi_rank);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_text(tracker->fp, ncbi_name);
+	fputc('\t', tracker->fp);
+	ani_track_fprint_u32_list(tracker->fp, offsets);
+	fprintf(tracker->fp, "\t%u\t%s\n",
+			offsets_truncated ? 1u : 0u,
+			kv_size(*target_gids) > 1 ? "multi_ref_lca" : "single_ref");
+}
+
+static void ani_readwise_track_read64(
+	ani_readwise_tracker_t *tracker,
+	const char *read_name,
+	uint64_t read_ord,
+	const char *seq,
+	int len,
+	const ctxgidobj_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	uint8_t nobjbits,
+	uint64_t gidmask_local,
+	uint64_t objmask,
+	uint64_t density_threshold,
+	ani_readwise_assign_mode_t assign_mode)
+{
+	if (!tracker || !tracker->enabled)
+		return;
+	tracker->total_reads++;
+	const uint64_t possible_ctx = len >= (int)klen ? (uint64_t)(len - (int)klen + 1) : 0;
+	tracker->total_possible_ctx += possible_ctx;
+	tracker->expected_trackable_reads +=
+		ani_readwise_trackable_probability((size_t)possible_ctx,
+										   tracker->density_probability);
+
+	kv_read_ctxobj64_t vec;
+	kv_init(vec);
+	ani_extract_read_density_ctxobjs_with_offsets(seq, len, &vec, nobjbits,
+												  density_threshold);
+	const uint64_t density_ctx = (uint64_t)kv_size(vec);
+	if (density_ctx == 0) {
+		kv_destroy(vec);
+		return;
+	}
+	tracker->reads_with_density_ctx++;
+	tracker->total_density_ctx += density_ctx;
+	qsort(&kv_A(vec, 0), kv_size(vec), sizeof(kv_A(vec, 0)),
+		  ani_read_ctxobj64_cmp);
+
+	kv_readwise_candidate_t candidates;
+	kv_u32_t gids;
+	kv_u32_t offsets;
+	kv_init(candidates);
+	kv_init(gids);
+	kv_init(offsets);
+	bool offsets_truncated = false;
+	uint64_t matched_ctx = 0;
+	uint64_t selected_ctx = 0;
+	uint64_t selected_ref_events = 0;
+
+	for (size_t q = 0; q < kv_size(vec); ) {
+		const uint64_t qctx = kv_A(vec, q).packed >> nobjbits;
+		const size_t qbeg = q;
+		do { ++q; } while (q < kv_size(vec) &&
+							(kv_A(vec, q).packed >> nobjbits) == qctx);
+		const size_t qend = q;
+
+		kv_size(candidates) = 0;
+		uint32_t best_diff = UINT32_MAX;
+		size_t pos = lb_in_bucket_ctxgid(index, fence, fence_k, qctx);
+		while (pos < index_n && (index[pos].ctxgid >> GID_NBITS) == qctx) {
+			const uint64_t ctxgid = index[pos].ctxgid;
+			const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+			const size_t ref_begin = pos;
+			do { ++pos; } while (pos < index_n && index[pos].ctxgid == ctxgid);
+			const size_t ref_end = pos;
+			if (gid >= ref_n)
+				continue;
+			if (ignoreconflict && ref_end - ref_begin > 1)
+				continue;
+			const int min_diff = ani_min_diff_sections_tracked64_vs_ref_index(
+				&kv_A(vec, 0), qbeg, qend, index, ref_begin, ref_end, objmask);
+			ani_readwise_candidate_t cand = {
+				.ref_begin = ref_begin,
+				.gid = gid,
+				.diff = (uint32_t)min_diff,
+			};
+			kv_push(ani_readwise_candidate_t, candidates, cand);
+			if ((uint32_t)min_diff < best_diff)
+				best_diff = (uint32_t)min_diff;
+		}
+		if (kv_size(candidates) == 0)
+			continue;
+		++matched_ctx;
+
+		size_t selected_n = kv_size(candidates);
+		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
+			selected_n = 0;
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+				if (kv_A(candidates, ci).diff == best_diff)
+					++selected_n;
+			if (!selected_n)
+				continue;
+			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
+				selected_n != 1)
+				continue;
+		}
+		++selected_ctx;
+		for (size_t oi = qbeg; oi < qend; ++oi)
+			ani_track_offset_push(&offsets, kv_A(vec, oi).offset,
+								  &offsets_truncated);
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+			const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
+				continue;
+			ani_track_u32_push_unique(&gids, cand->gid);
+			++selected_ref_events;
+		}
+	}
+
+	tracker->total_matched_ctx += matched_ctx;
+	tracker->total_selected_ctx += selected_ctx;
+	tracker->total_selected_ref_events += selected_ref_events;
+	if (kv_size(gids) > 0) {
+		tracker->reads_with_ref_hit++;
+		if (kv_size(gids) > 1)
+			tracker->reads_with_multi_ref_hit++;
+		ani_readwise_track_emit_row(tracker, read_name, read_ord, len,
+									possible_ctx, density_ctx, matched_ctx,
+									selected_ctx, &gids, &offsets,
+									offsets_truncated);
+	} else {
+		tracker->reads_without_ref_hit_but_density_ctx++;
+	}
+	kv_destroy(offsets);
+	kv_destroy(gids);
+	kv_destroy(candidates);
+	kv_destroy(vec);
+}
+
+static void ani_readwise_track_read96(
+	ani_readwise_tracker_t *tracker,
+	const char *read_name,
+	uint64_t read_ord,
+	const char *seq,
+	int len,
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	uint64_t density_threshold,
+	ani_readwise_assign_mode_t assign_mode)
+{
+	if (!tracker || !tracker->enabled)
+		return;
+	tracker->total_reads++;
+	const uint64_t possible_ctx = len >= (int)klen ? (uint64_t)(len - (int)klen + 1) : 0;
+	tracker->total_possible_ctx += possible_ctx;
+	tracker->expected_trackable_reads +=
+		ani_readwise_trackable_probability((size_t)possible_ctx,
+										   tracker->density_probability);
+
+	kv_read_ctxobj96_t vec;
+	kv_init(vec);
+	ani_extract_read_density_ctxobjs96_with_offsets(seq, len, &vec,
+													density_threshold);
+	const uint64_t density_ctx = (uint64_t)kv_size(vec);
+	if (density_ctx == 0) {
+		kv_destroy(vec);
+		return;
+	}
+	tracker->reads_with_density_ctx++;
+	tracker->total_density_ctx += density_ctx;
+	qsort(&kv_A(vec, 0), kv_size(vec), sizeof(kv_A(vec, 0)),
+		  ani_read_ctxobj96_cmp);
+
+	kv_readwise_candidate_t candidates;
+	kv_u32_t gids;
+	kv_u32_t offsets;
+	kv_init(candidates);
+	kv_init(gids);
+	kv_init(offsets);
+	bool offsets_truncated = false;
+	uint64_t matched_ctx = 0;
+	uint64_t selected_ctx = 0;
+	uint64_t selected_ref_events = 0;
+
+	for (size_t q = 0; q < kv_size(vec); ) {
+		const uint64_t qctx = kv_A(vec, q).rec.ctx;
+		const size_t qbeg = q;
+		do { ++q; } while (q < kv_size(vec) && kv_A(vec, q).rec.ctx == qctx);
+		const size_t qend = q;
+
+		kv_size(candidates) = 0;
+		uint32_t best_diff = UINT32_MAX;
+		size_t pos = lb_in_bucket_ctxgid128(index, fence, fence_k, qctx);
+		while (pos < index_n && index[pos].ctx == qctx) {
+			const uint64_t ctx = index[pos].ctx;
+			const uint32_t gid = index[pos].gid;
+			const size_t ref_begin = pos;
+			do { ++pos; } while (pos < index_n &&
+								  index[pos].ctx == ctx &&
+								  index[pos].gid == gid);
+			const size_t ref_end = pos;
+			if (gid >= ref_n)
+				continue;
+			if (ignoreconflict && ref_end - ref_begin > 1)
+				continue;
+			const int min_diff = ani_min_diff_sections_tracked96_vs_ref_index(
+				&kv_A(vec, 0), qbeg, qend, index, ref_begin, ref_end);
+			ani_readwise_candidate_t cand = {
+				.ref_begin = ref_begin,
+				.gid = gid,
+				.diff = (uint32_t)min_diff,
+			};
+			kv_push(ani_readwise_candidate_t, candidates, cand);
+			if ((uint32_t)min_diff < best_diff)
+				best_diff = (uint32_t)min_diff;
+		}
+		if (kv_size(candidates) == 0)
+			continue;
+		++matched_ctx;
+
+		size_t selected_n = kv_size(candidates);
+		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
+			selected_n = 0;
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+				if (kv_A(candidates, ci).diff == best_diff)
+					++selected_n;
+			if (!selected_n)
+				continue;
+			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
+				selected_n != 1)
+				continue;
+		}
+		++selected_ctx;
+		for (size_t oi = qbeg; oi < qend; ++oi)
+			ani_track_offset_push(&offsets, kv_A(vec, oi).offset,
+								  &offsets_truncated);
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+			const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
+				continue;
+			ani_track_u32_push_unique(&gids, cand->gid);
+			++selected_ref_events;
+		}
+	}
+
+	tracker->total_matched_ctx += matched_ctx;
+	tracker->total_selected_ctx += selected_ctx;
+	tracker->total_selected_ref_events += selected_ref_events;
+	if (kv_size(gids) > 0) {
+		tracker->reads_with_ref_hit++;
+		if (kv_size(gids) > 1)
+			tracker->reads_with_multi_ref_hit++;
+		ani_readwise_track_emit_row(tracker, read_name, read_ord, len,
+									possible_ctx, density_ctx, matched_ctx,
+									selected_ctx, &gids, &offsets,
+									offsets_truncated);
+	} else {
+		tracker->reads_without_ref_hit_but_density_ctx++;
+	}
+	kv_destroy(offsets);
+	kv_destroy(gids);
+	kv_destroy(candidates);
+	kv_destroy(vec);
 }
 
 static void ani_density_units_destroy(kv_density_unit_t *units)
@@ -8017,6 +9003,11 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	const uint8_t nobjbits = Bitslen.obj;
 	const uint64_t objmask = (nobjbits == 64) ? UINT64_MAX : ((1ULL << nobjbits) - 1ULL);
 	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	ani_readwise_tracker_t read_tracker;
+	ani_readwise_tracker_init(
+		&read_tracker, ani_opt, query_path, refname, refanno, ref_n,
+		ani_readwise_density_probability(density_threshold, ref_uses_ctxobj96,
+										 nobjbits));
 	uint64_t total_reads = 0;
 	uint64_t total_density_blocks = 0;
 	uint64_t block_reads_with_density_ctx = 0;
@@ -8100,6 +9091,18 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		}
 
 		if (ref_uses_ctxobj96) {
+			if (read_tracker.enabled) {
+				const uint64_t first_read_id = total_reads - (uint64_t)batch_n + 1u;
+				for (size_t i = 0; i < batch_n; ++i) {
+					ani_readwise_track_read96(
+						&read_tracker, batch[i].name,
+						first_read_id + (uint64_t)i,
+						batch[i].seq, batch[i].len,
+						index96, index_n, fence, fence_k, ref_n,
+						ani_opt->ignoreconflict, density_threshold,
+						ani_opt->readwise_assign_mode);
+				}
+			}
 			kv_density_unit96_t units96;
 			kv_init(units96);
 			for (size_t i = 0; i < batch_n; ++i) {
@@ -8154,6 +9157,19 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			continue;
 		}
 
+		if (read_tracker.enabled) {
+			const uint64_t first_read_id = total_reads - (uint64_t)batch_n + 1u;
+			for (size_t i = 0; i < batch_n; ++i) {
+				ani_readwise_track_read64(
+					&read_tracker, batch[i].name,
+					first_read_id + (uint64_t)i,
+					batch[i].seq, batch[i].len,
+					index, index_n, fence, fence_k, ref_n,
+					ani_opt->ignoreconflict, nobjbits, gidmask_local,
+					objmask, density_threshold,
+					ani_opt->readwise_assign_mode);
+			}
+		}
 		kv_density_unit_t units;
 		kv_init(units);
 		for (size_t i = 0; i < batch_n; ++i) {
@@ -8269,6 +9285,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		fclose(edge_trace.fp);
 		edge_trace.fp = NULL;
 	}
+	ani_readwise_tracker_destroy(&read_tracker);
 	for (int t = 0; t < worker_n; ++t)
 		ani_readwise_thread_state_destroy(&thread_states[t]);
 	free(thread_states);

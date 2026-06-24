@@ -54,6 +54,14 @@ typedef enum ani_readwise_ctx_filter_model
 	ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN = 8
 } ani_readwise_ctx_filter_model_t;
 
+typedef enum ani_readwise_taxonomy_mode
+{
+	ANI_READWISE_TAXONOMY_NONE = 0,
+	ANI_READWISE_TAXONOMY_GTDB = 1,
+	ANI_READWISE_TAXONOMY_NCBI = 2,
+	ANI_READWISE_TAXONOMY_BOTH = 3
+} ani_readwise_taxonomy_mode_t;
+
 #define MINCO_DEFAULT_DENSITY_BLOCK_CTX 100u
 #define MINCO_DEFAULT_DENSITY_BLOCK_CTX_STR "100"
 #define MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD 4.0
@@ -104,6 +112,7 @@ typedef struct ani_opt
 	ani_readwise_assign_mode_t readwise_assign_mode;
 	ani_readwise_ani_model_t readwise_ani_model;
 	ani_readwise_ctx_filter_model_t readwise_ctx_filter_model;
+	ani_readwise_taxonomy_mode_t readwise_taxonomy_mode;
 	double readwise_fake_ctx_threshold;
 	char index[PATHLEN];
 	char qrydir[PATHLEN];
@@ -115,6 +124,10 @@ typedef struct ani_opt
 	char cami_profile[PATHLEN];
 	char cami_taxmap[PATHLEN];
 	char cami_sample_id[PATHLEN];
+	char readwise_track[PATHLEN];
+	char readwise_track_summary[PATHLEN];
+	char gtdb_taxmap[PATHLEN];
+	char ncbi_taxmap[PATHLEN];
 	char outf[PATHLEN];
 	char gl[PATHLEN]; // genome list with selection code
 	char model[PATHLEN];

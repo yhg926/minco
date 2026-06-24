@@ -118,6 +118,26 @@ test -s "$WORK/legacy_names.ani.tsv"
 "$BIN" sketch -i "$WORK/pair.minco" > "$WORK/index.log" 2>&1
 test -s "$WORK/pair.minco/minco.refindex.ctxgid64obj32"
 
+cat > "$WORK/gtdb.taxmap.tsv" <<EOF
+ref_key	TAXID	RANK	TAXPATH	TAXPATHSN
+a.fna	1	species	d__Bacteria|p__Test|c__Test|o__Test|f__Test|g__Minco|s__a	d__Bacteria|p__Test|c__Test|o__Test|f__Test|g__Minco|s__a
+b.fna	2	species	d__Bacteria|p__Test|c__Test|o__Test|f__Test|g__Minco|s__b	d__Bacteria|p__Test|c__Test|o__Test|f__Test|g__Minco|s__b
+EOF
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --readwise-track "$WORK/read.track.tsv" \
+  --readwise-track-summary "$WORK/read.track.summary.tsv" \
+  --readwise-taxonomy gtdb --gtdb-taxmap "$WORK/gtdb.taxmap.tsv" \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.track.ani.tsv" \
+  > "$WORK/read.track.log" 2>&1
+test -s "$WORK/read.track.tsv"
+test -s "$WORK/read.track.summary.tsv"
+grep -q "forces --density-block-ctx 0" "$WORK/read.track.log"
+grep -q $'^read_id\tread_ord\tread_len\tpossible_ctx\tdensity_ctx\tmatched_ctx' "$WORK/read.track.tsv"
+awk 'NR > 1 && $8 >= 1 && $11 != "NA" && $15 != "NA" { found = 1 } END { exit found ? 0 : 1 }' "$WORK/read.track.tsv"
+grep -q $'^total_reads\t1$' "$WORK/read.track.summary.tsv"
+grep -q $'^reads_with_ref_hit\t1$' "$WORK/read.track.summary.tsv"
+grep -q $'^estimated_nonref_read_pct\t' "$WORK/read.track.summary.tsv"
+
 "$BIN" ani -q "$WORK/pair.minco" -m2 -s -1 -d -p 2 -o "$WORK/ani.tsv" > "$WORK/ani.log" 2>&1
 test -s "$WORK/ani.tsv"
 test "$(wc -l < "$WORK/ani.tsv")" -ge 2

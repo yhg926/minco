@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-06-24
+
+### Added
+
+- Added `minco ani --readwise-track FILE`, a Kraken-like read tracking sidecar
+  for direct `--qraw --query-density ref` readwise mode. It writes per-read
+  selected reference hits, selected context offsets from the read start, target
+  reference counts/lists, and optional GTDB/NCBI LCA labels.
+- Added `--readwise-taxonomy none|gtdb|ncbi|both`, `--gtdb-taxmap`,
+  `--ncbi-taxmap`, and `--readwise-track-summary`. Taxonomy maps reuse the
+  existing CAMI taxmap schema.
+- Read tracking writes a summary with tracked-read percentage,
+  density-positive no-hit percentage, and a density/read-length based
+  diagnostic estimate of reads from non-reference organisms.
+
+### Changed
+
+- `--readwise-track` forces per-read density units (`--density-block-ctx 0`)
+  because block mode cannot preserve exact read ids or context offsets.
+
+### Validation
+
+- `make` and `bash tests/smoke.sh` passed after adding read tracking.
+
 ## 2026-06-21
 
 ### Added

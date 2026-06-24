@@ -385,6 +385,67 @@ with all unique sample contexts. In profile-only mode `Unique_query_ctx` is 0,
 query AF is reported as the reference breadth, and naive ANI is still computed
 from unique-best context-object differences.
 
+### Read Tracking Output
+
+`minco ani` can also write a Kraken-like read tracking sidecar from the direct
+readwise path:
+
+```bash
+minco ani -p16 -r ref.minco --qraw reads.fastq.gz --query-density ref \
+  --readwise-track reads.track.tsv \
+  --readwise-track-summary reads.track.summary.tsv \
+  --readwise-taxonomy both \
+  --gtdb-taxmap ref.gtdb_taxmap.tsv \
+  --ncbi-taxmap ref.ncbi_taxmap.tsv \
+  -m0 -o reads_vs_ref.tsv
+```
+
+`--readwise-track FILE` writes one row per read with at least one selected
+reference hit. It uses the same retained density contexts and
+`--readwise-assign` rule as the readwise profiler. The sidecar does not change
+the main ANI or abundance table.
+
+Read tracking forces `--density-block-ctx 0`, because density blocks merge
+consecutive reads and cannot preserve exact read ids or context offsets. The
+tracking columns are:
+
+```text
+read_id
+read_ord
+read_len
+possible_ctx
+density_ctx
+matched_ctx
+selected_ctx
+target_ref_count
+target_refs
+target_ref_ids
+gtdb_rank
+gtdb_name
+ncbi_rank
+ncbi_name
+ctx_offsets
+ctx_offsets_truncated
+assignment_status
+```
+
+`ctx_offsets` are 0-based offsets from the read start for selected hit
+contexts. Long offset and target-ref lists are capped in the row and marked by
+`ctx_offsets_truncated` or a trailing `...` in the reference list. For reads
+that select more than one target reference, taxonomy labels are the lowest
+common ancestor over the selected target references, not over every raw
+candidate. Use `--readwise-taxonomy gtdb`, `ncbi`, or `both`; GTDB and NCBI maps
+use the same tab-delimited schema as `--cami-taxmap`.
+
+The summary file defaults to `<FILE>.summary.tsv` unless
+`--readwise-track-summary` is given. It reports `total_reads`,
+`reads_with_density_ctx`, `reads_with_ref_hit`, `tracked_read_pct`,
+`density_positive_no_ref_hit_pct`, and `estimated_nonref_read_pct`. The
+non-reference estimate uses the reference-density sampling probability and read
+length to estimate how many reads should have been trackable, then measures the
+fraction with retained density contexts but no reference hit. Treat it as a
+diagnostic estimate, not a taxonomic truth label.
+
 ### CAMI Taxonomic Profile Output
 
 `minco ani` can write a CAMI-style taxonomic profile from the same final rows

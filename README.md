@@ -193,6 +193,30 @@ mode `Unique_query_ctx` is reported as 0, query AF is approximated from
 reference breadth for filtering/reporting, and naive ANI still uses
 unique-best matched context-object differences.
 
+Write Kraken-like read tracking as a sidecar table:
+
+```bash
+bin/minco ani -p16 -r ref.minco --qraw reads.fq.gz --query-density ref \
+  --readwise-track reads.track.tsv \
+  --readwise-taxonomy both \
+  --gtdb-taxmap ref.gtdb_taxmap.tsv \
+  --ncbi-taxmap ref.ncbi_taxmap.tsv \
+  -m0 -o reads_vs_ref.tsv
+```
+
+`--readwise-track` writes one row for each read with at least one selected
+reference hit. It records the read id, read length, retained density-context
+count, matched/selected context counts, selected context offsets from the
+0-based read start, target reference count, target reference list, and optional
+GTDB/NCBI lowest common ancestor labels. Multi-reference read hits are assigned
+to the closest common ancestry over the selected best-diff target references.
+Tracking forces exact per-read density units (`--density-block-ctx 0`), because
+block mode intentionally loses read identity and context offsets. A summary TSV
+is written to `<reads.track.tsv>.summary.tsv` unless
+`--readwise-track-summary` is set; it includes tracked-read percentage,
+density-positive no-hit percentage, and a density/read-length based estimate of
+reads from organisms not represented by the reference database.
+
 Write a CAMI taxonomic profile from the printed readwise abundance rows:
 
 ```bash

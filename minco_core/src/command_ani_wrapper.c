@@ -63,7 +63,12 @@ enum
 	ANI_READWISE_ANI,
 	ANI_READWISE_CTX_FILTER,
 	ANI_READWISE_FAKE_THRESHOLD,
-	ANI_READWISE_DUAL_EVIDENCE
+	ANI_READWISE_DUAL_EVIDENCE,
+	ANI_READWISE_TRACK,
+	ANI_READWISE_TRACK_SUMMARY,
+	ANI_READWISE_TAXONOMY,
+	ANI_GTDB_TAXMAP,
+	ANI_NCBI_TAXMAP
 };
 
 enum
@@ -117,6 +122,11 @@ static struct argp_option opt_ani[] =
 		{"readwise-ctx-filter", ANI_READWISE_CTX_FILTER, "<none|poisson-diff|fake-prob|poisson-depth|poisson-product|product-nb|product-topfrac|product-topfrac-median|product1-topfrac-median>", 0, "Experimental: filter or probability-weight suspicious readwise ANI contexts using breadth/depth surprise plus best object difference. [none]", ANI_GROUP_REPORT},
 		{"readwise-fake-threshold", ANI_READWISE_FAKE_THRESHOLD, "<FLOAT>", 0, "Experimental threshold for --readwise-ctx-filter; lower is stricter. For poisson-depth this is -log10 Bonferroni-adjusted Poisson tail p; 1.30103 is adjusted p<=0.05. For product-topfrac modes this is the per-reference top fraction, e.g. 0.25. [" MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD_STR "]", ANI_GROUP_REPORT},
 		{"readwise-dual-evidence", ANI_READWISE_DUAL_EVIDENCE, 0, 0, "Experimental: with readwise depth profiling, append marker-only evidence columns computed from contexts unique to one reference in the full index.", ANI_GROUP_REPORT},
+		{"readwise-track", ANI_READWISE_TRACK, "<FILE>", 0, "Write a Kraken-like read tracking TSV from direct readwise FASTQ mode. Forces per-read density units so read IDs and context offsets are exact.", ANI_GROUP_REPORT},
+		{"readwise-track-summary", ANI_READWISE_TRACK_SUMMARY, "<FILE>", 0, "Write read tracking summary TSV. Defaults to <readwise-track>.summary.tsv.", ANI_GROUP_REPORT},
+		{"readwise-taxonomy", ANI_READWISE_TAXONOMY, "<none|gtdb|ncbi|both>", 0, "Taxonomy namespace(s) for --readwise-track LCA columns. [none]", ANI_GROUP_REPORT},
+		{"gtdb-taxmap", ANI_GTDB_TAXMAP, "<TSV>", 0, "GTDB ref taxonomy map for --readwise-track; same schema as --cami-taxmap.", ANI_GROUP_REPORT},
+		{"ncbi-taxmap", ANI_NCBI_TAXMAP, "<TSV>", 0, "NCBI ref taxonomy map for --readwise-track; same schema as --cami-taxmap.", ANI_GROUP_REPORT},
 		{"top", 'N', "<INT>", 0, "Report at most top N references per query. [all]", ANI_GROUP_REPORT},
 
 		{0, 0, 0, 0, "Execution:", ANI_GROUP_EXECUTION},
@@ -212,6 +222,10 @@ static char doc_ani[] =
 	"query conflicts by default. Use --readsQC for noisy long-read FASTQ.\n"
 	"--readwise-dual-evidence appends a second evidence channel derived only\n"
 	"from contexts that are unique to one reference in the full readwise index.\n"
+	"--readwise-track FILE writes one row per read with at least one selected\n"
+	"reference hit, including target refs, selected context offsets, and optional\n"
+	"GTDB/NCBI LCA labels. It forces per-read density units because block mode\n"
+	"does not preserve read-level identity or context offsets.\n"
 	"\n"
 	"Default filters are -n 0.95, -f 0.5, and -t 3. In direct readwise\n"
 	"--qraw FASTQ density mode with --abundance-est depth and no custom\n"
@@ -242,6 +256,9 @@ static char doc_ani[] =
 	"  query-context sets to avoid memory growth in large metagenomes.\n"
 	"  --readwise-dual-evidence appends Marker_* columns and ctx_marker_size\n"
 	"  so downstream gates can mix marker-only and full ctx+obj evidence.\n"
+	"  --readwise-track FILE writes a sidecar read tracking table and summary;\n"
+	"  use --readwise-taxonomy gtdb|ncbi|both with --gtdb-taxmap and/or\n"
+	"  --ncbi-taxmap to emit LCA labels for multi-reference read hits.\n"
 	"  --cami-profile FILE writes a CAMI taxonomic profile from those printed\n"
 		"  rows using --cami-taxmap TSV taxonomy/lineage metadata. Repeat a\n"
 		"  ref_key on multiple rows to emit multiple lineage ranks.\n"
@@ -320,6 +337,7 @@ ani_opt_t ani_opt = {
 	.readwise_assign_mode = ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE,
 	.readwise_ani_model = ANI_READWISE_ANI_ZIP_AAF,
 	.readwise_ctx_filter_model = ANI_READWISE_CTX_FILTER_NONE,
+	.readwise_taxonomy_mode = ANI_READWISE_TAXONOMY_NONE,
 	.readwise_fake_ctx_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD,
 	.ntop = -1, //all 
 	.e = 1, // abort
@@ -333,6 +351,10 @@ ani_opt_t ani_opt = {
 	.cami_profile[0] = '\0',
 	.cami_taxmap[0] = '\0',
 	.cami_sample_id[0] = '\0',
+	.readwise_track[0] = '\0',
+	.readwise_track_summary[0] = '\0',
+	.gtdb_taxmap[0] = '\0',
+	.ncbi_taxmap[0] = '\0',
 	.outf[0] = '\0',
 	.gl[0] = '\0',
 	//	.model[0] = '\0',
@@ -452,6 +474,20 @@ static ani_readwise_ctx_filter_model_t parse_readwise_ctx_filter_model(struct ar
 		return ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN;
 	argp_error(state, "--readwise-ctx-filter must be one of none, poisson-diff, fake-prob, poisson-depth, poisson-product, product-nb, product-topfrac, product-topfrac-median, or product1-topfrac-median");
 	return ANI_READWISE_CTX_FILTER_NONE;
+}
+
+static ani_readwise_taxonomy_mode_t parse_readwise_taxonomy_mode(struct argp_state *state, const char *arg)
+{
+	if (strcasecmp(arg, "none") == 0 || strcasecmp(arg, "off") == 0 || strcmp(arg, "0") == 0)
+		return ANI_READWISE_TAXONOMY_NONE;
+	if (strcasecmp(arg, "gtdb") == 0 || strcmp(arg, "1") == 0)
+		return ANI_READWISE_TAXONOMY_GTDB;
+	if (strcasecmp(arg, "ncbi") == 0 || strcmp(arg, "2") == 0)
+		return ANI_READWISE_TAXONOMY_NCBI;
+	if (strcasecmp(arg, "both") == 0 || strcasecmp(arg, "all") == 0 || strcmp(arg, "3") == 0)
+		return ANI_READWISE_TAXONOMY_BOTH;
+	argp_error(state, "--readwise-taxonomy must be one of none, gtdb, ncbi, or both");
+	return ANI_READWISE_TAXONOMY_NONE;
 }
 
 static void copy_path_arg(struct argp_state *state, const char *option_name,
@@ -661,6 +697,31 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 		ani_opt.readwise_dual_evidence = true;
 		break;
 	}
+	case ANI_READWISE_TRACK:
+	{
+		copy_path_arg(state, "--readwise-track", ani_opt.readwise_track, sizeof(ani_opt.readwise_track), arg);
+		break;
+	}
+	case ANI_READWISE_TRACK_SUMMARY:
+	{
+		copy_path_arg(state, "--readwise-track-summary", ani_opt.readwise_track_summary, sizeof(ani_opt.readwise_track_summary), arg);
+		break;
+	}
+	case ANI_READWISE_TAXONOMY:
+	{
+		ani_opt.readwise_taxonomy_mode = parse_readwise_taxonomy_mode(state, arg);
+		break;
+	}
+	case ANI_GTDB_TAXMAP:
+	{
+		copy_path_arg(state, "--gtdb-taxmap", ani_opt.gtdb_taxmap, sizeof(ani_opt.gtdb_taxmap), arg);
+		break;
+	}
+	case ANI_NCBI_TAXMAP:
+	{
+		copy_path_arg(state, "--ncbi-taxmap", ani_opt.ncbi_taxmap, sizeof(ani_opt.ncbi_taxmap), arg);
+		break;
+	}
 	case 't':
 	{
 		ani_opt.ctxcut = parse_int_range(state, "-t/--ctxcut", arg, 0, INT_MAX);
@@ -850,6 +911,36 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 			argp_error(state, "--readwise-profile-only requires --abundance-est depth");
 		if (ani_opt.readwise_dual_evidence && ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
 			argp_error(state, "--readwise-dual-evidence requires --abundance-est depth");
+		if (ani_opt.readwise_track[0] == '\0' &&
+			ani_opt.readwise_track_summary[0] != '\0')
+			argp_error(state, "--readwise-track-summary requires --readwise-track");
+		if (ani_opt.readwise_track[0] == '\0' &&
+			ani_opt.readwise_taxonomy_mode != ANI_READWISE_TAXONOMY_NONE)
+			argp_error(state, "--readwise-taxonomy requires --readwise-track");
+		if (ani_opt.readwise_track[0] == '\0' &&
+			(ani_opt.gtdb_taxmap[0] != '\0' || ani_opt.ncbi_taxmap[0] != '\0'))
+			argp_error(state, "--gtdb-taxmap/--ncbi-taxmap are only used with --readwise-track");
+		if (ani_opt.readwise_track[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-track requires --query-density ref");
+			if (ani_opt.fmt != 0)
+				argp_error(state, "--readwise-track requires detail output -m0");
+			if (strcmp(ani_opt.readwise_track, "-") == 0 && ani_opt.outf[0] == '\0')
+				argp_error(state, "--readwise-track - cannot be combined with ANI detail output on stdout; use -o or write tracking to a file");
+			if ((ani_opt.readwise_taxonomy_mode == ANI_READWISE_TAXONOMY_GTDB ||
+				 ani_opt.readwise_taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH) &&
+				ani_opt.gtdb_taxmap[0] == '\0')
+				argp_error(state, "--readwise-taxonomy gtdb/both requires --gtdb-taxmap");
+			if ((ani_opt.readwise_taxonomy_mode == ANI_READWISE_TAXONOMY_NCBI ||
+				 ani_opt.readwise_taxonomy_mode == ANI_READWISE_TAXONOMY_BOTH) &&
+				ani_opt.ncbi_taxmap[0] == '\0')
+				argp_error(state, "--readwise-taxonomy ncbi/both requires --ncbi-taxmap");
+			if (ani_opt.density_block_ctx != 0) {
+				warnx("--readwise-track forces --density-block-ctx 0 for exact read IDs and context offsets");
+				ani_opt.density_block_ctx = 0;
+			}
+		}
 
 		break;
 		/*
@@ -2243,7 +2334,9 @@ static int run_direct_query_sequence_ani(ani_opt_t *opt, bool force_raw_query, c
 		opt->save_query_sketch[0] == '\0' &&
 		!opt->sketch_reads_qc &&
 		!opt->sketch_abundance &&
-		direct_query_input_is_fastq_like(opt, input);
+		(direct_query_input_is_fastq_like(opt, input) ||
+		 opt->abundance_model != ANI_ABUNDANCE_NONE ||
+		 opt->readwise_track[0] != '\0');
 	if (use_readwise_density)
 	{
 		return stream_fastq_query_readwise_density_ani(opt, input, query_density_threshold.threshold);
@@ -2251,6 +2344,10 @@ static int run_direct_query_sequence_ani(ani_opt_t *opt, bool force_raw_query, c
 	if (opt->abundance_model != ANI_ABUNDANCE_NONE)
 		errx(EXIT_FAILURE,
 			 "--abundance-est currently requires direct --qraw FASTQ --query-density ref "
+			 "without --save-query-sketch, --readsQC, or --abundance");
+	if (opt->readwise_track[0] != '\0')
+		errx(EXIT_FAILURE,
+			 "--readwise-track requires direct --qraw FASTA/FASTQ --query-density ref "
 			 "without --save-query-sketch, --readsQC, or --abundance");
 
 	char tmp_template[] = "/tmp/minco_ani_query_XXXXXX";
