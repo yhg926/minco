@@ -157,31 +157,26 @@ density_probability                         0.013673145769
 total_reads                                 33170320
 total_density_ctx                           54088053
 total_matched_ctx                           1935180
-raw sampled present ctx %                   3.577832613
-raw sampled absent ctx %                    96.42216739
+sampled_ctx_ref_hit_pct                     3.577832613
 sketch_corrected_observed_ctx               1935180
 sketch_corrected_missing_meta_ctx           0
 sketch_corrected_mean_capture_probability   0.0935664401564
 sketch_corrected_estimated_present_ctx      29140663.69
 sketch_corrected_present ctx %              53.87634065
-sketch_corrected_absent ctx %               46.12365935
-wall time                                   3:23.31
+estimated_unknown_reads_pct                 46.12365935
+wall time                                   3:25.37
 peak RSS                                    6.90 GB
 ```
 
 Interpretation:
 
-- Raw S2000 union absence (`96.422%`) is not a whole-genome absence estimate,
-  because the full refdb only stores about 1.37% of query-density contexts for
-  many references.
-- The sketch-corrected S2000 estimate (`46.124%` absent) is close to the exact
-  CAMISIM source-genome estimate (`43.662%` absent) and lies below the 65 GTDB
-  representative exact estimate (`55.212%` absent), which is plausible because
-  the full S2000 refdb contains many more GTDB genomes than only the source
-  species representatives.
-- This supports using `sketch_corrected_ref_absent_ctx_pct` as the efficient
-  full-sketch estimate, while keeping `estimated_ref_absent_ctx_pct` as the raw
-  sampled-sketch/marker absence metric.
+- `sampled_ctx_ref_hit_pct` is a raw sketch-hit diagnostic, not the unknown-read
+  estimate.
+- The corrected S2000 estimate is reported as `estimated_unknown_reads_pct`
+  (`46.124%`). It is close to the exact CAMISIM source-genome absent-context
+  estimate (`43.662%`) and lies below the 65 GTDB representative exact estimate
+  (`55.212%`), which is plausible because the full S2000 refdb contains many
+  more GTDB genomes than only the source species representatives.
 
 ## Conclusion
 
@@ -189,9 +184,9 @@ The feature worked on the full Toy Mouse sample and did not alter the main profi
 
 The observed slowdown is mostly from per-read offset extraction plus writing 1,163,752 sidecar rows. GTDB LCA adds only about 5.3 seconds and 0.63 GB RSS in this run.
 
-The S2000 sketch-corrected absent-context estimator turns the full-sketch raw
-absence value from an uninformative `96.422%` into `46.124%`, which is consistent
-with the exact source/representative genome checks.
+The S2000 sketch-corrected estimator reports `estimated_unknown_reads_pct =
+46.124%`, which is consistent with the exact source/representative genome
+checks.
 
 ## Caveats
 

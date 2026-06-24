@@ -14,10 +14,11 @@
 - Read tracking writes a summary with tracked-read percentage,
   density-positive no-hit read percentage, and context-level reference-hit /
   reference-absent percentages from sampled read contexts.
-- Read tracking summaries now include `sketch_corrected_ref_absent_ctx_pct`
-  when `minco.ctxmeta` is available. This uses per-reference sketch densities
-  to Horvitz-Thompson-correct S2000-style sampled hits toward a full-context
-  reference-absence estimate.
+- Read tracking summaries now include `estimated_unknown_reads_pct` when
+  `minco.ctxmeta` is available. This uses per-reference sketch densities to
+  Horvitz-Thompson-correct S2000-style sampled hits toward a full-context
+  reference-absence estimate, instead of reporting the raw sampled-sketch absent
+  percentage as the user-facing unknown fraction.
 
 ### Changed
 

@@ -6188,7 +6188,6 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 		ref_present_ctx_pct = 0.0L;
 	if (ref_present_ctx_pct > 100.0L)
 		ref_present_ctx_pct = 100.0L;
-	const long double ref_absent_ctx_pct = 100.0L - ref_present_ctx_pct;
 	fputs("metric\tvalue\n", fp);
 	fprintf(fp, "query\t%s\n", tracker->query_path ? tracker->query_path : "NA");
 	fprintf(fp, "taxonomy_mode\t%d\n", (int)tracker->taxonomy_mode);
@@ -6211,10 +6210,6 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 	fprintf(fp, "total_selected_ctx\t%" PRIu64 "\n", tracker->total_selected_ctx);
 	fprintf(fp, "total_selected_ref_events\t%" PRIu64 "\n", tracker->total_selected_ref_events);
 	fprintf(fp, "sampled_ctx_ref_hit_pct\t%.10Lg\n", ref_present_ctx_pct);
-	fprintf(fp, "estimated_ref_present_ctx_pct\t%.10Lg\n", ref_present_ctx_pct);
-	fprintf(fp, "estimated_ref_absent_ctx_pct\t%.10Lg\n", ref_absent_ctx_pct);
-	fprintf(fp, "estimated_ref_absent_ctx_basis\t%s\n",
-			"density_sampled_read_contexts;whole_genome_only_if_refdb_is_full_context_refdb");
 	fprintf(fp, "sketch_corrected_available\t%u\n",
 			tracker->sketch_corrected_available ? 1u : 0u);
 	fprintf(fp, "sketch_corrected_observed_ctx\t%" PRIu64 "\n",
@@ -6245,16 +6240,16 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 				tracker->sketch_corrected_present_ctx);
 		fprintf(fp, "sketch_corrected_ref_present_ctx_pct\t%.10Lg\n",
 				corrected_pct);
-		fprintf(fp, "sketch_corrected_ref_absent_ctx_pct\t%.10Lg\n",
+		fprintf(fp, "estimated_unknown_reads_pct\t%.10Lg\n",
 				corrected_absent_pct);
-		fprintf(fp, "sketch_corrected_ref_absent_ctx_basis\t%s\n",
-				"ref_ctxmeta_density_horvitz_thompson;whole_genome_estimate_only_for_full_sketch_refdb;shared_ctx_uses_max_ref_density");
+		fprintf(fp, "estimated_unknown_reads_basis\t%s\n",
+				"sketch_corrected_ref_absent_contexts;ref_ctxmeta_density_horvitz_thompson;whole_genome_estimate_only_for_full_sketch_refdb;shared_ctx_uses_max_ref_density");
 	} else {
 		fprintf(fp, "sketch_corrected_mean_capture_probability\tNA\n");
 		fprintf(fp, "sketch_corrected_estimated_ref_present_ctx\tNA\n");
 		fprintf(fp, "sketch_corrected_ref_present_ctx_pct\tNA\n");
-		fprintf(fp, "sketch_corrected_ref_absent_ctx_pct\tNA\n");
-		fprintf(fp, "sketch_corrected_ref_absent_ctx_basis\t%s\n",
+		fprintf(fp, "estimated_unknown_reads_pct\tNA\n");
+		fprintf(fp, "estimated_unknown_reads_basis\t%s\n",
 				"unavailable:no_ref_ctxmeta_or_query_density");
 	}
 	if (fclose(fp) != 0)

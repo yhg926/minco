@@ -441,23 +441,9 @@ The summary file defaults to `<FILE>.summary.tsv` unless
 `--readwise-track-summary` is given. It reports `total_reads`,
 `reads_with_density_ctx`, `reads_with_ref_hit`, `tracked_read_pct`,
 `density_positive_no_ref_hit_read_pct`, `total_density_ctx`,
-`total_matched_ctx`, `sampled_ctx_ref_hit_pct`, and
-`estimated_ref_absent_ctx_pct`. The raw sampled-context estimate is:
-
-```text
-estimated_ref_absent_ctx_pct =
-  100 * (1 - total_matched_ctx / total_density_ctx)
-```
-
-Because the density filter samples contexts uniformly, this estimates the
-fraction of all read contexts absent from the reference only when the reference
-database represents whole-genome density-sampled contexts. If the reference is
-a markerdb, the same metric measures absence from retained marker contexts, not
-absence from the original whole genomes.
-
-When the reference sketch has `minco.ctxmeta`, the summary also reports
-`sketch_corrected_ref_absent_ctx_pct`. This estimates full-context absence from
-a downsampled full reference sketch by Horvitz-Thompson correction:
+`total_matched_ctx`, `sampled_ctx_ref_hit_pct`, and, when `minco.ctxmeta` is
+available, `estimated_unknown_reads_pct`. This estimates full-context reference
+absence from a downsampled full reference sketch by Horvitz-Thompson correction:
 
 ```text
 capture_probability(ctx) =
@@ -467,14 +453,14 @@ capture_probability(ctx) =
 sketch_corrected_present_ctx =
   sum(observed matched sampled-read contexts / capture_probability(ctx))
 
-sketch_corrected_ref_absent_ctx_pct =
+estimated_unknown_reads_pct =
   100 * (1 - sketch_corrected_present_ctx / total_density_ctx)
 ```
 
 The percentage is clamped to `[0, 100]` for reporting. Use this as a
-whole-genome absence estimate only with a full density-sampled reference sketch
-such as S2000. On markerdbs, it is not a whole-genome absence estimate because
-the reference no longer contains all sampled genome contexts.
+whole-genome unknown-read estimate only with a full density-sampled reference
+sketch such as S2000. On markerdbs, it is not a whole-genome unknown-read
+estimate because the reference no longer contains all sampled genome contexts.
 
 ### CAMI Taxonomic Profile Output
 
