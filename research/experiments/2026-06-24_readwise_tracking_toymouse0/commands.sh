@@ -198,3 +198,14 @@ mkdir -p "$SOURCE_EXACT" "$GTDB_REP_EXACT"
     -m0 -f0 -n0 -t0 -o "$GTDB_REP_EXACT/sample_reads_vs_gtdb_rep_exact.profile.tsv" \
   > "$GTDB_REP_EXACT/sample_reads_vs_gtdb_rep_exact.stdout.log" \
   2> "$GTDB_REP_EXACT/sample_reads_vs_gtdb_rep_exact.stderr.log"
+
+FULL_S2000_REF=/tmp/gtdb232_s2000_dedup_marker.qKJofv/sketch_T_S2000_aaf003_dedup
+
+/usr/bin/time -v -o "$WORK/full_s2000_track_corrected.time.log" \
+  bin/minco ani -p16 -r "$FULL_S2000_REF" --qraw "$READS" \
+    --query-density ref --abundance-est depth --readwise-profile-only \
+    --readwise-assign best-diff-split --readwise-ani zip-aaf \
+    --readwise-track /dev/null \
+    --readwise-track-summary "$WORK/full_s2000_track_corrected.summary.tsv" \
+    -m0 -f0 -n0 -t0 \
+    -o "$WORK/full_s2000_track_corrected.profile.tsv"

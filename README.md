@@ -219,7 +219,13 @@ fractions. `estimated_ref_absent_ctx_pct` is estimated from sampled read
 contexts as `1 - total_matched_ctx / total_density_ctx`; it estimates
 whole-genome reference absence only when the reference database contains
 whole-genome density-sampled contexts. On markerdbs it measures absence from
-the retained marker context set.
+the retained marker context set. When `minco.ctxmeta` is available, the summary
+also reports `sketch_corrected_ref_absent_ctx_pct`, a Horvitz-Thompson
+correction that divides each observed context hit by its sketch capture
+probability. For shared contexts, the capture probability uses the largest
+reference sketch density among candidate references. This is the efficient
+S2000-style estimate for full-context absence, but it is still a whole-genome
+estimate only for full density-sampled reference sketches, not markerdbs.
 
 Write a CAMI taxonomic profile from the printed readwise abundance rows:
 

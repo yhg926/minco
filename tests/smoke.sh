@@ -138,6 +138,9 @@ grep -q $'^total_reads\t1$' "$WORK/read.track.summary.tsv"
 grep -q $'^reads_with_ref_hit\t1$' "$WORK/read.track.summary.tsv"
 grep -q $'^density_positive_no_ref_hit_read_pct\t' "$WORK/read.track.summary.tsv"
 grep -q $'^estimated_ref_absent_ctx_pct\t' "$WORK/read.track.summary.tsv"
+grep -q $'^sketch_corrected_available\t1$' "$WORK/read.track.summary.tsv"
+grep -q $'^sketch_corrected_ref_absent_ctx_pct\t' "$WORK/read.track.summary.tsv"
+grep -q $'^sketch_corrected_ref_absent_ctx_basis\tref_ctxmeta_density_horvitz_thompson' "$WORK/read.track.summary.tsv"
 
 "$BIN" ani -q "$WORK/pair.minco" -m2 -s -1 -d -p 2 -o "$WORK/ani.tsv" > "$WORK/ani.log" 2>&1
 test -s "$WORK/ani.tsv"

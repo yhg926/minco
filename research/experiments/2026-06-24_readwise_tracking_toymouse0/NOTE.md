@@ -10,9 +10,13 @@ Does the new `minco ani --readwise-track` sidecar output work on a full Toy Mous
 
 - Code repository: `/home/ubuntu/yihuiguang/tools/KSSD3mini`
 - Code commit: `efa6fafdbd4df4521431555c4d5a41db438eff95`
+- Sketch-corrected S2000 estimator run: dirty working tree based on
+  `3f504be85fc6ca0b71687f61230a88551ed32e3e`; the implementation and this
+  note are committed together after validation.
 - Binary: `/home/ubuntu/yihuiguang/tools/KSSD3mini/bin/minco`
 - Sample: `/mnt/new3T/minco_cami2_toymouse_20260621/sample_0/2017.12.29_11.37.26_sample_0/reads/anonymous_reads.fq.gz`
 - Refdb: `/tmp/gtdb232_s2000_dedup_marker.qKJofv/sketch_T_S2000_aaf003_dedup_ctxmarker`
+- Full S2000 refdb for sketch-corrected estimate: `/tmp/gtdb232_s2000_dedup_marker.qKJofv/sketch_T_S2000_aaf003_dedup`
 - Generated GTDB taxmap: `/tmp/minco_readwise_tracking_toymouse0_20260624/gtdb_r232_accession.taxmap.tsv`
 - Output directory: `/tmp/minco_readwise_tracking_toymouse0_20260624`
 
@@ -124,11 +128,70 @@ class                               154
 order                               79
 ```
 
+### S2000 Sketch-Corrected Full-Context Estimate
+
+The new read tracking summary also estimates full-context reference presence
+from a downsampled full sketch when `minco.ctxmeta` is available. It uses a
+Horvitz-Thompson correction: each observed sampled-read context hit contributes
+`1 / capture_probability`, where `capture_probability` is the maximum candidate
+reference sketch density divided by query density.
+
+The full S2000 refdb run used:
+
+```text
+bin/minco ani -p16 \
+  -r /tmp/gtdb232_s2000_dedup_marker.qKJofv/sketch_T_S2000_aaf003_dedup \
+  --qraw /mnt/new3T/minco_cami2_toymouse_20260621/sample_0/2017.12.29_11.37.26_sample_0/reads/anonymous_reads.fq.gz \
+  --query-density ref --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split --readwise-ani zip-aaf \
+  --readwise-track /dev/null \
+  --readwise-track-summary /tmp/minco_readwise_tracking_toymouse0_20260624/full_s2000_track_corrected.summary.tsv \
+  -m0 -f0 -n0 -t0 \
+  -o /tmp/minco_readwise_tracking_toymouse0_20260624/full_s2000_track_corrected.profile.tsv
+```
+
+Measured summary:
+
+```text
+density_probability                         0.013673145769
+total_reads                                 33170320
+total_density_ctx                           54088053
+total_matched_ctx                           1935180
+raw sampled present ctx %                   3.577832613
+raw sampled absent ctx %                    96.42216739
+sketch_corrected_observed_ctx               1935180
+sketch_corrected_missing_meta_ctx           0
+sketch_corrected_mean_capture_probability   0.0935664401564
+sketch_corrected_estimated_present_ctx      29140663.69
+sketch_corrected_present ctx %              53.87634065
+sketch_corrected_absent ctx %               46.12365935
+wall time                                   3:23.31
+peak RSS                                    6.90 GB
+```
+
+Interpretation:
+
+- Raw S2000 union absence (`96.422%`) is not a whole-genome absence estimate,
+  because the full refdb only stores about 1.37% of query-density contexts for
+  many references.
+- The sketch-corrected S2000 estimate (`46.124%` absent) is close to the exact
+  CAMISIM source-genome estimate (`43.662%` absent) and lies below the 65 GTDB
+  representative exact estimate (`55.212%` absent), which is plausible because
+  the full S2000 refdb contains many more GTDB genomes than only the source
+  species representatives.
+- This supports using `sketch_corrected_ref_absent_ctx_pct` as the efficient
+  full-sketch estimate, while keeping `estimated_ref_absent_ctx_pct` as the raw
+  sampled-sketch/marker absence metric.
+
 ## Conclusion
 
 The feature worked on the full Toy Mouse sample and did not alter the main profile output. Runtime overhead is meaningful but not catastrophic: tracking without taxonomy was 1.49x the exact per-read baseline, and tracking with GTDB LCA was 1.54x. Peak RSS was unchanged for no-taxonomy tracking and increased from 4.11 GB to 4.74 GB with the 377 MB GTDB taxmap loaded.
 
 The observed slowdown is mostly from per-read offset extraction plus writing 1,163,752 sidecar rows. GTDB LCA adds only about 5.3 seconds and 0.63 GB RSS in this run.
+
+The S2000 sketch-corrected absent-context estimator turns the full-sketch raw
+absence value from an uninformative `96.422%` into `46.124%`, which is consistent
+with the exact source/representative genome checks.
 
 ## Caveats
 
@@ -138,4 +201,9 @@ The observed slowdown is mostly from per-read offset extraction plus writing 1,1
 - The whole-genome context estimates use a random 0.3% read sample, not all 33.17
   million reads. Because all sampled reads have length 150, this is a practical
   context-fraction estimate with low sampling error, but it is still a sample.
+- The sketch-corrected S2000 estimate assumes the full S2000 refdb is a
+  density-sampled genome sketch and that `minco.ctxmeta` thresholds represent
+  per-reference capture probability. It should not be read as a whole-genome
+  estimate on ctx-markerdbs or other sketches where contexts have been removed
+  for biological/marker logic rather than density.
 - Runtime order may benefit later runs from filesystem cache; the most relevant comparison is exact no-tracking versus tracking in the same run series.

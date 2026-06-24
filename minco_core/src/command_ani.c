@@ -4532,7 +4532,9 @@ typedef struct {
 	char (*refname)[PATHLEN];
 	char (*refanno)[PATHLEN];
 	uint32_t ref_n;
+	const ani_ctxmeta_rec_t *ref_ctxmeta;
 	long double density_probability;
+	bool sketch_corrected_available;
 	uint64_t total_reads;
 	uint64_t reads_with_density_ctx;
 	uint64_t reads_with_ref_hit;
@@ -4544,6 +4546,10 @@ typedef struct {
 	uint64_t total_selected_ctx;
 	uint64_t total_selected_ref_events;
 	long double expected_trackable_reads;
+	uint64_t sketch_corrected_observed_ctx;
+	uint64_t sketch_corrected_missing_meta_ctx;
+	long double sketch_corrected_present_ctx;
+	long double sketch_corrected_capture_prob_sum;
 } ani_readwise_tracker_t;
 
 typedef struct {
@@ -5958,6 +5964,76 @@ static long double ani_readwise_density_probability(uint64_t density_threshold,
 	return ((long double)density_threshold + 1.0L) / ldexpl(1.0L, hash_bits);
 }
 
+static long double ani_readwise_threshold_density(uint64_t threshold,
+												  uint32_t hash_bits)
+{
+	if (hash_bits == 0 || hash_bits > 64)
+		return 0.0L;
+	if (hash_bits < 64) {
+		const uint64_t full_threshold = (1ULL << hash_bits) - 1ULL;
+		if (threshold >= full_threshold)
+			return 1.0L;
+	}
+	if (hash_bits == 64 && threshold == UINT64_MAX)
+		return 1.0L;
+	long double density = ((long double)threshold + 1.0L) /
+						  ldexpl(1.0L, (int)hash_bits);
+	if (density < 0.0L)
+		density = 0.0L;
+	if (density > 1.0L)
+		density = 1.0L;
+	return density;
+}
+
+static bool ani_readwise_tracker_ref_density(const ani_readwise_tracker_t *tracker,
+											 uint32_t gid,
+											 long double *density_out)
+{
+	if (density_out)
+		*density_out = 0.0L;
+	if (!tracker || !tracker->ref_ctxmeta || gid >= tracker->ref_n)
+		return false;
+	const ani_ctxmeta_rec_t *meta = &tracker->ref_ctxmeta[gid];
+	if (!meta->valid)
+		return false;
+	const long double density =
+		ani_readwise_threshold_density(meta->threshold, meta->hash_bits);
+	if (density <= 0.0L)
+		return false;
+	if (density_out)
+		*density_out = density;
+	return true;
+}
+
+static void ani_readwise_tracker_add_sketch_corrected_hit(
+	ani_readwise_tracker_t *tracker,
+	uint64_t occurrences,
+	long double max_ref_density,
+	bool have_ref_density)
+{
+	if (!tracker || !tracker->enabled || !tracker->sketch_corrected_available ||
+		occurrences == 0)
+		return;
+	if (!have_ref_density || max_ref_density <= 0.0L ||
+		tracker->density_probability <= 0.0L) {
+		tracker->sketch_corrected_missing_meta_ctx += occurrences;
+		return;
+	}
+	long double capture_probability =
+		max_ref_density / tracker->density_probability;
+	if (capture_probability > 1.0L)
+		capture_probability = 1.0L;
+	if (capture_probability <= 0.0L) {
+		tracker->sketch_corrected_missing_meta_ctx += occurrences;
+		return;
+	}
+	tracker->sketch_corrected_observed_ctx += occurrences;
+	tracker->sketch_corrected_capture_prob_sum +=
+		(long double)occurrences * capture_probability;
+	tracker->sketch_corrected_present_ctx +=
+		(long double)occurrences / capture_probability;
+}
+
 static long double ani_readwise_trackable_probability(size_t possible_ctx,
 													  long double density_p)
 {
@@ -6029,6 +6105,7 @@ static void ani_readwise_tracker_init(
 	char (*refname)[PATHLEN],
 	char (*refanno)[PATHLEN],
 	uint32_t ref_n,
+	const ani_ctxmeta_rec_t *ref_ctxmeta,
 	long double density_probability)
 {
 	memset(tracker, 0, sizeof(*tracker));
@@ -6039,8 +6116,11 @@ static void ani_readwise_tracker_init(
 	tracker->refname = refname;
 	tracker->refanno = refanno;
 	tracker->ref_n = ref_n;
+	tracker->ref_ctxmeta = ref_ctxmeta;
 	tracker->taxonomy_mode = ani_opt->readwise_taxonomy_mode;
 	tracker->density_probability = density_probability;
+	tracker->sketch_corrected_available =
+		ref_ctxmeta != NULL && density_probability > 0.0L;
 	if (ani_opt->readwise_track_summary[0] != '\0') {
 		snprintf(tracker->summary_path, sizeof(tracker->summary_path), "%s",
 				 ani_opt->readwise_track_summary);
@@ -6135,6 +6215,48 @@ static void ani_readwise_tracker_write_summary(const ani_readwise_tracker_t *tra
 	fprintf(fp, "estimated_ref_absent_ctx_pct\t%.10Lg\n", ref_absent_ctx_pct);
 	fprintf(fp, "estimated_ref_absent_ctx_basis\t%s\n",
 			"density_sampled_read_contexts;whole_genome_only_if_refdb_is_full_context_refdb");
+	fprintf(fp, "sketch_corrected_available\t%u\n",
+			tracker->sketch_corrected_available ? 1u : 0u);
+	fprintf(fp, "sketch_corrected_observed_ctx\t%" PRIu64 "\n",
+			tracker->sketch_corrected_observed_ctx);
+	fprintf(fp, "sketch_corrected_missing_meta_ctx\t%" PRIu64 "\n",
+			tracker->sketch_corrected_missing_meta_ctx);
+	if (tracker->sketch_corrected_available) {
+		long double corrected_present = tracker->sketch_corrected_present_ctx;
+		if (corrected_present < 0.0L)
+			corrected_present = 0.0L;
+		long double corrected_pct =
+			100.0L * corrected_present / density_ctx_total;
+		if (corrected_pct < 0.0L)
+			corrected_pct = 0.0L;
+		if (corrected_pct > 100.0L)
+			corrected_pct = 100.0L;
+		const long double corrected_absent_pct = 100.0L - corrected_pct;
+		if (tracker->sketch_corrected_observed_ctx > 0) {
+			const long double mean_capture_probability =
+				tracker->sketch_corrected_capture_prob_sum /
+				(long double)tracker->sketch_corrected_observed_ctx;
+			fprintf(fp, "sketch_corrected_mean_capture_probability\t%.12Lg\n",
+					mean_capture_probability);
+		} else {
+			fprintf(fp, "sketch_corrected_mean_capture_probability\tNA\n");
+		}
+		fprintf(fp, "sketch_corrected_estimated_ref_present_ctx\t%.10Lg\n",
+				tracker->sketch_corrected_present_ctx);
+		fprintf(fp, "sketch_corrected_ref_present_ctx_pct\t%.10Lg\n",
+				corrected_pct);
+		fprintf(fp, "sketch_corrected_ref_absent_ctx_pct\t%.10Lg\n",
+				corrected_absent_pct);
+		fprintf(fp, "sketch_corrected_ref_absent_ctx_basis\t%s\n",
+				"ref_ctxmeta_density_horvitz_thompson;whole_genome_estimate_only_for_full_sketch_refdb;shared_ctx_uses_max_ref_density");
+	} else {
+		fprintf(fp, "sketch_corrected_mean_capture_probability\tNA\n");
+		fprintf(fp, "sketch_corrected_estimated_ref_present_ctx\tNA\n");
+		fprintf(fp, "sketch_corrected_ref_present_ctx_pct\tNA\n");
+		fprintf(fp, "sketch_corrected_ref_absent_ctx_pct\tNA\n");
+		fprintf(fp, "sketch_corrected_ref_absent_ctx_basis\t%s\n",
+				"unavailable:no_ref_ctxmeta_or_query_density");
+	}
 	if (fclose(fp) != 0)
 		err(errno, "%s(): cannot close readwise tracking summary %s", __func__,
 			tracker->summary_path);
@@ -6270,6 +6392,8 @@ static void ani_readwise_track_read64(
 
 		kv_size(candidates) = 0;
 		uint32_t best_diff = UINT32_MAX;
+		long double max_ref_density = 0.0L;
+		bool have_ref_density = false;
 		size_t pos = lb_in_bucket_ctxgid(index, fence, fence_k, qctx);
 		while (pos < index_n && (index[pos].ctxgid >> GID_NBITS) == qctx) {
 			const uint64_t ctxgid = index[pos].ctxgid;
@@ -6281,6 +6405,12 @@ static void ani_readwise_track_read64(
 				continue;
 			if (ignoreconflict && ref_end - ref_begin > 1)
 				continue;
+			long double ref_density = 0.0L;
+			if (ani_readwise_tracker_ref_density(tracker, gid, &ref_density) &&
+				(!have_ref_density || ref_density > max_ref_density)) {
+				max_ref_density = ref_density;
+				have_ref_density = true;
+			}
 			const int min_diff = ani_min_diff_sections_tracked64_vs_ref_index(
 				&kv_A(vec, 0), qbeg, qend, index, ref_begin, ref_end, objmask);
 			ani_readwise_candidate_t cand = {
@@ -6295,6 +6425,8 @@ static void ani_readwise_track_read64(
 		if (kv_size(candidates) == 0)
 			continue;
 		matched_ctx += (uint64_t)(qend - qbeg);
+		ani_readwise_tracker_add_sketch_corrected_hit(
+			tracker, (uint64_t)(qend - qbeg), max_ref_density, have_ref_density);
 
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
@@ -6398,6 +6530,8 @@ static void ani_readwise_track_read96(
 
 		kv_size(candidates) = 0;
 		uint32_t best_diff = UINT32_MAX;
+		long double max_ref_density = 0.0L;
+		bool have_ref_density = false;
 		size_t pos = lb_in_bucket_ctxgid128(index, fence, fence_k, qctx);
 		while (pos < index_n && index[pos].ctx == qctx) {
 			const uint64_t ctx = index[pos].ctx;
@@ -6411,6 +6545,12 @@ static void ani_readwise_track_read96(
 				continue;
 			if (ignoreconflict && ref_end - ref_begin > 1)
 				continue;
+			long double ref_density = 0.0L;
+			if (ani_readwise_tracker_ref_density(tracker, gid, &ref_density) &&
+				(!have_ref_density || ref_density > max_ref_density)) {
+				max_ref_density = ref_density;
+				have_ref_density = true;
+			}
 			const int min_diff = ani_min_diff_sections_tracked96_vs_ref_index(
 				&kv_A(vec, 0), qbeg, qend, index, ref_begin, ref_end);
 			ani_readwise_candidate_t cand = {
@@ -6425,6 +6565,8 @@ static void ani_readwise_track_read96(
 		if (kv_size(candidates) == 0)
 			continue;
 		matched_ctx += (uint64_t)(qend - qbeg);
+		ani_readwise_tracker_add_sketch_corrected_hit(
+			tracker, (uint64_t)(qend - qbeg), max_ref_density, have_ref_density);
 
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
@@ -8937,6 +9079,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		: ani_ref_ctx_counts_from_sorted_index(index, index_n, ref_n,
 											   ani_opt->ignoreconflict, false);
 	char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, (int)ref_n);
+	ani_ctxmeta_rec_t *ref_ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->refdir, (int)ref_n);
 	infile_meta_t *ref_infile_meta =
 		ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
 
@@ -9021,6 +9165,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	ani_readwise_tracker_t read_tracker;
 	ani_readwise_tracker_init(
 		&read_tracker, ani_opt, query_path, refname, refanno, ref_n,
+		ref_ctxmeta,
 		ani_readwise_density_probability(density_threshold, ref_uses_ctxobj96,
 										 nobjbits));
 	uint64_t total_reads = 0;
@@ -9734,6 +9879,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
 	if (ref_infile_meta)
 		free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
+	free(ref_ctxmeta);
 	free_reference_sorted_index((ctxgidobj_t *)index_mem, index_bytes, index_is_mmap);
 	free_read_from_file(ref_stat, ref_stat_size);
 	return 0;
