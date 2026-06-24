@@ -68,6 +68,38 @@ Because the tested refdb is a ctx-markerdb, this means absent from retained
 marker contexts. It should not be interpreted as absent from the original whole
 GTDB genomes.
 
+### Whole-Genome Context Absence Estimate
+
+To estimate the requested no-subsampling whole-genome context absence, I sampled
+`99,180` reads from Toy Mouse sample0 with `seqkit sample -p 0.003 -s 20260624`.
+The sampled reads have `11,802,420` possible coden11 contexts. I then built
+effectively full-context MinCO refdbs by setting `-S 10000000`, which is larger
+than the observed context count per source/representative genome. The resulting
+refdb density is `1.0`, so the read query considers every sampled-read context,
+not a density subset.
+
+Results are in `whole_ctx_absence_summary.tsv`:
+
+```text
+reference_set              ref genomes  present ctx %  absent ctx %
+cami_source_exact          75           56.33836423    43.66163577
+gtdb_representative_exact  65           44.78803939    55.21196061
+```
+
+Interpretation:
+
+- `cami_source_exact` is a best-case lower bound for this sample because it uses
+  the actual CAMISIM source genomes. The remaining absent contexts are mostly
+  read errors, ambiguous bases, and any source/read generation mismatch.
+- `gtdb_representative_exact` is the more realistic GTDB-representative estimate
+  for the source species. It is higher because representative genomes differ
+  from the CAMISIM source genomes.
+- Exact absence against every genome in the 200,527-reference GTDB refdb was not
+  run because it requires a whole-reference context membership index or
+  streaming all reference genomes. The 65 representative estimate is therefore
+  not a proof of the full-GTDB union absence; adding all 200,527 genomes can only
+  decrease the absent-context fraction.
+
 Tracking table distribution:
 
 ```text
@@ -103,4 +135,7 @@ The observed slowdown is mostly from per-read offset extraction plus writing 1,1
 - This is one full Toy Mouse sample only.
 - The generated GTDB taxmap uses assembly accessions as stable identifiers because GTDB does not provide numeric species taxids in the same CAMI taxmap schema.
 - The absent-context percentage in this run is markerdb absence, not whole-genome reference absence. Whole-genome absence requires a full context refdb or an exact whole-reference context membership index.
+- The whole-genome context estimates use a random 0.3% read sample, not all 33.17
+  million reads. Because all sampled reads have length 150, this is a practical
+  context-fraction estimate with low sampling error, but it is still a sample.
 - Runtime order may benefit later runs from filesystem cache; the most relevant comparison is exact no-tracking versus tracking in the same run series.
