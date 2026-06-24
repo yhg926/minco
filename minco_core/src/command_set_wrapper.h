@@ -20,6 +20,14 @@ typedef struct set_opt
 {
   int operation;
   bool q2markerdb;
+  bool q2markerdb_context;
+  bool q2markerdb_context_pairwise;
+  uint32_t markerdb_warn_threshold;
+  uint32_t markerdb_ctx_min_xny;
+  double markerdb_ctx_min_af;
+  uint32_t markerdb_ctx_index_max_ctx_freq;
+  uint32_t markerdb_ctx_index_min_votes;
+  uint32_t markerdb_ctx_index_sample_step;
   int p;
   int P;
 	int show;

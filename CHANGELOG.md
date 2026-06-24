@@ -1,6 +1,42 @@
 # Changelog
 
+## 2026-06-21
+
+### Added
+
+- Added experimental `minco ani --readwise-ctx-filter fake-prob`, which
+  estimates a fake-context probability from the existing breadth/depth plus
+  object-difference score and soft-weights nonzero-diff contexts for readwise
+  naive ANI diagnostics.
+- Direct readwise detail output now appends `Fake_ctx_prob_mean` and
+  `Fake_ctx_prob_weighted` when readwise context reliability statistics are
+  available.
+
+### Validation
+
+- `make -C minco_core test` passed after adding the fake-context probability
+  mode.
+- On CAMI Toy Mouse Gut sample0 S=1000, `L. crispatus` target
+  `GCF_018987235.1` improved from raw readwise naive ANI `0.934031` and
+  hard-filtered ANI `0.962932` to probability-weighted ANI `0.966331` at
+  `--readwise-fake-threshold 3.0`, with similar runtime (`1:51.57`) and peak
+  RSS (`3.63 GB`).
+
 ## 2026-06-20
+
+### Important Progress
+
+- Established the first replicated CAMI II marine profiling win for minco
+  readwise metagenome profiling. On marine short-read samples 0-2, the
+  `best-diff-unique` shared-context assignment plus ZIP AAF ANI recipe beat
+  local Sylph species-level mean F1 (`0.860` vs `0.832`) mainly by reducing
+  mean false positives (`41.3` vs `60.7`) at nearly equal recall.
+- Found that the practical GTDB-only `S=1000` reference sketch matches or
+  slightly exceeds the `S=10000` reference on CAMI marine samples 0-2:
+  mean F1 `0.862` vs `0.860`, while reducing mean runtime from `169.8s` to
+  `124.5s` and peak RSS from `33.65GB` to `3.70GB`. This makes `S=1000` the
+  current benchmark target for readwise profiling, pending validation on a
+  different dataset.
 
 ### Added
 

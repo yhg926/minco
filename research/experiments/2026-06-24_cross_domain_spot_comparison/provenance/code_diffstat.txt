@@ -1,0 +1,24 @@
+ CHANGELOG.md                            |   36 +
+ README.md                               |   76 +-
+ docs/USER_MANUAL.md                     |   83 +-
+ minco_core/src/command_ani.c            | 4601 ++++++++++++++++++++++++++-----
+ minco_core/src/command_ani.h            |   72 +-
+ minco_core/src/command_ani_wrapper.c    |  187 +-
+ minco_core/src/command_matrix.c         |  266 ++
+ minco_core/src/command_matrix.h         |    1 +
+ minco_core/src/command_matrix_wrapper.c |   11 +-
+ minco_core/src/command_operate.c        | 2023 +++++++++++++-
+ minco_core/src/command_set_wrapper.c    |   81 +
+ minco_core/src/command_set_wrapper.h    |    8 +
+ minco_core/src/command_sketch.c         |  688 ++++-
+ minco_core/src/command_sketch_wrapper.c |   38 +-
+ minco_core/src/global_basic.c           |   42 +-
+ minco_core/src/global_basic.h           |   17 +
+ minco_core/src/minco_sort.c             |   34 +
+ minco_core/src/minco_sort.h             |    2 +
+ minco_core/src/pairwise_graph.c         |  122 +
+ minco_core/src/sketch_rearrange.c       |   40 +
+ minco_core/src/sketch_rearrange.h       |  113 +-
+ tests/full_cli.sh                       |   20 +-
+ tests/smoke.sh                          |   34 +
+ 23 files changed, 7831 insertions(+), 764 deletions(-)

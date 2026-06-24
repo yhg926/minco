@@ -1,0 +1,24 @@
+# Artifacts
+
+- Commands: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/commands.sh`
+- Analysis script: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/analyze_ctx_trace_sources.py`
+- Parameters: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/parameters.tsv`
+- Selected references: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/selected_trace_refs.tsv`
+- Trace source summary: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/ctx_trace_source_summary.tsv`
+- Top contributing source genomes: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/ctx_trace_top_sources.tsv`
+- Origin membership summary: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/origin_membership_summary.tsv`
+- Origin membership by source: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/origin_membership_by_source.tsv`
+- Origin membership script: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/check_origin_marker_membership.py`
+- Crispatus/helveticus S2000-compatible whole-genome scan script: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/check_crispatus_helveticus_s2000_context_scan.py`
+- Crispatus/helveticus S2000-compatible whole-genome scan summary: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/crispatus_helveticus_s2000_context_scan_summary.tsv`
+- Crispatus/helveticus S2000-compatible whole-genome scan unique contexts: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/crispatus_helveticus_s2000_context_scan_unique_qctx.tsv`
+- Crispatus/helveticus S2000-compatible whole-genome scan events: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/crispatus_helveticus_s2000_context_scan_events.tsv`
+- Crispatus/helveticus S2000-compatible scan validation: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/crispatus_helveticus_s2000_context_scan_validation.tsv`
+- Crispatus/helveticus ANIm table: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/crispatus_helveticus_anim.tsv`
+- Per-read trace TSVs used for source-fraction summaries: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/traces_perread/`
+- Per-read logs: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/logs_perread/`
+- Earlier density-block trace TSVs, retained only as a failed/provenance attempt because block traces do not carry read IDs: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_low_abundance_ctx_contamination/traces/`
+- Source truth: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-21_gtdb_s2000_dedup_markerdb_readwise/mouse0_gtdb_source_species_ground_truth.tsv`
+- Readwise ANI/depth joined table: `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-23_toymouse_source_rep_ani/readwise_bias_depth_abundance_check.tsv`
+- Original full S2000 dedup refdb checked for origin membership: `/tmp/gtdb232_s2000_dedup_marker.qKJofv/sketch_T_S2000_aaf003_dedup`
+- Original full S10000 refdb checked for origin membership: `/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S10000_anno_20260619/sketch_T_S10000_anno`

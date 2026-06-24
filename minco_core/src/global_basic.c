@@ -777,6 +777,16 @@ static uint64_t minco_stat_mix64(uint64_t x)
     return x ^ (x >> 31);
 }
 
+static bool minco_stat_uses_ctxobj96_payload(const minco_sketch_stat_t *stat)
+{
+    if (!stat)
+        return false;
+    const int ctx_bits = stat->coden_len > 0 ? 4 * stat->coden_len : 4 * stat->hclen;
+    const int obj_bits = 2 * stat->klen - ctx_bits;
+    return ctx_bits > 64 || obj_bits > 32 || ctx_bits + obj_bits > 64 ||
+           ctx_bits + 20 > 64;
+}
+
 static uint32_t minco_stat_fold_id64(uint64_t x)
 {
     uint32_t id = (uint32_t)(x ^ (x >> 32));
@@ -807,10 +817,12 @@ uint32_t minco_stat_hash_bits_from_dim(const minco_sketch_stat_t *stat)
         errx(EINVAL, "%s(): NULL stat", __func__);
     const int ctx_bits = stat->coden_len > 0 ? 4 * stat->coden_len : 4 * stat->hclen;
     const int obj_bits = 2 * stat->klen - ctx_bits;
-    if (obj_bits < 0 || obj_bits > 64)
+    if (ctx_bits < 0 || ctx_bits > 64 || obj_bits < 0 || obj_bits > 64)
         errx(EINVAL,
              "%s(): invalid context/object lengths: coden_len=%d klen=%d hclen=%d holen=%d",
              __func__, stat->coden_len, stat->klen, stat->hclen, stat->holen);
+    if (ctx_bits + obj_bits > 64)
+        return (uint32_t)ctx_bits;
     return (uint32_t)(64 - obj_bits);
 }
 
@@ -1499,13 +1511,28 @@ unify_sketch_t *generic_sketch_parse(const char *qrydir, unsigned flags)
         result->kmerlen = result->stats.minco_stat.klen;
         result->gname = minco_stat_names_from_mem(result->mem_stat, file_size);
         size_t comb_file_size = 0;
-        result->comb_sketch = read_from_file(test_get_fullpath(qrydir, combined_sketch_suffix), &comb_file_size);
-        result->sketch_index = read_from_file(test_get_fullpath(qrydir, idx_sketch_suffix), &file_size);
+        const bool use_ctxobj96 = minco_stat_uses_ctxobj96_payload(&result->stats.minco_stat);
+        result->payload_layout = use_ctxobj96 ? MINCO_PAYLOAD_CTXOBJ96 : MINCO_PAYLOAD_CTXOBJ64;
+        result->payload_item_size = use_ctxobj96 ? sizeof(ctxobj96_t) : sizeof(uint64_t);
+        result->sketch_index = read_from_file(test_get_fullpath(qrydir,
+                                      use_ctxobj96 ? idx_sketch96_suffix : idx_sketch_suffix),
+                                      &file_size);
         const size_t total_entries = (size_t)result->sketch_index[result->infile_num];
-        const size_t expected_comb_size = total_entries * sizeof(result->comb_sketch[0]);
+        const char *payload_suffix = use_ctxobj96 ? combined_sketch96_suffix : combined_sketch_suffix;
+        if (use_ctxobj96)
+            result->comb_sketch96 = read_from_file(test_get_fullpath(qrydir, payload_suffix),
+                                                   &comb_file_size);
+        else
+            result->comb_sketch = read_from_file(test_get_fullpath(qrydir, payload_suffix),
+                                                 &comb_file_size);
+        const size_t expected_comb_size = total_entries * result->payload_item_size;
         if (comb_file_size != expected_comb_size)
             err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
-                __func__, qrydir, combined_sketch_suffix, comb_file_size, expected_comb_size);
+                __func__, qrydir, payload_suffix, comb_file_size, expected_comb_size);
+        if (use_ctxobj96 && (flags & (SKETCH_PARSE_POSITIONS | SKETCH_PARSE_ABUNDANCE)))
+            errx(EINVAL,
+                 "%s(): ctxobj96 sketches do not yet support legacy ctxobj64 position/abundance sidecars",
+                 __func__);
         if ((flags & SKETCH_PARSE_POSITIONS) && file_exists_in_folder(qrydir, sketch_position_suffix))
         {
             size_t pos_file_size = 0;
@@ -1562,7 +1589,10 @@ void free_unify_sketch(unify_sketch_t *result)
     if (result == NULL)
         return; // Avoid dereferencing a NULL pointer
     const size_t total_entries = result->sketch_index ? (size_t)result->sketch_index[result->infile_num] : 0;
-    free_read_from_file(result->comb_sketch, sizeof(result->comb_sketch[0]) * total_entries);
+    if (result->payload_layout == MINCO_PAYLOAD_CTXOBJ96)
+        free_read_from_file(result->comb_sketch96, sizeof(result->comb_sketch96[0]) * total_entries);
+    else
+        free_read_from_file(result->comb_sketch, sizeof(result->comb_sketch[0]) * total_entries);
     if (result->abundance)
     {
         if (result->stat_type == 2)

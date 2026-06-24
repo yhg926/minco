@@ -1,0 +1,21 @@
+# Artifacts
+
+- CAMI dataset page: `https://cami-challenge.org/datasets/toy-human-gut/#download`
+- Cache directory: `/mnt/new3T/minco_cami3_toygut_20260620`
+- Sample0 read archive: `/mnt/new3T/minco_cami3_toygut_20260620/sample_0_reads.tar.gz`
+- Extracted sample0 FASTQ gzip for Sylph: `/mnt/new3T/minco_cami3_toygut_20260620/sample_0_anonymous_reads.fq.gz`
+- Gold profile archive: `/mnt/new3T/minco_cami3_toygut_20260620/taxonomic_profiles.tar.gz`
+- Gold profile sample0: `/mnt/new3T/minco_cami3_toygut_20260620/taxonomic_profiles/taxonomic_profile_0.txt`
+- Minco current-threshold output: `/mnt/new3T/minco_cami3_toygut_20260620/minco_s1000_plusvirus_sample0_f0.05_n0.94_t10.tsv`
+- Minco unfiltered output: `/mnt/new3T/minco_cami3_toygut_20260620/minco_s1000_plusvirus_sample0_unfiltered.tsv`
+- Minco GTDB-only unfiltered output: `/mnt/new3T/minco_cami3_toygut_20260620/minco_s1000_gtdbonly_sample0_unfiltered.tsv`
+- Minco S10000 GTDB-only current-threshold output: `/mnt/new3T/minco_cami3_toygut_20260620/minco_s10000_gtdbonly_sample0_f0.05_n0.94_t10.tsv`
+- Minco S10000 GTDB-only unfiltered output: `/mnt/new3T/minco_cami3_toygut_20260620/minco_s10000_gtdbonly_sample0_unfiltered.tsv`
+- Sylph profile: `/mnt/new3T/minco_cami3_toygut_20260620/sylph_sample0/profile.tsv`
+- Minco simple threshold grid: `/tmp/minco_cami3_toygut_20260620/toy_sample0_threshold_grid.tsv`
+- Minco GTDB-only bacterial threshold grid: `/tmp/minco_cami3_toygut_20260620/sample0_gtdbonly_bacteria_threshold_grid.tsv`
+- Minco GTDB-only vs Sylph bacterial scores: `/tmp/minco_cami3_toygut_20260620/sample0_gtdbonly_minco_vs_sylph_bacteria.tsv`
+- Minco S10000 GTDB-only bacterial threshold grid: `/tmp/minco_cami3_toygut_20260620/sample0_s10000_gtdbonly_bacteria_threshold_grid.tsv`
+- Minco S10000 GTDB-only bacterial scores: `/tmp/minco_cami3_toygut_20260620/sample0_s10000_gtdbonly_minco_bacteria_scores.tsv`
+- Scope score table: `/tmp/minco_cami3_toygut_20260620/sample0_minco_sylph_scope_scores.tsv`
+- Top missing taxa after best simple grid: `/tmp/minco_cami3_toygut_20260620/toy_sample0_best_missing_top50.tsv`

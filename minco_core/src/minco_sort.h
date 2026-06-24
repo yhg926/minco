@@ -15,6 +15,8 @@ size_t count_overlaps(const uint64_t *a, size_t n, const uint64_t *b, size_t m) 
 static void custom_sort(uint96_t *arr, size_t n); //void custom_sort(co_t *arr, size_t n);
 void sort_uint96_array(uint96_t *arr, size_t n) ;
 void ctxgidobj_sort_array(ctxgidobj_t *arr, size_t n) ;
+void ctxobj96_sort_array(ctxobj96_t *arr, size_t n);
+void ctxgidobj128_sort_array(ctxgidobj128_t *arr, size_t n);
 
 
 /*3. khash sort*/

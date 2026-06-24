@@ -55,6 +55,7 @@ typedef struct matrix_opt
 	uint32_t index_max_ctx_freq;
 	uint32_t index_min_votes;
 	uint32_t index_sample_step;
+	uint32_t markerdb_warn_threshold;
 	int p; //threads
 	bool d; //diagnal
 	double diagonal_value;

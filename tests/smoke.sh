@@ -32,6 +32,7 @@ make_fasta() {
 
 make_fasta "$WORK/a.fna" a 0
 make_fasta "$WORK/b.fna" b 1
+cp "$WORK/a.fna" "$WORK/a_dup.fna"
 
 "$BIN" --help > "$WORK/help.txt"
 "$BIN" examples > "$WORK/examples.txt"
@@ -65,9 +66,42 @@ awk '$1 > 5 { exit 1 }' "$WORK/pair.S5.psmp.tsv"
 "$BIN" sketch -i "$WORK/pair.S5.minco" > "$WORK/pair.S5.index.log" 2>&1
 test -s "$WORK/pair.S5.minco/minco.refindex.ctxgid64obj32"
 
+"$BIN" sketch -p 2 --sketch-size 31 -o "$WORK/dup.minco" "$WORK/a.fna" "$WORK/a_dup.fna" > "$WORK/dup.log" 2>&1
+"$BIN" set --uniq_union --markerdb -o "$WORK/dup.marker.minco" "$WORK/dup.minco" > "$WORK/dup.marker.log" 2>&1
+grep -q "WARNING: 2/2 refs have markerdb sketch size below 500" "$WORK/dup.marker.log"
+test "$(wc -c < "$WORK/dup.marker.minco/minco.ctxobj64")" -eq 0
+"$BIN" set --uniq_union --markerdb-ctx -o "$WORK/dup.ctxmarker.minco" "$WORK/dup.minco" > "$WORK/dup.ctxmarker.log" 2>&1
+grep -q "WARNING: 2/2 refs have markerdb sketch size below 500" "$WORK/dup.ctxmarker.log"
+grep -q $'low-marker-ref\t0\t0\t' "$WORK/dup.ctxmarker.log"
+grep -q $'low-marker-ref\t1\t0\t' "$WORK/dup.ctxmarker.log"
+test "$(wc -c < "$WORK/dup.ctxmarker.minco/minco.ctxobj64")" -eq 0
+test "$(wc -c < "$WORK/dup.ctxmarker.minco/minco.ctxobj64.offsets")" -eq 24
+"$BIN" sketch --psmp "$WORK/dup.ctxmarker.minco" > "$WORK/dup.ctxmarker.psmp.tsv"
+awk '$1 != 0 { exit 1 }' "$WORK/dup.ctxmarker.psmp.tsv"
+"$BIN" set --uniq_union --markerdb-ctx --markerdb-ctx-pairwise \
+  --markerdb-ctx-min-xny 100 --markerdb-ctx-min-af 0.01 \
+  -o "$WORK/dup.ctxmarker.pairkeep.minco" "$WORK/dup.minco" \
+  > "$WORK/dup.ctxmarker.pairkeep.log" 2>&1
+"$BIN" sketch --psmp "$WORK/dup.ctxmarker.pairkeep.minco" \
+  > "$WORK/dup.ctxmarker.pairkeep.psmp.tsv"
+test "$(awk '{s += $1} END { print s }' "$WORK/dup.ctxmarker.pairkeep.psmp.tsv")" -eq 62
+grep -q "accepted_pairs=0" "$WORK/dup.ctxmarker.pairkeep.log"
+"$BIN" set --uniq_union --markerdb-ctx --markerdb-ctx-pairwise \
+  --markerdb-ctx-min-xny 10 --markerdb-ctx-min-af 0.01 \
+  -o "$WORK/dup.ctxmarker.pairdrop.minco" "$WORK/dup.minco" \
+  > "$WORK/dup.ctxmarker.pairdrop.log" 2>&1
+"$BIN" sketch --psmp "$WORK/dup.ctxmarker.pairdrop.minco" \
+  > "$WORK/dup.ctxmarker.pairdrop.psmp.tsv"
+test "$(awk '{s += $1} END { print s }' "$WORK/dup.ctxmarker.pairdrop.psmp.tsv")" -eq 0
+grep -q "accepted_pairs=1" "$WORK/dup.ctxmarker.pairdrop.log"
+
 "$BIN" sketch -p 1 --sketch-size 5 -o "$WORK/size5.minco" "$WORK/a.fna" > "$WORK/size5.log" 2>&1
 "$BIN" sketch --psmp "$WORK/size5.minco" > "$WORK/size5.psmp.tsv"
 test "$(awk 'NR == 1 { print $1 }' "$WORK/size5.psmp.tsv")" -eq 5
+"$BIN" set --uniq_union --markerdb -o "$WORK/size5.marker.minco" "$WORK/size5.minco" > "$WORK/size5.marker.log" 2>&1
+! grep -q "only 1 sketch" "$WORK/size5.marker.log"
+"$BIN" sketch --psmp "$WORK/size5.marker.minco" > "$WORK/size5.marker.psmp.tsv"
+test "$(awk 'NR == 1 { print $1 }' "$WORK/size5.marker.psmp.tsv")" -eq 5
 
 mkdir "$WORK/legacy_names.minco"
 cp "$WORK/size5.minco/minco.ctxobj64" "$WORK/legacy_names.minco/comblco"

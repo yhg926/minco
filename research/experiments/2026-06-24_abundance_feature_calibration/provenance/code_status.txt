@@ -1,0 +1,63 @@
+code_repo	/home/ubuntu/yihuiguang/tools/KSSD3mini
+git_metadata_dir	/home/ubuntu/yihuiguang/tools/KSSD3mini/.minco_git
+commit	b55b4d3f4c986de29098d2f1a092ee28251008aa
+branch	main
+describe	b55b4d3-dirty
+status	dirty
+
+status_short
+ M CHANGELOG.md
+ M README.md
+ M docs/USER_MANUAL.md
+ M minco_core/src/command_ani.c
+ M minco_core/src/command_ani.h
+ M minco_core/src/command_ani_wrapper.c
+ M minco_core/src/command_matrix.c
+ M minco_core/src/command_matrix.h
+ M minco_core/src/command_matrix_wrapper.c
+ M minco_core/src/command_operate.c
+ M minco_core/src/command_set_wrapper.c
+ M minco_core/src/command_set_wrapper.h
+ M minco_core/src/command_sketch.c
+ M minco_core/src/command_sketch_wrapper.c
+ M minco_core/src/global_basic.c
+ M minco_core/src/global_basic.h
+ M minco_core/src/minco_sort.c
+ M minco_core/src/minco_sort.h
+ M minco_core/src/pairwise_graph.c
+ M minco_core/src/sketch_rearrange.c
+ M minco_core/src/sketch_rearrange.h
+ M tests/full_cli.sh
+ M tests/smoke.sh
+?? 2026-06-23_threshold_combo_search_all_metrics/
+?? research/experiments/2026-06-24_abundance_feature_calibration/
+?? research/experiments/2026-06-24_addback_abundance_normalization_search/
+
+diffstat
+ CHANGELOG.md                            |   36 +
+ README.md                               |   76 +-
+ docs/USER_MANUAL.md                     |   83 +-
+ minco_core/src/command_ani.c            | 4208 ++++++++++++++++++++++++++-----
+ minco_core/src/command_ani.h            |   71 +-
+ minco_core/src/command_ani_wrapper.c    |  173 +-
+ minco_core/src/command_matrix.c         |  266 ++
+ minco_core/src/command_matrix.h         |    1 +
+ minco_core/src/command_matrix_wrapper.c |   11 +-
+ minco_core/src/command_operate.c        | 2023 ++++++++++++++-
+ minco_core/src/command_set_wrapper.c    |   81 +
+ minco_core/src/command_set_wrapper.h    |    8 +
+ minco_core/src/command_sketch.c         |  688 ++++-
+ minco_core/src/command_sketch_wrapper.c |   38 +-
+ minco_core/src/global_basic.c           |   42 +-
+ minco_core/src/global_basic.h           |   17 +
+ minco_core/src/minco_sort.c             |   34 +
+ minco_core/src/minco_sort.h             |    2 +
+ minco_core/src/pairwise_graph.c         |  122 +
+ minco_core/src/sketch_rearrange.c       |   40 +
+ minco_core/src/sketch_rearrange.h       |  113 +-
+ tests/full_cli.sh                       |   20 +-
+ tests/smoke.sh                          |   34 +
+ 23 files changed, 7422 insertions(+), 765 deletions(-)
+
+note
+Full uncommitted diff was not captured in this note because the repository is an active development workspace with large unrelated changes. Status and diffstat were captured to identify the dirty code state.

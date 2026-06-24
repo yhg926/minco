@@ -72,6 +72,41 @@ target size, and preserves sample metadata, annotations, abundance, and
 position sidecars when present. It does not copy `minco.refindex.ctxgid64obj32`
 because the index must match the resized sketch.
 
+Build a marker reference sketch from already sketched references:
+
+```bash
+minco sketch -i genomes.minco
+minco matrix --format dedup-plan -m aaf --cut 0.001 \
+  --keep-out keep.txt --remove-out remove.txt -o dedup_plan.tsv genomes.minco
+minco sketch --keep keep.txt -o genomes.dedup.minco genomes.minco
+minco set --uniq_union --markerdb-ctx -o genomes.marker.minco genomes.dedup.minco
+minco sketch -i genomes.marker.minco
+```
+
+`set --uniq_union --markerdb` keeps full `ctxobj64` entries that occur in only
+one reference. `set --uniq_union --markerdb-ctx` is stricter at the context
+level: it keeps all entries for a context only when that context is present in
+exactly one reference, which removes contexts shared across references even when
+their object bits differ.
+
+For dedup-first workflows, `matrix --format dedup-plan` can use AAF distance
+(`-m aaf`) to write `--keep-out` and `--remove-out` lists before `sketch --keep`
+or `sketch --remove`. During that dedup stage it predicts the final
+context-markerdb size across the kept references and warns on stderr when a kept
+reference is expected to retain fewer than 500 marker entries. Set
+`--markerdb-warn-threshold N` to change the cutoff, or set it to `0` to disable
+that dedup-stage warning.
+
+Both markerdb modes warn on stderr when a reference retains fewer than 500
+marker entries. Set `--markerdb-warn-threshold N` to change the cutoff, or set
+it to `0` to disable the warning.
+
+Markerdb output is not fixed-size across samples. The authoritative per-sample
+marker count is `minco.ctxobj64.offsets[i + 1] - minco.ctxobj64.offsets[i]`;
+`minco sketch --psmp` prints that value. Markerdb creation preserves the input
+sketch conflict-object mode: conflict-free input remains conflict-free, while
+input sketched with `--conflict` keeps its retained conflicting context objects.
+
 New sketches write only the `minco.*` / `minco.ctxobj64*` names. Readers still
 accept earlier KSSD-style sketch filenames so existing sketch directories remain
 usable.
@@ -285,6 +320,38 @@ ANI mutation features (`XnY_ctx`, `N_diff_obj`, `N_diff_obj_section`, and
 `N_mut2_ctx`) are reduced once per unique reference context entry using the best
 observed context-object difference across reads or density blocks, so repeated
 coverage does not inflate the mutation-distance term.
+In combined reference sketches, retained readwise query contexts may hit many
+references. minco now uses `--readwise-assign best-diff-unique` by default:
+it first finds the best object-difference score among matching references and
+counts the context only if that best hit is unique. This prevents conserved
+shared contexts from inflating support and ANI for many references at once.
+Use `--readwise-assign all` for legacy behavior, `best-diff` to keep all tied
+best hits, or `best-diff-split` to split depth coverage across tied best hits
+and compute fractional breadth/depth while keeping XnY-style support counts
+unweighted.
+When depth abundance is available, selected readwise ANI defaults to
+`--readwise-ani zip-aaf`. This fits a zero-inflated Poisson correction from
+`Ref_breadth` and `Ref_mean_depth` to estimate latent reference AF, then
+converts that AF to context AAF ANI. Use `--readwise-ani naive` to select the
+object-difference readwise ANI instead.
+`--readwise-ctx-filter` exposes experimental context reliability modes for
+readwise naive/object-difference ANI. `poisson-diff` hard-filters suspicious
+contexts by comparing per-context depth to the depth expected from reference
+breadth and combining that surprise with the best object difference.
+`poisson-depth`, `poisson-product`, and `product-nb` test Bonferroni-adjusted
+high-tail depth or `best_diff * depth` outliers. `product-topfrac` ranks all
+hit contexts by `best_diff * depth` and drops the top per-reference fraction,
+but only positive-product contexts are removed; set that fraction with
+`--readwise-fake-threshold`, for example `0.25`. `product-topfrac-median` uses
+the same detector but keeps those contexts and replaces their `best_diff` and
+depth with per-reference medians. `product1-topfrac-median` ranks by
+`(best_diff + 1) * depth`, allowing high-depth exact-match contexts to be
+median-replaced too.
+`fake-prob` uses the same score family to estimate `P(fake context)` and
+soft-weights nonzero-diff contexts for diagnostic naive ANI.
+`--readwise-fake-threshold` controls strictness; lower values are more
+aggressive for probability modes. These modes are off by default and should be
+treated as research options until validated across more CAMI samples.
 With no custom `-f`, `-n`, `-t`, or `--top`, minco applies the default readwise
 abundance report: it sets the unique-context support cutoff to
 `min(S, max(100, ceil(S/100)))`, removes the hidden AF cutoff, uses ANI cutoff
@@ -299,7 +366,10 @@ weak           below the default call thresholds
 ```
 
 `Normalized_abundance_depth` sums to 1 across the rows printed after filters and
-`--top`. Use explicit filters such as `-f0 -n0 -t0` when every candidate
+`--top`. The abundance table also includes `Ref_zip_af`, `Ref_zip_aaf_ani`, and
+post-filter diagnostic `Reliable_Ref_*` columns. The `Ref_zip_*` values are the
+model values used by `--readwise-ani zip-aaf`.
+Use explicit filters such as `-f0 -n0 -t0` when every candidate
 comparison must be reported. The estimate is a transparent breadth/depth
 baseline; it does not yet deconvolve shared contexts with EM or fit NB/ZINB
 mixture models. It currently requires direct FASTQ `--qraw --query-density ref`
@@ -326,6 +396,17 @@ minco ani -p16 -r ref.minco --qraw reads.fastq.gz --query-density ref \
   --cami-taxmap ref.cami_taxmap.tsv \
   --cami-profile sample.profile --cami-sample-id sample_1 \
   -m0 -o reads_vs_ref.tsv
+```
+
+For sensitive species discovery with a large `S=10000` reference database,
+start with the current experimental threshold:
+
+```bash
+minco ani -p16 -r ref.minco --qraw reads.fastq.gz --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-unique \
+  --readwise-ani zip-aaf \
+  -f0.05 -n0.94 -t10 -m0 -o reads_vs_ref.tsv
 ```
 
 `--cami-profile FILE` writes a profile with CAMI header lines:

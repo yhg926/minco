@@ -1,0 +1,21 @@
+# Artifacts
+
+| Kind | Path or Link | Source Path or URI | Description | Availability | Preserve? | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| script | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/search_abundance_normalization.py` | local workspace | Offline scorer for marker/ctx+obj abundance normalization search | available | yes | Imports previous cached scorer |
+| input-code | `/home/ubuntu/yihuiguang/tools/KSSD3mini/2026-06-23_threshold_combo_search_all_metrics/search_threshold_combos.py` | local workspace | Previous threshold-search scorer and cached sample loaders | available | yes | Source of prepared sample views and MinCO gate logic |
+| input-baseline | `/home/ubuntu/yihuiguang/tools/KSSD3mini/2026-06-23_threshold_combo_search_all_metrics/results/sylph_baseline.tsv` | local workspace | Sylph baseline copied into this experiment | available | yes | Used for final comparison |
+| command-provenance | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/commands.sh` | local workspace | Exact commands and working directory | available | yes | Rerunnable from workspace |
+| parameter-provenance | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/parameters.tsv` | local workspace | Parameter, grid, and environment summary | available | yes | Includes max-rules and rule grid |
+| code-provenance | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/provenance/code_status.txt` | local workspace | Commit, branch, dirty status, and diffstat | available | yes | Full diff not captured here |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/abundance_rule_summary.tsv` | generated | All 12,000 scored abundance rules | available | yes | 12,001 lines including header |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/abundance_rule_top200_by_l1.tsv` | generated | Top 200 rules sorted by combined L1 then F1 | available | yes | 201 lines including header |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/abundance_rule_top200_by_f1.tsv` | generated | Top 200 rules sorted by combined F1 then L1 | available | yes | 201 lines including header |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/abundance_rule_sample_metrics_subset.tsv` | generated | Per-sample rows for first 100 rules | available | yes | Diagnostic subset |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/callset_oracle_bounds.tsv` | generated | Corrected oracle L1 lower bounds by callset and dataset | available | yes | Important for abundance-bottleneck conclusion |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/sylph_baseline.tsv` | copied/generated | Sylph baseline snapshot | available | yes | Copied from previous threshold search output |
+| output | `/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-24_addback_abundance_normalization_search/results/final_comparison.tsv` | generated | Compact comparison table for Sylph, best-L1 MinCO, best-F1 MinCO | available | yes | Used in NOTE.md |
+| temporary-log | `/tmp/minco_abundance_norm_2000.stdout` | generated | 2,000-rule smoke run stdout | temporary | no | Regenerable |
+| temporary-log | `/tmp/minco_abundance_norm_2000.stderr` | generated | 2,000-rule smoke run timing and warnings | temporary | no | Regenerable |
+| temporary-log | `/tmp/minco_abundance_norm_blend12000.stdout` | generated | 12,000-rule final run stdout | temporary | no | Regenerable |
+| temporary-log | `/tmp/minco_abundance_norm_blend12000.stderr` | generated | 12,000-rule final run timing and warnings | temporary | no | Regenerable |

@@ -27,8 +27,37 @@ typedef enum ani_abundance_model
 	ANI_ABUNDANCE_DEPTH = 1
 } ani_abundance_model_t;
 
+typedef enum ani_readwise_assign_mode
+{
+	ANI_READWISE_ASSIGN_ALL = 0,
+	ANI_READWISE_ASSIGN_BEST_DIFF = 1,
+	ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT = 2,
+	ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE = 3
+} ani_readwise_assign_mode_t;
+
+typedef enum ani_readwise_ani_model
+{
+	ANI_READWISE_ANI_NAIVE = 0,
+	ANI_READWISE_ANI_ZIP_AAF = 1
+} ani_readwise_ani_model_t;
+
+typedef enum ani_readwise_ctx_filter_model
+{
+	ANI_READWISE_CTX_FILTER_NONE = 0,
+	ANI_READWISE_CTX_FILTER_POISSON_DIFF = 1,
+	ANI_READWISE_CTX_FILTER_FAKE_PROB = 2,
+	ANI_READWISE_CTX_FILTER_POISSON_DEPTH = 3,
+	ANI_READWISE_CTX_FILTER_POISSON_PRODUCT = 4,
+	ANI_READWISE_CTX_FILTER_PRODUCT_NB = 5,
+	ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC = 6,
+	ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN = 7,
+	ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN = 8
+} ani_readwise_ctx_filter_model_t;
+
 #define MINCO_DEFAULT_DENSITY_BLOCK_CTX 100u
 #define MINCO_DEFAULT_DENSITY_BLOCK_CTX_STR "100"
+#define MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD 4.0
+#define MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD_STR "4.0"
 
 typedef struct ani_opt
 {
@@ -42,6 +71,7 @@ typedef struct ani_opt
 	bool unified_metric; // honor -s in unassembled mode instead of forcing naive
 	bool readwise_query; // direct FASTQ query is streamed readwise with coverage AF
 	bool readwise_profile_only; // skip unbounded query-context sets for abundance profiles
+	bool readwise_dual_evidence; // append marker-only evidence computed from full readwise ref index
 	bool ignoreconflict; // ignore reference contexts with conflicting objects
 	bool raw_output; // skip calibrated/best ANI; print NULLs in unified detail fields
 	int e;
@@ -71,6 +101,10 @@ typedef struct ani_opt
 	uint32_t density_block_ctx;
 	ani_query_density_model_t query_density_model;
 	ani_abundance_model_t abundance_model;
+	ani_readwise_assign_mode_t readwise_assign_mode;
+	ani_readwise_ani_model_t readwise_ani_model;
+	ani_readwise_ctx_filter_model_t readwise_ctx_filter_model;
+	double readwise_fake_ctx_threshold;
 	char index[PATHLEN];
 	char qrydir[PATHLEN];
 	char refdir[PATHLEN];
@@ -248,9 +282,9 @@ static inline double get_naive_dist(ani_features_t *features)
 		return 0;
 
 #if NUM_CODENS < 11   //9 or 10
-	double predict_dist = final_dist * (0.1557143) + (9.961e-5);  // 0.1557143 ~ 1/7
+	double predict_dist = final_dist * (0.1557143);  // 0.1557143 ~ 1/7
 #else 
-	double predict_dist = final_dist * (0.1544286) + (7.133e-4); 
+	double predict_dist = final_dist * (0.1544286);
 #endif
 	return predict_dist;
 }
@@ -296,6 +330,40 @@ static inline void get_ani_features_from_two_sorted_ctxobj64(const uint64_t *a, 
 		}
 		else if (a[i] < b[j])
 		{ // else if (a[i] >> nobjbits < b[j] >> nobjbits)
+			i++;
+		}
+		else
+		{
+			j++;
+		}
+	}
+}
+
+static inline void get_ani_features_from_two_sorted_ctxobj96(const ctxobj96_t *a, size_t n,
+															 const ctxobj96_t *b, size_t m,
+															 ani_features_t *ani_features)
+{
+	size_t i = 0, j = 0;
+	memset(ani_features, 0, sizeof(ani_features_t));
+	while (i < n && j < m)
+	{
+		if (a[i].ctx == b[j].ctx)
+		{
+			ani_features->XnY_ctx++;
+			uint32_t has_diff_obj = a[i].obj ^ b[j].obj;
+			if (has_diff_obj)
+			{
+				ani_features->N_diff_obj++;
+				int num_diff_obj_section = dna_popcount(has_diff_obj);
+				ani_features->N_diff_obj_section += num_diff_obj_section;
+				if (num_diff_obj_section > 1)
+					ani_features->N_mut2_ctx++;
+			}
+			i++;
+			j++;
+		}
+		else if (a[i].ctx < b[j].ctx)
+		{
 			i++;
 		}
 		else

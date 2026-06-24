@@ -36,9 +36,12 @@ const char minco_ctxsetmeta_legacy_tsv_stat[] = "minco.ctxsetmeta.tsv";
 const char sketch_position_suffix[] = "minco.ctxobj64.position";
 const char sketch_suffix[] = "minco.ctxobj64.part";
 const char combined_sketch_suffix[] = "minco.ctxobj64";
+const char combined_sketch96_suffix[] = "minco.ctxobj96";
 const char idx_sketch_suffix[] = "minco.ctxobj64.offsets";
+const char idx_sketch96_suffix[] = "minco.ctxobj96.offsets";
 const char combined_ab_suffix[] = "minco.ctxobj64.abund";
 const char sorted_comb_ctxgid64obj32[] = "minco.refindex.ctxgid64obj32";
+const char sorted_comb_ctx64gid32obj32[] = "minco.refindex.ctx64gid32obj32";
 // public vars shared across files
 uint32_t FILTER, hash_id;
 minco_sketch_stat_t minco_stat_one, minco_stat_iter;
@@ -49,6 +52,7 @@ uint64_t minco_density_threshold = UINT64_MAX;
 static size_t file_size;
 static char tmp_fname[PATHLEN + 20];
 static struct stat tmpstat;
+static void sketch_ctxobj96_files(sketch_opt_t *opt, infile_tab_t *tab);
 
 #ifndef MINCO_HASH_BOTTOMK
 #define MINCO_HASH_BOTTOMK 0
@@ -395,6 +399,11 @@ static inline bool minco_ctxmeta_enabled(const sketch_opt_t *opt)
     (void)opt;
     return false;
 #endif
+}
+
+static inline bool minco_ctxobj96_ctxmeta_enabled(const sketch_opt_t *opt)
+{
+    return opt && opt->ctxmeta_mode != MINCO_CTXMETA_NONE && !opt->abundance && !opt->position;
 }
 
 static const char *minco_ctxmeta_mode_name(minco_ctxmeta_mode_t mode)
@@ -1258,6 +1267,12 @@ void compute_sketch(sketch_opt_t *sketch_opt_val, infile_tab_t *infile_stat)
     }
     if (!sketch_opt_val->position)
         remove_sketch_positions(sketch_opt_val->outdir);
+    if (minco_stat_needs_ctxobj96(&minco_stat_one) ||
+        minco_stat_needs_ctxgidobj128(&minco_stat_one))
+    {
+        sketch_ctxobj96_files(sketch_opt_val, infile_stat);
+        return;
+    }
     if (sketch_opt_val->split_mfa)
     { // mfa files parse
         mfa2sortedctxobj64_v2(sketch_opt_val, infile_stat);
@@ -1327,6 +1342,19 @@ void gen_inverted_index_for_minco(const char *refdir)
         err(EXIT_FAILURE, "%s():sketch_index maximun %lu exceed UINT32_MAX %u", __func__, sketch_size, UINT32_MAX);
     if (ref_result->infile_num >= (1 << GID_NBITS))
         err(EXIT_FAILURE, "%s(): genome numer %d exceed maximum:%u", __func__, ref_result->infile_num, 1 << GID_NBITS);
+    if (ref_result->payload_layout == MINCO_PAYLOAD_CTXOBJ96)
+    {
+        ctxgidobj128_t *ctxgidobj = ctxobj96_2ctxgidobj128(ref_result->sketch_index,
+                                                           ref_result->comb_sketch96,
+                                                           ref_result->infile_num,
+                                                           (uint32_t)sketch_size);
+        free_unify_sketch(ref_result);
+        ctxgidobj128_sort_array(ctxgidobj, sketch_size);
+        write_to_file(format_string("%s/%s", refdir, sorted_comb_ctx64gid32obj32),
+                      ctxgidobj, sizeof(ctxgidobj[0]) * sketch_size);
+        free(ctxgidobj);
+        return;
+    }
     if (GID_NBITS + 4 * hclen > 64)
         err(EXIT_FAILURE, "%s(): context_bits_len(%d)+gid_bits_len(%d) exceed 64", __func__, 4 * hclen, GID_NBITS);
     ctxgidobj_t *ctxgidobj = ctxobj64_2ctxgidobj(ref_result->sketch_index, ref_result->comb_sketch, ref_result->infile_num, sketch_size);
@@ -2193,6 +2221,452 @@ static bool sketch_has_stream_input(const sketch_opt_t *opt, const infile_tab_t 
     return sketch_has_stdin_input(tab);
 }
 
+typedef struct
+{
+    ctxobj96_t *a;
+    size_t n;
+    size_t cap;
+} ctxobj96_vec_t;
+
+static inline __uint128_t minco_mask128_bits(unsigned bits)
+{
+    if (bits >= 128)
+        return ~((__uint128_t)0);
+    return (((__uint128_t)1) << bits) - 1;
+}
+
+static inline void ctxobj96_vec_init(ctxobj96_vec_t *v, size_t cap)
+{
+    v->a = cap ? (ctxobj96_t *)malloc(cap * sizeof(v->a[0])) : NULL;
+    if (cap && !v->a)
+        err(errno, "%s(): OOM ctxobj96 vector", __func__);
+    v->n = 0;
+    v->cap = cap;
+}
+
+static inline void ctxobj96_vec_free(ctxobj96_vec_t *v)
+{
+    free(v->a);
+    v->a = NULL;
+    v->n = v->cap = 0;
+}
+
+static inline void ctxobj96_vec_reserve(ctxobj96_vec_t *v, size_t need)
+{
+    if (need <= v->cap)
+        return;
+    size_t nc = v->cap ? v->cap : 8192;
+    while (nc < need)
+        nc <<= 1;
+    ctxobj96_t *na = (ctxobj96_t *)realloc(v->a, nc * sizeof(v->a[0]));
+    if (!na)
+        err(errno, "%s(): OOM ctxobj96 vector", __func__);
+    v->a = na;
+    v->cap = nc;
+}
+
+static inline void ctxobj96_vec_push(ctxobj96_vec_t *v, ctxobj96_t rec)
+{
+    if (v->n == v->cap)
+        ctxobj96_vec_reserve(v, v->cap ? (v->cap << 1) : 8192);
+    v->a[v->n++] = rec;
+}
+
+static inline ctxobj96_t coden128_to_ctxobj96(__uint128_t tuple, int codens)
+{
+    uint64_t ctx = 0;
+    uint32_t obj = (uint32_t)(tuple & 0x3u);
+    for (int i = 0; i < codens; ++i)
+    {
+        tuple >>= 2;
+        ctx |= (uint64_t)(tuple & 0xFu) << (4 * i);
+        tuple >>= 4;
+        obj |= (uint32_t)(tuple & 0x3u) << (2 * (i + 1));
+    }
+    return ctxobj96_make(ctx, obj);
+}
+
+static inline size_t dedup_sorted_ctxobj96(ctxobj96_t *arr, size_t n)
+{
+    if (n <= 1)
+        return n;
+    size_t w = 0;
+    for (size_t r = 1; r < n; ++r)
+    {
+        if (arr[r].ctx != arr[w].ctx || arr[r].obj != arr[w].obj)
+            arr[++w] = arr[r];
+    }
+    return w + 1;
+}
+
+static inline size_t remove_ctx_with_conflict_obj96(ctxobj96_t *arr, size_t n)
+{
+    size_t w = 0;
+    for (size_t i = 0; i < n;)
+    {
+        const uint64_t ctx = arr[i].ctx;
+        size_t j = i + 1;
+        while (j < n && arr[j].ctx == ctx)
+            ++j;
+        if (j - i == 1)
+            arr[w++] = arr[i];
+        i = j;
+    }
+    return w;
+}
+
+typedef struct
+{
+    ctxobj96_t rec;
+    uint64_t h;
+} ctxobj96_hash_t;
+
+static int ctxobj96_hash_cmp(const void *pa, const void *pb)
+{
+    const ctxobj96_hash_t *a = (const ctxobj96_hash_t *)pa;
+    const ctxobj96_hash_t *b = (const ctxobj96_hash_t *)pb;
+    if (a->h != b->h)
+        return (a->h > b->h) - (a->h < b->h);
+    if (a->rec.ctx != b->rec.ctx)
+        return (a->rec.ctx > b->rec.ctx) - (a->rec.ctx < b->rec.ctx);
+    return (a->rec.obj > b->rec.obj) - (a->rec.obj < b->rec.obj);
+}
+
+static size_t minco_ctxobj96_bottom_contexts(ctxobj96_t *arr, size_t n, size_t keep)
+{
+    if (keep == 0 || n <= keep)
+        return n;
+    ctxobj96_hash_t *tmp = (ctxobj96_hash_t *)malloc(n * sizeof(tmp[0]));
+    if (!tmp)
+        err(errno, "%s(): OOM ctxobj96 hash buffer", __func__);
+    for (size_t i = 0; i < n; ++i)
+    {
+        tmp[i].rec = arr[i];
+        tmp[i].h = minco_mix64(arr[i].ctx ^ (uint64_t)MINCO_SEED);
+    }
+    qsort(tmp, n, sizeof(tmp[0]), ctxobj96_hash_cmp);
+
+    size_t out_n = 0;
+    size_t kept_ctx = 0;
+    for (size_t i = 0; i < n && kept_ctx < keep;)
+    {
+        const uint64_t ctx = tmp[i].rec.ctx;
+        size_t j = i + 1;
+        while (j < n && tmp[j].rec.ctx == ctx)
+            ++j;
+        for (size_t k = i; k < j; ++k)
+            arr[out_n++] = tmp[k].rec;
+        ++kept_ctx;
+        i = j;
+    }
+    free(tmp);
+    ctxobj96_sort_array(arr, out_n);
+    return out_n;
+}
+
+static uint64_t ctxobj96_hash_ctx64(uint64_t ctx)
+{
+    return minco_mix64(ctx ^ (uint64_t)MINCO_SEED);
+}
+
+static uint64_t *ctxobj96_collect_unique_ctx_hashes(const ctxobj96_t *arr,
+                                                    size_t n,
+                                                    size_t *hash_n_out)
+{
+    if (hash_n_out)
+        *hash_n_out = 0;
+    if (!arr || n == 0)
+        return NULL;
+
+    uint64_t *hashes = malloc(n * sizeof(hashes[0]));
+    if (!hashes)
+        err(errno, "%s(): OOM ctxobj96 ctx hashes", __func__);
+
+    size_t hn = 0;
+    for (size_t i = 0; i < n; ) {
+        const uint64_t ctx = arr[i].ctx;
+        hashes[hn++] = ctxobj96_hash_ctx64(ctx);
+        do { ++i; } while (i < n && arr[i].ctx == ctx);
+    }
+    if (hash_n_out)
+        *hash_n_out = hn;
+    return hashes;
+}
+
+static uint64_t ctxobj96_count_hashes_leq(const uint64_t *hashes,
+                                          size_t n,
+                                          uint64_t threshold)
+{
+    uint64_t count = 0;
+    for (size_t i = 0; i < n; ++i)
+        if (hashes[i] <= threshold)
+            ++count;
+    return count;
+}
+
+static uint64_t ctxobj96_selected_hash_threshold(const ctxobj96_t *arr, size_t n)
+{
+    uint64_t threshold = 0;
+    bool have = false;
+    for (size_t i = 0; i < n; ) {
+        const uint64_t h = ctxobj96_hash_ctx64(arr[i].ctx);
+        if (!have || h > threshold) {
+            threshold = h;
+            have = true;
+        }
+        const uint64_t ctx = arr[i].ctx;
+        do { ++i; } while (i < n && arr[i].ctx == ctx);
+    }
+    return have ? threshold : 0;
+}
+
+static uint64_t ctxobj96_count_unique_ctx(const ctxobj96_t *arr, size_t n)
+{
+    uint64_t count = 0;
+    for (size_t i = 0; i < n; ) {
+        const uint64_t ctx = arr[i].ctx;
+        ++count;
+        do { ++i; } while (i < n && arr[i].ctx == ctx);
+    }
+    return count;
+}
+
+static void ctxobj96_fill_ctxmeta(minco_ctxmeta_t *out,
+                                  const sketch_opt_t *opt,
+                                  const uint64_t *pre_hashes,
+                                  size_t pre_hash_n,
+                                  size_t post_total_len,
+                                  const ctxobj96_t *selected_post,
+                                  size_t selected_post_len)
+{
+    if (!out)
+        return;
+    *out = (minco_ctxmeta_t){
+        .valid = 0,
+        .mode = opt ? opt->ctxmeta_mode : MINCO_CTXMETA_NONE,
+        .hash_bits = 64u,
+        .threshold = 0,
+        .sketch_entries = (uint64_t)selected_post_len,
+    };
+    if (!minco_ctxobj96_ctxmeta_enabled(opt) || !selected_post || selected_post_len == 0)
+        return;
+
+    const bool full_density_sample =
+        !minco_density_threshold_enabled(opt) &&
+        opt->sketch_size > 0 && post_total_len <= (size_t)opt->sketch_size;
+    const uint64_t threshold = minco_density_threshold_enabled(opt)
+        ? opt->density_threshold
+        : (full_density_sample ? UINT64_MAX
+                               : ctxobj96_selected_hash_threshold(selected_post,
+                                                                   selected_post_len));
+    const uint64_t post_observed =
+        full_density_sample
+            ? ctxobj96_count_unique_ctx(selected_post, selected_post_len)
+            : ctxobj96_count_unique_ctx(selected_post, selected_post_len);
+    const uint64_t pre_observed =
+        pre_hashes ? ctxobj96_count_hashes_leq(pre_hashes, pre_hash_n, threshold)
+                   : post_observed;
+
+    out->valid = 1;
+    out->threshold = threshold;
+    out->preconflict_observed = pre_observed;
+    out->postconflict_observed = post_observed;
+    out->preconflict_estimate =
+        minco_ctxmeta_density_estimate(pre_observed, threshold, out->hash_bits);
+    out->postconflict_estimate =
+        minco_ctxmeta_density_estimate(post_observed, threshold, out->hash_bits);
+}
+
+static void sketch_read_into_ctxobj96_vec(const char *restrict s, int len,
+                                          ctxobj96_vec_t *restrict vec,
+                                          uint32_t klen, int codens)
+{
+    if (len < (int)klen)
+        return;
+    const unsigned tuple_bits = 2u * klen;
+    const __uint128_t tuple_mask = minco_mask128_bits(tuple_bits);
+    const unsigned rev_shift = 2u * (klen - 1u);
+    __uint128_t tuple = 0, crv = 0;
+    int base = 0;
+    for (int pos = 0; pos < len; ++pos)
+    {
+        const int bmap = Basemap[(unsigned char)s[pos]];
+        if (unlikely(bmap == DEFAULT))
+        {
+            base = 0;
+            tuple = 0;
+            crv = 0;
+            continue;
+        }
+        const __uint128_t b2 = (uint64_t)bmap;
+        tuple = ((tuple << 2) | b2) & tuple_mask;
+        crv = (crv >> 2) | ((b2 ^ 3u) << rev_shift);
+        if (unlikely(++base < (int)klen))
+            continue;
+
+        const ctxobj96_t fwd = coden128_to_ctxobj96(tuple, codens);
+        const ctxobj96_t rev = coden128_to_ctxobj96(crv, codens);
+        const ctxobj96_t rec =
+            (fwd.ctx < rev.ctx || (fwd.ctx == rev.ctx && fwd.obj <= rev.obj))
+                ? fwd
+                : rev;
+#if MINCO_APPLY_SOURCE_FILTER
+        if (unlikely(SKETCH_HASH(rec.ctx) > FILTER))
+            continue;
+#endif
+        ctxobj96_vec_push(vec, rec);
+    }
+}
+
+static size_t sketch_one_file_ctxobj96(const char *path, const sketch_opt_t *opt,
+                                       ctxobj96_t **records_out,
+                                       minco_ctxmeta_t *ctxmeta_out,
+                                       infile_meta_t *infile_meta_out)
+{
+    ctxobj96_vec_t vec;
+    ctxobj96_vec_init(&vec, 1u << 15);
+    sketch_stream_t stream = open_sketch_stream(path, opt ? opt->pipecmd : NULL);
+    (void)gzbuffer(stream.gz, 4u << 20);
+    kseq_t *seq = kseq_init(stream.gz);
+    if (!seq)
+        err(errno, "%s(): kseq_init %s", __func__, path);
+    uint64_t *asm_lengths = NULL;
+    size_t asm_n = 0, asm_cap = 0;
+    const bool collect_meta_lengths = should_collect_lengths_for_meta(opt, path);
+    while (kseq_read(seq) >= 0) {
+        if (collect_meta_lengths)
+            append_asm_length(&asm_lengths, &asm_n, &asm_cap, (uint64_t)seq->seq.l);
+        sketch_read_into_ctxobj96_vec(seq->seq.s, (int)seq->seq.l, &vec,
+                                      klen, NUM_CODENS);
+    }
+    kseq_destroy(seq);
+    close_sketch_stream(&stream);
+    if (infile_meta_out)
+        infile_meta_from_lengths(asm_lengths, asm_n, infile_fmt_from_path(path),
+                                 create_type_from_opt(opt),
+                                 infile_flags_from_path(path, opt),
+                                 infile_meta_out);
+    free(asm_lengths);
+
+    if (vec.n)
+    {
+        ctxobj96_sort_array(vec.a, vec.n);
+        vec.n = dedup_sorted_ctxobj96(vec.a, vec.n);
+        size_t pre_hash_n = 0;
+        uint64_t *pre_hashes = minco_ctxobj96_ctxmeta_enabled(opt)
+            ? ctxobj96_collect_unique_ctx_hashes(vec.a, vec.n, &pre_hash_n)
+            : NULL;
+        if (opt && !opt->conflict)
+            vec.n = remove_ctx_with_conflict_obj96(vec.a, vec.n);
+        const size_t post_total_n = vec.n;
+        if (opt && !minco_density_threshold_enabled(opt))
+            vec.n = minco_ctxobj96_bottom_contexts(vec.a, vec.n,
+                                                   minco_final_sketch_size(opt));
+        ctxobj96_fill_ctxmeta(ctxmeta_out, opt, pre_hashes, pre_hash_n,
+                              post_total_n, vec.a, vec.n);
+        free(pre_hashes);
+    }
+    else
+    {
+        ctxobj96_fill_ctxmeta(ctxmeta_out, opt, NULL, 0, 0, NULL, 0);
+    }
+    *records_out = vec.a;
+    return vec.n;
+}
+
+static void sketch_ctxobj96_files(sketch_opt_t *opt, infile_tab_t *tab)
+{
+    if (opt->position || opt->abundance || opt->reads_qc || opt->npercentile > 0.0 ||
+        opt->kmerocrs > 1 || opt->density_threshold_enabled || opt->conflict)
+        errx(EXIT_FAILURE,
+             "ctxobj96 coden%d sketches currently support core presence sketches only; "
+             "conflicts, position, abundance, readsQC, count filters, and density-threshold sidecars need separate 96-bit suffixes",
+             NUM_CODENS);
+    if (opt->split_mfa || opt->asone)
+        errx(EXIT_FAILURE, "ctxobj96 coden%d sketching currently supports one sample per input file", NUM_CODENS);
+
+    FILE *comb = fopen(format_string("%s/%s", opt->outdir, combined_sketch96_suffix), "wb");
+    if (!comb)
+        err(errno, "%s() open file error: %s/%s", __func__, opt->outdir, combined_sketch96_suffix);
+    setvbuf(comb, NULL, _IOFBF, 8u << 20);
+
+    uint64_t *index = (uint64_t *)calloc((size_t)tab->infile_num + 1, sizeof(index[0]));
+    if (!index)
+        err(errno, "%s(): OOM ctxobj96 index", __func__);
+    infile_meta_t *infile_meta_stats = NULL;
+    if (opt->compute_meta) {
+        infile_meta_stats = calloc((size_t)tab->infile_num, sizeof(infile_meta_stats[0]));
+        if (!infile_meta_stats)
+            err(errno, "%s(): OOM ctxobj96 infile metadata", __func__);
+    }
+    minco_ctxmeta_t *ctxmeta_stats = NULL;
+    if (minco_ctxobj96_ctxmeta_enabled(opt)) {
+        ctxmeta_stats = calloc((size_t)tab->infile_num, sizeof(ctxmeta_stats[0]));
+        if (!ctxmeta_stats)
+            err(errno, "%s(): OOM ctxobj96 ctxmeta", __func__);
+    }
+    uint64_t total = 0;
+    const int batch_size = 1024;
+    const int worker_n = opt->p > 0 ? opt->p : 1;
+    for (int batch_start = 0; batch_start < tab->infile_num; batch_start += batch_size) {
+        const int batch_end = batch_start + batch_size <= tab->infile_num
+                                  ? batch_start + batch_size
+                                  : tab->infile_num;
+        const int this_batch = batch_end - batch_start;
+        ctxobj96_t **batch_records = calloc((size_t)this_batch, sizeof(batch_records[0]));
+        uint64_t *batch_lens = calloc((size_t)this_batch, sizeof(batch_lens[0]));
+        if (!batch_records || !batch_lens)
+            err(errno, "%s(): OOM ctxobj96 batch", __func__);
+
+#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 1)
+        for (int bi = 0; bi < this_batch; ++bi) {
+            const int file_idx = batch_start + bi;
+            ctxobj96_t *records = NULL;
+            const size_t n = sketch_one_file_ctxobj96(
+                tab->organized_infile_tab[file_idx].fpath,
+                opt, &records,
+                ctxmeta_stats ? &ctxmeta_stats[file_idx] : NULL,
+                infile_meta_stats ? &infile_meta_stats[file_idx] : NULL);
+            batch_records[bi] = records;
+            batch_lens[bi] = (uint64_t)n;
+        }
+
+        for (int bi = 0; bi < this_batch; ++bi) {
+            const int file_idx = batch_start + bi;
+            const uint64_t n = batch_lens[bi];
+            if (n && fwrite(batch_records[bi], sizeof(batch_records[bi][0]), (size_t)n, comb) != n)
+                err(errno, "%s(): write %s", __func__, combined_sketch96_suffix);
+            free(batch_records[bi]);
+            total += n;
+            index[file_idx + 1] = total;
+        }
+        free(batch_records);
+        free(batch_lens);
+
+        fprintf(stderr, "\r%d/%d genomes sketched", batch_end, tab->infile_num);
+        fflush(stderr);
+    }
+    fprintf(stderr, "\n");
+    fclose(comb);
+    write_to_file(format_string("%s/%s", opt->outdir, idx_sketch96_suffix),
+                  index, (size_t)(tab->infile_num + 1) * sizeof(index[0]));
+    free(index);
+
+    write_sketch_stat_ex(opt->outdir, tab, opt->anno && !sketch_has_stream_input(opt, tab),
+                         false);
+    if (infile_meta_stats)
+        write_sketch_infile_meta_stats(opt->outdir, infile_meta_stats,
+                                       (size_t)tab->infile_num);
+    free(infile_meta_stats);
+    if (ctxmeta_stats) {
+        write_minco_ctxmeta_stats(opt->outdir, tab, ctxmeta_stats,
+                                  (size_t)tab->infile_num);
+        free(ctxmeta_stats);
+    } else {
+        remove_minco_ctxmeta(opt->outdir);
+    }
+}
+
 static void write_sketch_input_annotations(const char *outdir, infile_tab_t *infile_stat)
 {
     if (!infile_stat || infile_stat->infile_num <= 0)
@@ -2377,12 +2851,17 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
              sketch_opt_val->remaining_args[0], sketch_stat);
     if (first_info.has_minco_ext)
         minco_stat_one.hash_id = first_info.sketch_id;
+    const bool merge_use_ctxobj96 =
+        minco_stat_needs_ctxobj96(&minco_stat_one) ||
+        minco_stat_needs_ctxgidobj128(&minco_stat_one);
+    const char *merge_comb_suffix = merge_use_ctxobj96 ? combined_sketch96_suffix : combined_sketch_suffix;
+    const char *merge_idx_suffix = merge_use_ctxobj96 ? idx_sketch96_suffix : idx_sketch_suffix;
     minco_stat_one.infile_num = 0;
     char (*tmpname)[PATHLEN] = malloc(PATHLEN);
-    FILE *merge_out_fp = fopen(test_create_fullpath(sketch_opt_val->outdir, combined_sketch_suffix), "wb");
+    FILE *merge_out_fp = fopen(test_create_fullpath(sketch_opt_val->outdir, merge_comb_suffix), "wb");
     if (merge_out_fp == NULL)
-        err(errno, "%s():%s/%s", __func__, sketch_opt_val->outdir, combined_sketch_suffix);
-    bool merge_all_have_positions = true;
+        err(errno, "%s():%s/%s", __func__, sketch_opt_val->outdir, merge_comb_suffix);
+    bool merge_all_have_positions = !merge_use_ctxobj96;
     for (int i = 0; i < sketch_opt_val->num_remaining_args; ++i) {
         if (!file_exists_in_folder(sketch_opt_val->remaining_args[i], sketch_position_suffix)) {
             merge_all_have_positions = false;
@@ -2422,6 +2901,11 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
             minco_stat_iter.hash_id = it_info.sketch_id;
         if (minco_stat_iter.hash_id != minco_stat_one.hash_id)
             err(EINVAL, "%uth %s hashid: %u != %u ", i, sketch_opt_val->remaining_args[i], minco_stat_iter.hash_id, minco_stat_one.hash_id);
+        const bool iter_uses_ctxobj96 =
+            minco_stat_needs_ctxobj96(&minco_stat_iter) ||
+            minco_stat_needs_ctxgidobj128(&minco_stat_iter);
+        if (iter_uses_ctxobj96 != merge_use_ctxobj96)
+            errx(EINVAL, "%s(): cannot merge mixed ctxobj64 and ctxobj96 sketches", __func__);
         if (minco_stat_iter.koc == 0)
             minco_stat_one.koc = 0;
         const int old_infile_num = minco_stat_one.infile_num;
@@ -2433,7 +2917,7 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
                PATHLEN * minco_stat_iter.infile_num);
         // set index
         size_t index_it_size = 0;
-        uint64_t *mem_index_it = read_from_file(test_get_fullpath(sketch_opt_val->remaining_args[i], idx_sketch_suffix), &index_it_size);
+        uint64_t *mem_index_it = read_from_file(test_get_fullpath(sketch_opt_val->remaining_args[i], merge_idx_suffix), &index_it_size);
         index_arry = (uint64_t *)realloc(index_arry, sizeof(uint64_t) * (new_infile_num + 1));
         for (int j = 1; j < minco_stat_iter.infile_num + 1; j++)
             index_arry[old_infile_num + j] = index_arry[old_infile_num] + mem_index_it[j];
@@ -2541,9 +3025,9 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
 
         // add file num
         minco_stat_one.infile_num = new_infile_num;
-        // write combined_sketch_suffix
+        // write combined sketch payload
         size_t ctxobj_part_size = 0;
-        uint64_t *mem_ctxobj = read_from_file(test_get_fullpath(sketch_opt_val->remaining_args[i], combined_sketch_suffix), &ctxobj_part_size);
+        void *mem_ctxobj = read_from_file(test_get_fullpath(sketch_opt_val->remaining_args[i], merge_comb_suffix), &ctxobj_part_size);
         fwrite(mem_ctxobj, ctxobj_part_size, 1, merge_out_fp);
         if (merge_pos_fp) {
             size_t pos_it_size = 0;
@@ -2559,10 +3043,12 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
         free_read_from_file(mem_index_it, index_it_size);
         free_read_from_file(mem_ctxobj, ctxobj_part_size);
     }
-    fclose(merge_out_fp); // write combined_sketch_suffix complete
+    fclose(merge_out_fp); // write combined sketch payload complete
     if (merge_pos_fp)
         fclose(merge_pos_fp);
 
+    if (merge_use_ctxobj96 && minco_stat_one.koc)
+        errx(EINVAL, "%s(): ctxobj96 abundance merge is not supported", __func__);
     if (minco_stat_one.koc)
     {
         merge_out_fp = fopen(test_create_fullpath(sketch_opt_val->outdir, combined_ab_suffix), "wb");
@@ -2578,7 +3064,7 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
         fclose(merge_out_fp);
     }
     // write index and stat file
-    write_to_file(test_create_fullpath(sketch_opt_val->outdir, idx_sketch_suffix), index_arry, sizeof(index_arry[0]) * (minco_stat_one.infile_num + 1));
+    write_to_file(test_create_fullpath(sketch_opt_val->outdir, merge_idx_suffix), index_arry, sizeof(index_arry[0]) * (minco_stat_one.infile_num + 1));
     minco_stat_write_path(test_create_fullpath(sketch_opt_val->outdir, sketch_stat),
                           &minco_stat_one,
                           (const char (*)[PATHLEN])tmpname,
@@ -2624,6 +3110,10 @@ typedef struct append_sketch_part
     size_t index_size;
     uint64_t entries;
     size_t ctxobj_size;
+    bool uses_ctxobj96;
+    const char *combined_suffix;
+    const char *index_suffix;
+    size_t payload_item_size;
     bool has_positions;
     size_t position_size;
     size_t abundance_size;
@@ -2771,27 +3261,35 @@ static void append_load_part(append_sketch_part_t *part, const char *path)
     if (part->stat_size < expected_stat)
         errx(EINVAL, "%s(): %s/%s has %zu bytes, expected at least %zu",
              __func__, path, sketch_stat, part->stat_size, expected_stat);
+    part->uses_ctxobj96 =
+        minco_stat_needs_ctxobj96(&part->stat) ||
+        minco_stat_needs_ctxgidobj128(&part->stat);
+    part->combined_suffix = part->uses_ctxobj96 ? combined_sketch96_suffix : combined_sketch_suffix;
+    part->index_suffix = part->uses_ctxobj96 ? idx_sketch96_suffix : idx_sketch_suffix;
+    part->payload_item_size = part->uses_ctxobj96 ? sizeof(ctxobj96_t) : sizeof(uint64_t);
 
-    char *index_path = append_read_path(path, idx_sketch_suffix);
+    char *index_path = append_read_path(path, part->index_suffix);
     part->index = read_from_file(index_path, &part->index_size);
     free(index_path);
     const size_t expected_index =
         ((size_t)part->stat.infile_num + 1) * sizeof(part->index[0]);
     if (part->index_size != expected_index)
         errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
-             __func__, path, idx_sketch_suffix, part->index_size, expected_index);
+             __func__, path, part->index_suffix, part->index_size, expected_index);
     if (part->index[0] != 0)
-        errx(EINVAL, "%s(): %s/%s does not start at zero", __func__, path, idx_sketch_suffix);
+        errx(EINVAL, "%s(): %s/%s does not start at zero", __func__, path, part->index_suffix);
     part->entries = part->index[part->stat.infile_num];
     for (int i = 0; i < part->stat.infile_num; ++i) {
         if (part->index[i + 1] < part->index[i])
             errx(EINVAL, "%s(): %s/%s is not monotonic at sample %d",
-                 __func__, path, idx_sketch_suffix, i);
+                 __func__, path, part->index_suffix, i);
     }
 
     part->ctxobj_size =
-        append_entries_bytes(part->entries, sizeof(uint64_t), path, combined_sketch_suffix);
-    append_validate_regular_size(path, combined_sketch_suffix, part->ctxobj_size);
+        append_entries_bytes(part->entries, part->payload_item_size, path, part->combined_suffix);
+    append_validate_regular_size(path, part->combined_suffix, part->ctxobj_size);
+    if (part->uses_ctxobj96 && part->stat.koc)
+        errx(EINVAL, "%s(): ctxobj96 abundance sidecars are not supported", __func__);
     if (part->stat.koc) {
         part->abundance_size =
             append_entries_bytes(part->entries, sizeof(uint32_t), path, combined_ab_suffix);
@@ -3220,6 +3718,11 @@ static void remove_stale_sorted_index(const char *target_dir)
             err(errno, "%s(): cannot remove stale %s", __func__, path);
         free(path);
     }
+    while ((path = sketch_existing_fullpath(target_dir, sorted_comb_ctx64gid32obj32)) != NULL) {
+        if (unlink(path) != 0 && errno != ENOENT)
+            err(errno, "%s(): cannot remove stale %s", __func__, path);
+        free(path);
+    }
 }
 
 static void remove_file_if_exists(const char *target_dir, const char *suffix)
@@ -3356,19 +3859,19 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
     minco_sketch_stat_t new_stat = target->stat;
     new_stat.infile_num = kept_samples;
 
-    char *tmp_comb = append_tmp_path(output_dir, combined_sketch_suffix);
+    char *tmp_comb = append_tmp_path(output_dir, target->combined_suffix);
     char *tmp_ab = target->stat.koc ? append_tmp_path(output_dir, combined_ab_suffix) : NULL;
     char *tmp_pos = keep_positions ? append_tmp_path(output_dir, sketch_position_suffix) : NULL;
-    char *tmp_index = append_tmp_path(output_dir, idx_sketch_suffix);
+    char *tmp_index = append_tmp_path(output_dir, target->index_suffix);
     char *tmp_stat = append_tmp_path(output_dir, sketch_stat);
     char *tmp_qc = target->has_qc ? append_tmp_path(output_dir, sketch_qc_stat) : NULL;
     char *tmp_meta = target->has_meta ? append_tmp_path(output_dir, sketch_infile_meta_stat) : NULL;
     char *tmp_anno = target->has_anno ? append_tmp_path(output_dir, sketch_anno_stat) : NULL;
     char *tmp_ctxmeta = has_ctxmeta ? append_tmp_path(output_dir, minco_ctxmeta_bin_stat) : NULL;
 
-    remove_copy_filtered_payload(input_dir, combined_sketch_suffix, tmp_comb,
+    remove_copy_filtered_payload(input_dir, target->combined_suffix, tmp_comb,
                                  target->index, target->stat.infile_num, remove_sample,
-                                 sizeof(uint64_t));
+                                 target->payload_item_size);
     if (target->stat.koc)
         remove_copy_filtered_payload(input_dir, combined_ab_suffix, tmp_ab,
                                      target->index, target->stat.infile_num, remove_sample,
@@ -3393,12 +3896,12 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
                       kept_count * sizeof(new_ctxmeta[0]));
 
     remove_stale_sorted_index(output_dir);
-    remove_replace_tmp(tmp_comb, output_dir, combined_sketch_suffix);
+    remove_replace_tmp(tmp_comb, output_dir, target->combined_suffix);
     if (target->stat.koc)
         remove_replace_tmp(tmp_ab, output_dir, combined_ab_suffix);
     if (keep_positions)
         remove_replace_tmp(tmp_pos, output_dir, sketch_position_suffix);
-    remove_replace_tmp(tmp_index, output_dir, idx_sketch_suffix);
+    remove_replace_tmp(tmp_index, output_dir, target->index_suffix);
     remove_replace_tmp(tmp_stat, output_dir, sketch_stat);
     if (target->has_qc)
         remove_replace_tmp(tmp_qc, output_dir, sketch_qc_stat);
@@ -3653,6 +4156,122 @@ static int dedup_component_quality_compare(void *ctx, int a, int b)
     return dedup_quality_compare(dctx->target, a, b);
 }
 
+typedef struct dedup_component_ctx96
+{
+    sketch_dedup_metric_t metric;
+    unify_sketch_t sketch;
+    const append_sketch_part_t *target;
+} dedup_component_ctx96_t;
+
+static dedup_pair_eval_t dedup_component_eval_pair96(void *ctx, int a, int b)
+{
+    dedup_component_ctx96_t *dctx = ctx;
+    return pairwise_eval_expr_samples(&dctx->metric, &dctx->sketch, (uint32_t)a,
+                                      &dctx->sketch, (uint32_t)b, false);
+}
+
+static int dedup_component_quality_compare96(void *ctx, int a, int b)
+{
+    const dedup_component_ctx96_t *dctx = ctx;
+    return dedup_quality_compare(dctx->target, a, b);
+}
+
+static int dedup_minco_samples_ctxobj96(sketch_opt_t *sketch_opt_val,
+                                        append_sketch_part_t *target,
+                                        const char *input_dir,
+                                        const char *output_dir,
+                                        bool copy_mode)
+{
+    if (sketch_opt_val->dedup_index)
+        errx(EINVAL, "%s(): --dedup-index is not supported for ctxobj96 sketches; "
+             "use non-index --dedup or `minco matrix --format dedup-plan`",
+             __func__);
+
+    char *comb_path = append_read_path(input_dir, target->combined_suffix);
+    size_t comb_size = 0;
+    ctxobj96_t *comb = read_from_file(comb_path, &comb_size);
+    free(comb_path);
+    if (comb_size != target->ctxobj_size)
+        errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+             __func__, input_dir, target->combined_suffix, comb_size,
+             target->ctxobj_size);
+
+    const int nfiles = target->stat.infile_num;
+    const_comask_init(&target->stat);
+    ani_model_target_sketch_size = append_part_target_sketch_size(target);
+    ani_model_compat_filter_shift = target->stat.compat_filter_shift;
+
+    dedup_component_ctx96_t ctx = {
+        .metric = sketch_opt_val->dedup_metric,
+        .target = target,
+    };
+    ctx.sketch.stat_type = 2;
+    ctx.sketch.mem_stat = target->stat_mem;
+    ctx.sketch.gname = append_part_names(target);
+    ctx.sketch.comb_sketch96 = comb;
+    ctx.sketch.sketch_index = target->index;
+    ctx.sketch.infile_num = nfiles;
+    ctx.sketch.kmerlen = target->stat.klen;
+    ctx.sketch.hash_id = target->stat.hash_id;
+    ctx.sketch.conflict = target->stat.conflict;
+    ctx.sketch.stats.minco_stat = target->stat;
+    ctx.sketch.minco_info = target->info;
+    ctx.sketch.payload_layout = MINCO_PAYLOAD_CTXOBJ96;
+    ctx.sketch.payload_item_size = sizeof(ctxobj96_t);
+    ctx.sketch.infile_meta = target->meta;
+
+    pairwise_component_result_t comp = {0};
+    if (sketch_opt_val->dedup_strategy == PAIRWISE_DEDUP_COMPLETE_LINKAGE) {
+        pairwise_build_complete_linkage_dedup(nfiles, sketch_opt_val->dedup_cutoff,
+                                              sketch_opt_val->dedup_ctxcut,
+                                              sketch_opt_val->dedup_max_afcut,
+                                              &ctx,
+                                              dedup_component_eval_pair96,
+                                              dedup_component_quality_compare96,
+                                              NULL, NULL, NULL, NULL, &comp);
+    } else {
+        pairwise_build_greedy_dedup(nfiles, sketch_opt_val->dedup_cutoff,
+                                    sketch_opt_val->dedup_ctxcut,
+                                    sketch_opt_val->dedup_max_afcut,
+                                    &ctx,
+                                    dedup_component_eval_pair96,
+                                    dedup_component_quality_compare96,
+                                    NULL, NULL, NULL, NULL, &comp);
+    }
+
+    uint64_t removed_entries = 0;
+    int kept_samples = nfiles;
+    int removed_samples = comp.removed_samples;
+    if (removed_samples > 0 || copy_mode || sketch_opt_val->drop_position) {
+        kept_samples = apply_minco_sample_filter(input_dir, output_dir,
+                                                 target, comp.remove_sample,
+                                                 sketch_opt_val->drop_position,
+                                                 &removed_samples,
+                                                 &removed_entries);
+    }
+
+    if (copy_mode)
+        printf("Deduplicated %s into %s; metric=%s strategy=%s cutoff=%.12g dedup_max_afcut=%.12g dedup_ctxcut=%u dedup_index=0 kept=%d removed=%d duplicate_clusters=%d duplicate_edges=%" PRIu64 " distance_edges=%" PRIu64 " dedup_ctx_rejects=%" PRIu64 " dedup_max_af_rejects=%" PRIu64 " removed_entries=%" PRIu64 "\n",
+               input_dir, output_dir, dedup_metric_name(sketch_opt_val->dedup_metric),
+               pairwise_dedup_strategy_name(sketch_opt_val->dedup_strategy),
+               sketch_opt_val->dedup_cutoff, sketch_opt_val->dedup_max_afcut,
+               sketch_opt_val->dedup_ctxcut, kept_samples, removed_samples,
+               comp.duplicate_clusters, comp.duplicate_edges, comp.distance_edges,
+               comp.ctx_rejects, comp.max_af_rejects, removed_entries);
+    else
+        printf("Deduplicated %s; metric=%s strategy=%s cutoff=%.12g dedup_max_afcut=%.12g dedup_ctxcut=%u dedup_index=0 kept=%d removed=%d duplicate_clusters=%d duplicate_edges=%" PRIu64 " distance_edges=%" PRIu64 " dedup_ctx_rejects=%" PRIu64 " dedup_max_af_rejects=%" PRIu64 " removed_entries=%" PRIu64 "\n",
+               output_dir, dedup_metric_name(sketch_opt_val->dedup_metric),
+               pairwise_dedup_strategy_name(sketch_opt_val->dedup_strategy),
+               sketch_opt_val->dedup_cutoff, sketch_opt_val->dedup_max_afcut,
+               sketch_opt_val->dedup_ctxcut, kept_samples, removed_samples,
+               comp.duplicate_clusters, comp.duplicate_edges, comp.distance_edges,
+               comp.ctx_rejects, comp.max_af_rejects, removed_entries);
+
+    pairwise_component_result_free(&comp);
+    free_read_from_file(comb, comb_size);
+    return kept_samples;
+}
+
 static void dedup_index_edge_observer(void *ctx, int qry, int ref,
                                       const pairwise_eval_t *eval)
 {
@@ -3681,6 +4300,13 @@ int dedup_minco_samples(sketch_opt_t *sketch_opt_val)
     append_load_part(&target, input_dir);
     if (target.stat.infile_num <= 0)
         errx(EINVAL, "%s(): %s contains no samples", __func__, input_dir);
+    if (target.uses_ctxobj96) {
+        const int kept = dedup_minco_samples_ctxobj96(sketch_opt_val, &target,
+                                                      input_dir, output_dir,
+                                                      copy_mode);
+        append_free_part(&target);
+        return kept;
+    }
 
     char *comb_path = append_read_path(input_dir, combined_sketch_suffix);
     size_t comb_size = 0;
@@ -3956,13 +4582,15 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
 
     minco_sketch_stat_t merged_stat = parts[0].stat;
     merged_stat.infile_num = total_samples;
+    const char *append_index_suffix = parts[0].index_suffix;
+    const char *append_combined_suffix = parts[0].combined_suffix;
 
-    char *tmp_index = append_tmp_path(sketch_opt_val->outdir, idx_sketch_suffix);
+    char *tmp_index = append_tmp_path(sketch_opt_val->outdir, append_index_suffix);
     char *tmp_stat = append_tmp_path(sketch_opt_val->outdir, sketch_stat);
     char *tmp_qc = any_qc ? append_tmp_path(sketch_opt_val->outdir, sketch_qc_stat) : NULL;
     char *tmp_meta = any_meta ? append_tmp_path(sketch_opt_val->outdir, sketch_infile_meta_stat) : NULL;
     char *tmp_anno = any_anno ? append_tmp_path(sketch_opt_val->outdir, sketch_anno_stat) : NULL;
-    char *tmp_comb = copy_mode ? append_tmp_path(sketch_opt_val->outdir, combined_sketch_suffix) : NULL;
+    char *tmp_comb = copy_mode ? append_tmp_path(sketch_opt_val->outdir, append_combined_suffix) : NULL;
     char *tmp_ab = copy_mode && parts[0].stat.koc ? append_tmp_path(sketch_opt_val->outdir, combined_ab_suffix) : NULL;
     char *tmp_pos = copy_mode && parts[0].has_positions ? append_tmp_path(sketch_opt_val->outdir, sketch_position_suffix) : NULL;
 
@@ -3980,19 +4608,19 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
 
     append_payload_rollback_t rollback = {0};
     if (copy_mode) {
-        append_copy_parts_payload_to_tmp(parts, part_count, combined_sketch_suffix, tmp_comb);
+        append_copy_parts_payload_to_tmp(parts, part_count, append_combined_suffix, tmp_comb);
         if (parts[0].stat.koc)
             append_copy_parts_payload_to_tmp(parts, part_count, combined_ab_suffix, tmp_ab);
         if (parts[0].has_positions)
             append_copy_parts_payload_to_tmp(parts, part_count, sketch_position_suffix, tmp_pos);
 
         remove_stale_sorted_index(sketch_opt_val->outdir);
-        remove_replace_tmp(tmp_comb, sketch_opt_val->outdir, combined_sketch_suffix);
+        remove_replace_tmp(tmp_comb, sketch_opt_val->outdir, append_combined_suffix);
         if (parts[0].stat.koc)
             remove_replace_tmp(tmp_ab, sketch_opt_val->outdir, combined_ab_suffix);
         if (parts[0].has_positions)
             remove_replace_tmp(tmp_pos, sketch_opt_val->outdir, sketch_position_suffix);
-        remove_replace_tmp(tmp_index, sketch_opt_val->outdir, idx_sketch_suffix);
+        remove_replace_tmp(tmp_index, sketch_opt_val->outdir, append_index_suffix);
         remove_replace_tmp(tmp_stat, sketch_opt_val->outdir, sketch_stat);
         if (any_qc)
             remove_replace_tmp(tmp_qc, sketch_opt_val->outdir, sketch_qc_stat);
@@ -4004,10 +4632,10 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
                                       parts[0].has_positions, any_qc, any_meta, any_anno,
                                       false);
     } else {
-        rollback.ctxobj_path = append_join_path(sketch_opt_val->outdir, combined_sketch_suffix);
+        rollback.ctxobj_path = append_join_path(sketch_opt_val->outdir, append_combined_suffix);
         rollback.has_abundance = parts[0].stat.koc;
         rollback.has_positions = parts[0].has_positions;
-        append_seed_canonical_payload(sketch_opt_val->outdir, combined_sketch_suffix,
+        append_seed_canonical_payload(sketch_opt_val->outdir, append_combined_suffix,
                                       rollback.ctxobj_path, &rollback);
         rollback.ctxobj_size = parts[0].ctxobj_size;
         if (rollback.has_abundance) {
@@ -4024,7 +4652,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         }
 
         for (int i = 1; i < part_count; ++i) {
-            char *src_comb = append_read_path(parts[i].path, combined_sketch_suffix);
+            char *src_comb = append_read_path(parts[i].path, append_combined_suffix);
             append_copy_file_or_rollback(src_comb, rollback.ctxobj_path, &rollback);
             free(src_comb);
             if (rollback.has_abundance) {
@@ -4040,7 +4668,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         }
 
         remove_stale_sorted_index(sketch_opt_val->outdir);
-        append_replace_tmp_or_rollback(tmp_index, sketch_opt_val->outdir, idx_sketch_suffix, &rollback);
+        append_replace_tmp_or_rollback(tmp_index, sketch_opt_val->outdir, append_index_suffix, &rollback);
         append_replace_tmp_or_rollback(tmp_stat, sketch_opt_val->outdir, sketch_stat, &rollback);
         if (any_qc)
             append_replace_tmp_or_rollback(tmp_qc, sketch_opt_val->outdir, sketch_qc_stat, &rollback);

@@ -46,8 +46,12 @@ extern double C9O7_98[6], C9O7_96[6];
 size_t file_size;
 
 const char unified_detail_header[] = "Qry\tRef\tANI\tDistance\tConfidence\tSelected_metric\tXnY_ctx\tQry_align_fraction\tblastn_Qry_align_fraction\tRef_align_fraction\tblastn_Ref_align_fraction\tN_diff_obj\tN_diff_obj_section\tN_mut2_ctx\tRef_annotation\tReal_Qry_align_fraction\tReal_Ref_align_fraction\tReal_min_align_fraction\tAF_source";
-const char readwise_detail_extra_header[] = "Reads_with_ctx_match\tTotal_reads\tRead_match_fraction\tUnique_query_ctx\tUnique_query_ctx_hit\tUnique_ref_ctx_hit\tDensity_block_ctx\tTotal_density_blocks\tBlocks_with_ctx_match\tBlock_match_fraction";
-const char readwise_abundance_extra_header[] = "Ref_breadth\tRef_mean_depth\tRef_hit_mean_depth\tRef_depth_variance\tRef_depth_cv\tRef_zero_fraction\tRelative_abundance_depth\tNormalized_abundance_depth\tDefault_call\tDefault_call_rule";
+const char readwise_detail_extra_header[] = "Reads_with_ctx_match\tTotal_reads\tRead_match_fraction\tUnique_query_ctx\tUnique_query_ctx_hit\tUnique_ref_ctx_hit\tDensity_block_ctx\tTotal_density_blocks\tBlocks_with_ctx_match\tBlock_match_fraction\tRaw_XnY_ctx\tRejected_ctx\tRejected_diff_ctx\tFake_ctx_fraction\tFake_ctx_prob_mean\tFake_ctx_prob_weighted";
+const char readwise_abundance_extra_header[] = "Ref_breadth\tRef_mean_depth\tRef_hit_mean_depth\tRef_depth_variance\tRef_depth_cv\tRef_zero_fraction\tRelative_abundance_depth\tNormalized_abundance_depth\tEffective_abundance_depth\tNormalized_effective_abundance_depth\tRef_zip_af\tRef_zip_aaf_ani\tReliable_Ref_breadth\tReliable_Ref_mean_depth\tReliable_Ref_hit_ctx\tReliable_Ref_hit_mean_depth\tReliable_Ref_hit_median_depth\tReliable_Ref_hit_depth_variance\tReliable_Ref_zip_af\tDefault_call\tDefault_call_rule";
+const char readwise_marker_extra_header[] = "Marker_XnY_ctx\tMarker_Raw_XnY_ctx\tMarker_N_diff_obj\tMarker_N_diff_obj_section\tMarker_N_mut2_ctx\tMarker_Ref_ctx_total\tctx_marker_size\tMarker_Ref_breadth\tMarker_Ref_mean_depth\tMarker_Ref_hit_mean_depth\tMarker_Ref_depth_variance\tMarker_Ref_depth_cv\tMarker_Ref_zero_fraction\tMarker_Relative_abundance_depth\tMarker_Effective_abundance_depth\tMarker_Ref_zip_af\tMarker_Ref_zip_aaf_ani\tMarker_Reliable_Ref_breadth\tMarker_Reliable_Ref_mean_depth\tMarker_Reliable_Ref_hit_ctx\tMarker_Reliable_Ref_hit_mean_depth\tMarker_Reliable_Ref_hit_median_depth\tMarker_Reliable_Ref_hit_depth_variance\tMarker_Reliable_Ref_zip_af";
+
+#define MINCO_READWISE_EFFECTIVE_MEDIAN_DEPTH_CUTOFF 20.0
+#define MINCO_READWISE_EFFECTIVE_AF_EXPONENT 1.05
 #define ANI_SELECTED_METRIC_COUNT 8
 const char select_metrics_header[ANI_SELECTED_METRIC_COUNT][20] = {
 	"BestDist", "RecalDist", "CtxMoE", "Naive",
@@ -163,6 +167,52 @@ static inline double aaf_ani_from_counts(double overlap, double qry_ctx, double 
 	return bounded_ani(1.0 + log(containment) / ctx_k_for_ani());
 }
 
+static inline double aaf_ani_from_containment(double containment)
+{
+	if (containment <= 0.0)
+		return 0.0;
+	if (containment > 1.0)
+		containment = 1.0;
+	return bounded_ani(1.0 + log(containment) / ctx_k_for_ani());
+}
+
+static inline double ani_zip_observed_breadth(double latent_af, double mean_depth)
+{
+	if (latent_af <= 0.0 || mean_depth <= 0.0)
+		return 0.0;
+	const double lambda = mean_depth / latent_af;
+	if (lambda > 700.0)
+		return latent_af;
+	return latent_af * (1.0 - exp(-lambda));
+}
+
+static double ani_zip_corrected_af(double observed_breadth, double mean_depth)
+{
+	if (!isfinite(observed_breadth) || observed_breadth <= 0.0)
+		return 0.0;
+	if (observed_breadth >= 1.0)
+		return 1.0;
+	if (!isfinite(mean_depth) || mean_depth <= 0.0)
+		return observed_breadth;
+	double lo = observed_breadth;
+	double hi = 1.0;
+	const double f_lo = ani_zip_observed_breadth(lo, mean_depth);
+	const double f_hi = ani_zip_observed_breadth(hi, mean_depth);
+	if (observed_breadth <= f_lo + 1e-12)
+		return lo;
+	if (observed_breadth >= f_hi - 1e-12)
+		return hi;
+	for (int i = 0; i < 48; ++i) {
+		const double mid = 0.5 * (lo + hi);
+		const double f_mid = ani_zip_observed_breadth(mid, mean_depth);
+		if (f_mid < observed_breadth)
+			lo = mid;
+		else
+			hi = mid;
+	}
+	return 0.5 * (lo + hi);
+}
+
 static inline void print_ani_detail_header(FILE *outfp, const ani_opt_t *ani_opt, bool include_selected_metric)
 {
 	(void)include_selected_metric;
@@ -170,7 +220,11 @@ static inline void print_ani_detail_header(FILE *outfp, const ani_opt_t *ani_opt
 	{
 		fprintf(outfp, "%s\t%s", unified_detail_header, readwise_detail_extra_header);
 		if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
+		{
 			fprintf(outfp, "\t%s", readwise_abundance_extra_header);
+			if (ani_opt->readwise_dual_evidence)
+				fprintf(outfp, "\t%s", readwise_marker_extra_header);
+		}
 		fputc('\n', outfp);
 	}
 	else
@@ -1115,9 +1169,16 @@ typedef struct {
     uint64_t readwise_unique_query_ctx;
     uint64_t readwise_unique_query_ctx_hit;
     uint64_t readwise_unique_ref_ctx_hit;
+    uint64_t readwise_ref_ctx_total;
     uint64_t readwise_density_block_ctx;
     uint64_t readwise_total_density_blocks;
     uint64_t readwise_blocks_with_ctx_match;
+    uint64_t readwise_raw_xny_ctx;
+    uint64_t readwise_rejected_ctx;
+    uint64_t readwise_rejected_diff_ctx;
+    double   readwise_fake_ctx_fraction;
+    double   readwise_fake_ctx_prob_mean;
+    double   readwise_fake_ctx_prob_weighted;
     double   abundance_ref_breadth;
     double   abundance_ref_mean_depth;
     double   abundance_ref_hit_mean_depth;
@@ -1126,6 +1187,40 @@ typedef struct {
     double   abundance_ref_zero_fraction;
     double   abundance_relative_depth;
     double   abundance_normalized_depth;
+    double   abundance_effective_depth;
+    double   abundance_normalized_effective_depth;
+    double   abundance_ref_zip_af;
+    double   abundance_ref_zip_aaf_ani;
+    double   reliable_ref_breadth;
+    double   reliable_ref_mean_depth;
+    uint64_t reliable_ref_hit_ctx;
+    double   reliable_ref_hit_mean_depth;
+    double   reliable_ref_hit_median_depth;
+    double   reliable_ref_hit_depth_variance;
+    double   reliable_ref_zip_af;
+    uint64_t marker_xny_ctx;
+    uint64_t marker_raw_xny_ctx;
+    uint64_t marker_n_diff_obj;
+    uint64_t marker_n_diff_obj_section;
+    uint64_t marker_n_mut2_ctx;
+    uint64_t marker_ref_ctx_total;
+    double   marker_ref_breadth;
+    double   marker_ref_mean_depth;
+    double   marker_ref_hit_mean_depth;
+    double   marker_ref_depth_variance;
+    double   marker_ref_depth_cv;
+    double   marker_ref_zero_fraction;
+    double   marker_relative_depth;
+    double   marker_effective_depth;
+    double   marker_ref_zip_af;
+    double   marker_ref_zip_aaf_ani;
+    double   marker_reliable_ref_breadth;
+    double   marker_reliable_ref_mean_depth;
+    uint64_t marker_reliable_ref_hit_ctx;
+    double   marker_reliable_ref_hit_mean_depth;
+    double   marker_reliable_ref_hit_median_depth;
+    double   marker_reliable_ref_hit_depth_variance;
+    double   marker_reliable_ref_zip_af;
 } ani_row_t;
 
 static inline double ani_row_report_af_qry(const ani_row_t *r)
@@ -1160,11 +1255,12 @@ typedef enum ani_readwise_default_call
 	ANI_READWISE_CALL_MAJOR = 2
 } ani_readwise_default_call_t;
 
-static inline uint64_t ani_readwise_default_support_cut(void)
+static inline uint64_t ani_readwise_default_support_cut_for_ref(uint64_t ref_ctx_total)
 {
-	uint64_t target = ani_model_target_sketch_size
-						  ? (uint64_t)ani_model_target_sketch_size
-						  : (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	uint64_t target = ref_ctx_total ? ref_ctx_total :
+		(ani_model_target_sketch_size
+			 ? (uint64_t)ani_model_target_sketch_size
+			 : (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE);
 	if (!target)
 		target = (uint64_t)ANI_MODEL_REFERENCE_SKETCH_SIZE;
 	uint64_t cut = (target + 99u) / 100u;
@@ -1173,6 +1269,31 @@ static inline uint64_t ani_readwise_default_support_cut(void)
 	if (cut > target)
 		cut = target;
 	return cut;
+}
+
+static inline uint64_t ani_readwise_default_support_cut(const ani_row_t *r)
+{
+	return ani_readwise_default_support_cut_for_ref(
+		r ? r->readwise_ref_ctx_total : 0);
+}
+
+static uint64_t ani_readwise_default_min_support_cut(const uint32_t *ref_ctx_total,
+													 uint32_t ref_n)
+{
+	uint64_t min_cut = UINT64_MAX;
+	if (ref_ctx_total) {
+		for (uint32_t rn = 0; rn < ref_n; ++rn) {
+			if (!ref_ctx_total[rn])
+				continue;
+			const uint64_t cut =
+				ani_readwise_default_support_cut_for_ref(ref_ctx_total[rn]);
+			if (cut < min_cut)
+				min_cut = cut;
+		}
+	}
+	return min_cut == UINT64_MAX
+			   ? ani_readwise_default_support_cut_for_ref(0)
+			   : min_cut;
 }
 
 static inline bool ani_readwise_default_support_pass(const ani_row_t *r,
@@ -1187,7 +1308,7 @@ static inline ani_readwise_default_call_t ani_readwise_default_call(const ani_ro
 {
 	if (!r)
 		return ANI_READWISE_CALL_WEAK;
-	const uint64_t support_cut = ani_readwise_default_support_cut();
+	const uint64_t support_cut = ani_readwise_default_support_cut(r);
 	if (r->abundance_ref_breadth >= 0.5 &&
 		r->abundance_relative_depth >= 1e-4 &&
 		ani_readwise_default_support_pass(r, support_cut) &&
@@ -1275,10 +1396,14 @@ static void normalize_readwise_abundance_depth(kv_ani_row_t *rows, size_t out_n)
 	if (out_n > kv_size(*rows))
 		out_n = kv_size(*rows);
 	long double sum = 0.0L;
+	long double effective_sum = 0.0L;
 	for (size_t i = 0; i < out_n; ++i) {
 		const double value = kv_A(*rows, i).abundance_relative_depth;
 		if (value > 0.0)
 			sum += (long double)value;
+		const double effective_value = kv_A(*rows, i).abundance_effective_depth;
+		if (effective_value > 0.0)
+			effective_sum += (long double)effective_value;
 	}
 	for (size_t i = 0; i < out_n; ++i) {
 		ani_row_t *row = &kv_A(*rows, i);
@@ -1286,7 +1411,35 @@ static void normalize_readwise_abundance_depth(kv_ani_row_t *rows, size_t out_n)
 			sum > 0.0L && row->abundance_relative_depth > 0.0
 				? (double)((long double)row->abundance_relative_depth / sum)
 				: 0.0;
+		row->abundance_normalized_effective_depth =
+			effective_sum > 0.0L && row->abundance_effective_depth > 0.0
+				? (double)((long double)row->abundance_effective_depth / effective_sum)
+				: 0.0;
 	}
+}
+
+static double ani_readwise_effective_abundance_depth_values(double median_depth,
+															double mean_depth,
+															double zip_af)
+{
+	if (median_depth >=
+		MINCO_READWISE_EFFECTIVE_MEDIAN_DEPTH_CUTOFF)
+		return median_depth;
+	if (!isfinite(mean_depth) || mean_depth <= 0.0)
+		return 0.0;
+	if (!isfinite(zip_af) || zip_af <= 0.0)
+		return mean_depth;
+	return mean_depth / pow(zip_af, MINCO_READWISE_EFFECTIVE_AF_EXPONENT);
+}
+
+static double ani_readwise_effective_abundance_depth(const ani_row_t *row)
+{
+	if (!row)
+		return 0.0;
+	return ani_readwise_effective_abundance_depth_values(
+		row->reliable_ref_hit_median_depth,
+		row->reliable_ref_mean_depth,
+		row->reliable_ref_zip_af);
 }
 
 typedef struct ani_cami_tax_record
@@ -1812,6 +1965,10 @@ static inline int selected_metric_effective_id(const ani_row_t *row, const ani_o
 
 static inline double selected_metric_distance_from_row(const ani_row_t *row, const ani_opt_t *ani_opt)
 {
+	if (row && ani_opt && ani_opt->readwise_query &&
+		ani_opt->readwise_ani_model == ANI_READWISE_ANI_ZIP_AAF &&
+		row->abundance_ref_zip_aaf_ani > 0.0)
+		return 1.0 - row->abundance_ref_zip_aaf_ani;
 	switch (selected_metric_effective_id(row, ani_opt)) {
 	case 1:
 		return 1.0 - row->best_ani;
@@ -1836,6 +1993,10 @@ static inline double selected_metric_distance_from_row(const ani_row_t *row, con
 
 static inline const char *selected_metric_name_for_row(const ani_row_t *row, const ani_opt_t *ani_opt)
 {
+	if (row && ani_opt && ani_opt->readwise_query &&
+		ani_opt->readwise_ani_model == ANI_READWISE_ANI_ZIP_AAF &&
+		row->abundance_ref_zip_aaf_ani > 0.0)
+		return "ZipAaf";
 	return select_metrics_header[selected_metric_effective_id(row, ani_opt) - 1];
 }
 
@@ -1843,6 +2004,10 @@ static inline const char *selected_metric_confidence_label(const ani_row_t *row,
 {
 	if (!ani_opt || ani_opt->raw_output)
 		return "raw";
+	if (row && ani_opt->readwise_query &&
+		ani_opt->readwise_ani_model == ANI_READWISE_ANI_ZIP_AAF &&
+		row->abundance_ref_zip_aaf_ani > 0.0)
+		return "readwise_zip";
 	if (ani_opt->unassembled && !ani_opt->unified_metric &&
 		selected_metric_request_id(ani_opt) <= 4)
 		return "unassembled";
@@ -1952,7 +2117,7 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
         const double block_match_fraction = r->readwise_total_density_blocks
             ? (double)r->readwise_blocks_with_ctx_match / (double)r->readwise_total_density_blocks
             : 0.0;
-        ksprintf(ks_out, "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f",
+        ksprintf(ks_out, "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%f\t%f",
                  r->readwise_reads_with_ctx_match,
                  r->readwise_total_reads,
                  read_match_fraction,
@@ -1962,11 +2127,17 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
                  r->readwise_density_block_ctx,
                  r->readwise_total_density_blocks,
                  r->readwise_blocks_with_ctx_match,
-                 block_match_fraction);
+                 block_match_fraction,
+                 r->readwise_raw_xny_ctx,
+                 r->readwise_rejected_ctx,
+                 r->readwise_rejected_diff_ctx,
+                 r->readwise_fake_ctx_fraction,
+                 r->readwise_fake_ctx_prob_mean,
+                 r->readwise_fake_ctx_prob_weighted);
         if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE) {
 			const ani_readwise_default_call_t default_call =
 				ani_readwise_default_call(r);
-            ksprintf(ks_out, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%s\t%s",
+            ksprintf(ks_out, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%" PRIu64 "\t%f\t%f\t%f\t%f\t%s\t%s",
                      r->abundance_ref_breadth,
                      r->abundance_ref_mean_depth,
                      r->abundance_ref_hit_mean_depth,
@@ -1975,8 +2146,46 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
                      r->abundance_ref_zero_fraction,
                      r->abundance_relative_depth,
                      r->abundance_normalized_depth,
+                     r->abundance_effective_depth,
+                     r->abundance_normalized_effective_depth,
+					 r->abundance_ref_zip_af,
+					 r->abundance_ref_zip_aaf_ani,
+                     r->reliable_ref_breadth,
+                     r->reliable_ref_mean_depth,
+                     r->reliable_ref_hit_ctx,
+                     r->reliable_ref_hit_mean_depth,
+                     r->reliable_ref_hit_median_depth,
+                     r->reliable_ref_hit_depth_variance,
+                     r->reliable_ref_zip_af,
 					 ani_readwise_default_call_label(default_call),
 					 ani_readwise_default_call_rule(default_call));
+			if (ani_opt->readwise_dual_evidence) {
+				ksprintf(ks_out, "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%" PRIu64 "\t%f\t%f\t%f\t%f",
+						 r->marker_xny_ctx,
+						 r->marker_raw_xny_ctx,
+						 r->marker_n_diff_obj,
+						 r->marker_n_diff_obj_section,
+						 r->marker_n_mut2_ctx,
+						 r->marker_ref_ctx_total,
+						 r->marker_ref_ctx_total,
+						 r->marker_ref_breadth,
+						 r->marker_ref_mean_depth,
+						 r->marker_ref_hit_mean_depth,
+						 r->marker_ref_depth_variance,
+						 r->marker_ref_depth_cv,
+						 r->marker_ref_zero_fraction,
+						 r->marker_relative_depth,
+						 r->marker_effective_depth,
+						 r->marker_ref_zip_af,
+						 r->marker_ref_zip_aaf_ani,
+						 r->marker_reliable_ref_breadth,
+						 r->marker_reliable_ref_mean_depth,
+						 r->marker_reliable_ref_hit_ctx,
+						 r->marker_reliable_ref_hit_mean_depth,
+						 r->marker_reliable_ref_hit_median_depth,
+						 r->marker_reliable_ref_hit_depth_variance,
+						 r->marker_reliable_ref_zip_af);
+			}
         }
     }
     kputc('\n', ks_out);
@@ -3504,11 +3713,87 @@ void comb_sortedsketch64Xcomb_sortedsketch64_filter_and_sort_survivors(ani_opt_t
 }
 */
 
+static void comb_sortedsketch96Xcomb_sortedsketch96_detail(ani_opt_t *ani_opt,
+														   unify_sketch_t *qry_result,
+														   unify_sketch_t *ref_result)
+{
+	if (ani_opt->fmt != 0)
+		errx(EXIT_FAILURE, "ctxobj96 ANI currently supports detail output (-m0) only");
+	pairwise_prepare_minco_model(ref_result);
+	load_infile_meta_for_best_guard(qry_result, ani_opt->qrydir, ani_opt);
+	load_infile_meta_for_best_guard(ref_result, ani_opt->refdir, ani_opt);
+	ani_ctxmeta_rec_t *qry_ctxmeta =
+		read_optional_ani_ctxmeta_stats(ani_opt->qrydir, qry_result->infile_num);
+	const bool same_sketch = strcmp(ani_opt->qrydir, ani_opt->refdir) == 0;
+	ani_ctxmeta_rec_t *ref_ctxmeta = same_sketch
+		? qry_ctxmeta
+		: read_optional_ani_ctxmeta_stats(ani_opt->refdir, ref_result->infile_num);
+
+	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
+	if (outfp == NULL)
+		err(errno, "%s", ani_opt->outf);
+	print_ani_detail_header(outfp, ani_opt, false);
+	for (uint32_t rn = 0; rn < (uint32_t)ref_result->infile_num; rn++)
+	{
+		ctxobj96_t *arr_ref = ref_result->comb_sketch96 + ref_result->sketch_index[rn];
+		size_t len_ref = ref_result->sketch_index[rn + 1] - ref_result->sketch_index[rn];
+		for (uint32_t qn = 0; qn < (uint32_t)qry_result->infile_num; qn++)
+		{
+			ctxobj96_t *arr_qry = qry_result->comb_sketch96 + qry_result->sketch_index[qn];
+			size_t len_qry = qry_result->sketch_index[qn + 1] - qry_result->sketch_index[qn];
+			if (len_ref == 0 || len_qry == 0)
+				continue;
+			ani_features_t ani_features;
+			get_ani_features_from_two_sorted_ctxobj96(arr_ref, len_ref, arr_qry, len_qry,
+													  &ani_features);
+			double af_qry = (double)ani_features.XnY_ctx / (double)len_qry;
+			double af_ref = (double)ani_features.XnY_ctx / (double)len_ref;
+			const ani_density_af_t density_af = ani_estimate_density_af(
+				ani_ctxmeta_at(qry_ctxmeta, qn), ani_ctxmeta_at(ref_ctxmeta, rn),
+				(uint32_t)ani_features.XnY_ctx, af_qry, af_ref);
+			if (!ani_report_af_pass(ani_opt, density_af.qry, density_af.ref))
+				continue;
+			ani_features.X_ctx = len_qry;
+			double blastn_af_qry = lm3ways_af_ANIb_from_features(&ani_features);
+			ani_features.X_ctx = len_ref;
+			double blastn_af_ref = lm3ways_af_ANIb_from_features(&ani_features);
+			ani_row_t outrow = make_selected_output_row(rn, &ani_features, ani_opt,
+														(uint32_t)len_qry,
+														(uint32_t)len_ref,
+														af_qry, blastn_af_qry,
+														af_ref, blastn_af_ref,
+														density_af,
+														infile_meta_at(qry_result, qn),
+														infile_meta_at(ref_result, rn));
+			if (outrow.selected_ani < ani_opt->anicut)
+				continue;
+			print_unified_detail_row(outfp, ani_opt, qry_result->gname[qn], ref_result->gname[rn],
+									 &outrow, unify_annotation_at(ref_result, rn));
+		}
+	}
+	if (outfp != stdout)
+		fclose(outfp);
+	if (ref_ctxmeta != qry_ctxmeta)
+		free(ref_ctxmeta);
+	free(qry_ctxmeta);
+}
+
 void comb_sortedsketch64Xcomb_sortedsketch64(ani_opt_t *ani_opt)
 {
 	unify_sketch_t *qry_result = generic_sketch_parse(ani_opt->qrydir, ani_query_parse_flags(ani_opt));
 	unify_sketch_t *ref_result = generic_sketch_parse(ani_opt->refdir, ani_ref_parse_flags(ani_opt));
 	pairwise_check_compatible(ref_result, qry_result);
+	if (qry_result->payload_layout == MINCO_PAYLOAD_CTXOBJ96 ||
+		ref_result->payload_layout == MINCO_PAYLOAD_CTXOBJ96)
+	{
+		if (qry_result->payload_layout != MINCO_PAYLOAD_CTXOBJ96 ||
+			ref_result->payload_layout != MINCO_PAYLOAD_CTXOBJ96)
+			errx(EXIT_FAILURE, "%s(): cannot mix ctxobj64 and ctxobj96 payload sketches", __func__);
+		comb_sortedsketch96Xcomb_sortedsketch96_detail(ani_opt, qry_result, ref_result);
+		free_unify_sketch(qry_result);
+		free_unify_sketch(ref_result);
+		return;
+	}
 	pairwise_prepare_minco_model(ref_result);
 	load_infile_meta_for_best_guard(qry_result, ani_opt->qrydir, ani_opt);
 	load_infile_meta_for_best_guard(ref_result, ani_opt->refdir, ani_opt);
@@ -3973,6 +4258,50 @@ static inline size_t lb_in_bucket_ctxgid(const ctxgidobj_t *b, const size_t *F, 
 	return lo; /* first position with key >= target_key (may be hi) */
 }
 
+static int minco_build_fenceposts_ctxgid128(const ctxgidobj128_t *b, size_t b_size,
+											int k, size_t *F)
+{
+	if (!b || !F || k < 0 || k > 32)
+		return -1;
+	const size_t buckets = (size_t)1u << k;
+	for (size_t t = 0; t <= buckets; ++t)
+		F[t] = b_size;
+
+	size_t next = 0;
+	for (size_t i = 0; i < b_size; ++i) {
+		uint32_t topk = top_k_bits_u64(b[i].ctx, k);
+		while (next <= topk)
+			F[next++] = i;
+		if (next > buckets)
+			break;
+	}
+	while (next <= buckets)
+		F[next++] = b_size;
+	return 0;
+}
+
+static inline size_t lb_in_bucket_ctxgid128(const ctxgidobj128_t *b,
+											const size_t *F,
+											int k,
+											uint64_t target_key)
+{
+	const size_t buckets = (size_t)1u << k;
+	uint32_t t = top_k_bits_u64(target_key, k);
+	if (t > buckets)
+		t = (uint32_t)buckets;
+
+	size_t lo = F[t];
+	size_t hi = F[t + 1];
+	while (lo < hi) {
+		size_t mid = lo + ((hi - lo) >> 1);
+		if (b[mid].ctx < target_key)
+			lo = mid + 1;
+		else
+			hi = mid;
+	}
+	return lo;
+}
+
 size_t *minco_find_first_occurrences_fenceposts(const uint64_t *a, size_t a_size,
 											   const ctxgidobj_t *b, size_t b_size,
 											   const size_t *F, int k, unsigned nobjbits)
@@ -4034,6 +4363,10 @@ size_t *minco_find_first_occurrences_fenceposts(const uint64_t *a, size_t a_size
 #define ANI_U64SET_MAX_LOAD_DEN 10u
 #define ANI_READWISE_BATCH_READS 16384u
 
+#ifndef MINCO_REPORT_FILTERED_READWISE_ANI
+#define MINCO_REPORT_FILTERED_READWISE_ANI 0
+#endif
+
 typedef struct {
 	uint64_t *keys;
 	uint8_t *used;
@@ -4063,6 +4396,25 @@ typedef struct {
 } ani_readwise_abundance_t;
 
 typedef struct {
+	double ref_breadth;
+	double ref_mean_depth;
+	uint64_t ref_hit_ctx;
+	double ref_hit_mean_depth;
+	double ref_hit_median_depth;
+	double ref_hit_depth_variance;
+	double ref_zip_af;
+} ani_readwise_reliable_abundance_t;
+
+typedef struct {
+	uint64_t raw_xny_ctx;
+	uint64_t rejected_ctx;
+	uint64_t rejected_diff_ctx;
+	long double fake_prob_sum;
+	long double fake_prob_weighted_sum;
+	long double fake_prob_weight_sum;
+} ani_readwise_filter_stats_t;
+
+typedef struct {
 	gzFile gz;
 	FILE *pipe_fp;
 	char *cmd;
@@ -4083,7 +4435,41 @@ typedef kvec_t(size_t) kv_size_t;
 typedef kvec_t(uint64_t) kv_u64_t;
 
 typedef struct {
+	ctxobj96_t *a;
+	size_t n;
+	size_t m;
+} ani_ctxobj96_vec_t;
+
+typedef struct {
+	ani_ctxobj96_vec_t vec;
+	uint64_t id;
+	uint64_t reads_with_density_ctx;
+	char *read_name;
+} ani_density_unit96_t;
+
+typedef struct {
+	double *a;
+	uint32_t n;
+	uint32_t cap;
+} ani_double_vec_t;
+
+typedef struct {
+	double product_threshold;
+	uint32_t median_diff;
+	double median_cov;
+} ani_readwise_product_topfrac_median_t;
+
+typedef struct {
+	size_t ref_begin;
+	uint32_t gid;
+	uint32_t diff;
+} ani_readwise_candidate_t;
+
+typedef kvec_t(ani_readwise_candidate_t) kv_readwise_candidate_t;
+
+typedef struct {
 	char *seq;
+	char *name;
 	int len;
 } ani_readwise_seq_rec_t;
 
@@ -4091,9 +4477,28 @@ typedef struct {
 	u64vec vec;
 	uint64_t id;
 	uint64_t reads_with_density_ctx;
+	char *read_name;
 } ani_density_unit_t;
 
 typedef kvec_t(ani_density_unit_t) kv_density_unit_t;
+typedef kvec_t(ani_density_unit96_t) kv_density_unit96_t;
+
+static void ani_ctxobj96_vec_free(ani_ctxobj96_vec_t *v);
+
+typedef struct {
+	FILE *fp;
+	uint32_t gid;
+	const char *ref_name;
+} ani_readwise_trace_t;
+
+typedef struct {
+	FILE *fp;
+	uint64_t emitted_edges;
+	uint64_t max_edges;
+	uint32_t max_candidate_refs;
+	bool ambiguous_only;
+	bool selected_only;
+} ani_readwise_edge_trace_t;
 
 typedef struct {
 	ani_readwise_acc_t *acc;
@@ -4232,6 +4637,11 @@ static inline bool ani_bitset_test_set(uint8_t *bits, size_t idx)
 #define ANI_REFCOV_COV_MASK 0x0fffffffU
 #define ANI_REFCOV_DIFF_SHIFT 28u
 #define ANI_REFCOV_DIFF_MAX_STORED 14u
+#define ANI_REFCOV_HIT_INC_BITS 16u
+#define ANI_REFCOV_HIT_INC_MASK ((1ULL << ANI_REFCOV_HIT_INC_BITS) - 1ULL)
+#define ANI_REFCOV_HIT_SHIFT (ANI_REFCOV_HIT_INC_BITS + 4u)
+#define ANI_REFCOV_SPLIT_SCALE 1024u
+#define ANI_READWISE_PROB_SCALE 1024u
 
 static inline uint32_t ani_ref_covdiff_coverage(uint32_t x)
 {
@@ -4255,11 +4665,15 @@ static inline uint32_t ani_ref_covdiff_decode_diff(uint32_t code)
 	return code ? code - 1u : 0u;
 }
 
-static inline void ani_ref_covdiff_add_hit(uint32_t *x, uint32_t diff)
+static inline void ani_ref_covdiff_add_scaled_hit(uint32_t *x, uint32_t diff, uint32_t inc)
 {
+	if (!inc)
+		return;
 	uint32_t cov = ani_ref_covdiff_coverage(*x);
-	if (cov != ANI_REFCOV_COV_MASK)
-		++cov;
+	if (cov > ANI_REFCOV_COV_MASK - inc)
+		cov = ANI_REFCOV_COV_MASK;
+	else
+		cov += inc;
 	uint32_t code = *x >> ANI_REFCOV_DIFF_SHIFT;
 	const uint32_t new_code = ani_ref_covdiff_encode_diff(diff);
 	if (code == 0u || new_code < code)
@@ -4267,17 +4681,814 @@ static inline void ani_ref_covdiff_add_hit(uint32_t *x, uint32_t diff)
 	*x = (code << ANI_REFCOV_DIFF_SHIFT) | cov;
 }
 
-static inline uint64_t ani_ref_covdiff_pack_hit(size_t idx, uint32_t diff)
+static inline void ani_ref_covmindiff_add_scaled_hit(uint32_t *x, uint32_t diff, uint32_t inc)
 {
-	return ((uint64_t)idx << 4) | (uint64_t)ani_ref_covdiff_clip_diff(diff);
+	if (!inc)
+		return;
+	const uint32_t new_code = ani_ref_covdiff_encode_diff(diff);
+	uint32_t code = *x >> ANI_REFCOV_DIFF_SHIFT;
+	uint32_t cov = ani_ref_covdiff_coverage(*x);
+	if (code == 0u || new_code < code) {
+		code = new_code;
+		cov = inc;
+	} else if (new_code == code) {
+		if (cov > ANI_REFCOV_COV_MASK - inc)
+			cov = ANI_REFCOV_COV_MASK;
+		else
+			cov += inc;
+	} else {
+		return;
+	}
+	*x = (code << ANI_REFCOV_DIFF_SHIFT) | cov;
+}
+
+static inline void ani_ref_covdiff_add_hit(uint32_t *x, uint32_t diff)
+{
+	ani_ref_covdiff_add_scaled_hit(x, diff, 1u);
+}
+
+static inline uint64_t ani_ref_covdiff_pack_hit(size_t idx, uint32_t diff, uint32_t inc)
+{
+	if (inc > (uint32_t)ANI_REFCOV_HIT_INC_MASK)
+		inc = (uint32_t)ANI_REFCOV_HIT_INC_MASK;
+	return ((uint64_t)idx << ANI_REFCOV_HIT_SHIFT) |
+		   ((uint64_t)inc << 4) |
+		   (uint64_t)ani_ref_covdiff_clip_diff(diff);
+}
+
+static double ani_poisson_tail_neglog10(uint32_t k, double lambda)
+{
+	if (k == 0)
+		return 0.0;
+	if (!isfinite(lambda) || lambda <= 0.0)
+		return 16.0;
+	if (k > 1024u)
+		return 16.0;
+	long double term = expl(-(long double)lambda);
+	long double cdf = term;
+	for (uint32_t i = 1; i < k; ++i) {
+		term *= (long double)lambda / (long double)i;
+		cdf += term;
+		if (cdf >= 1.0L)
+			return 0.0;
+	}
+	long double tail = 1.0L - cdf;
+	if (tail <= 1e-16L)
+		return 16.0;
+	return (double)(-log10l(tail));
+}
+
+static double ani_readwise_poisson_diff_score(uint32_t diff,
+											  double cov,
+											  const ani_readwise_abundance_t *abund)
+{
+	if (!abund)
+		return (double)diff;
+	double zero = abund->ref_zero_fraction;
+	if (!isfinite(zero))
+		zero = 0.0;
+	if (zero <= 0.0)
+		zero = 1e-12;
+	if (zero >= 1.0)
+		zero = 1.0 - 1e-12;
+	const double lambda_breadth = -log(zero);
+	const double lambda = lambda_breadth > 1e-12
+							  ? lambda_breadth
+							  : (abund->ref_mean_depth > 1e-12 ? abund->ref_mean_depth : 1e-12);
+	const uint32_t k = cov > 0.0 ? (uint32_t)ceil(cov) : 0u;
+	const double depth_surprise = ani_poisson_tail_neglog10(k, lambda);
+	double pressure = 0.0;
+	if (lambda_breadth > 1e-12 && abund->ref_mean_depth > 0.0)
+		pressure = log1p(abund->ref_mean_depth / lambda_breadth);
+	return (double)diff + 0.30 * depth_surprise + 0.25 * pressure;
+}
+
+static inline double ani_logistic(double x)
+{
+	if (x >= 40.0)
+		return 1.0;
+	if (x <= -40.0)
+		return 0.0;
+	return 1.0 / (1.0 + exp(-x));
+}
+
+static double ani_readwise_fake_ctx_probability(uint32_t diff,
+											   double cov,
+											   const ani_readwise_abundance_t *abund,
+											   double threshold)
+{
+	if (!abund || threshold <= 0.0)
+		return 0.0;
+	const double score = ani_readwise_poisson_diff_score(diff, cov, abund);
+	return ani_logistic(score - threshold);
+}
+
+static bool ani_readwise_reject_poisson_diff_ctx(uint32_t diff,
+												 double cov,
+												 const ani_readwise_abundance_t *abund,
+												 double threshold)
+{
+	if (diff == 0)
+		return false;
+	if (!abund || threshold <= 0.0)
+		return false;
+	const double score = ani_readwise_poisson_diff_score(diff, cov, abund);
+	return score >= threshold;
+}
+
+static bool ani_readwise_reject_poisson_depth_ctx(uint32_t diff,
+												  double cov,
+												  const ani_readwise_abundance_t *abund,
+												  uint32_t ref_ctx_total,
+												  double threshold)
+{
+	if (diff == 0)
+		return false;
+	if (!abund || threshold <= 0.0)
+		return false;
+	double zero = abund->ref_zero_fraction;
+	if (!isfinite(zero))
+		zero = 0.0;
+	if (zero <= 0.0)
+		zero = 1e-12;
+	if (zero >= 1.0)
+		zero = 1.0 - 1e-12;
+	const double lambda_breadth = -log(zero);
+	const double lambda = lambda_breadth > 1e-12
+							  ? lambda_breadth
+							  : (abund->ref_mean_depth > 1e-12 ? abund->ref_mean_depth : 1e-12);
+	if (!isfinite(cov) || cov <= lambda)
+		return false;
+	const uint32_t k = cov > 0.0 ? (uint32_t)ceil(cov) : 0u;
+	double score = ani_poisson_tail_neglog10(k, lambda);
+	if (ref_ctx_total > 1u)
+		score -= log10((double)ref_ctx_total);
+	return score >= threshold;
+}
+
+static bool ani_readwise_reject_poisson_product_ctx(uint32_t diff,
+													double cov,
+													double lambda,
+													uint32_t ref_ctx_total,
+													double threshold)
+{
+	if (diff == 0)
+		return false;
+	if (threshold <= 0.0)
+		return false;
+	if (!isfinite(cov) || cov <= 0.0)
+		return false;
+	if (!isfinite(lambda) || lambda <= 0.0)
+		lambda = 1e-12;
+	const double product = (double)diff * cov;
+	if (product <= lambda)
+		return false;
+	const uint32_t k = (uint32_t)ceil(product);
+	double score = ani_poisson_tail_neglog10(k, lambda);
+	if (ref_ctx_total > 1u)
+		score -= log10((double)ref_ctx_total);
+	return score >= threshold;
+}
+
+#define ANI_READWISE_PRODUCT_NB_MIN_NONZERO 10u
+
+static inline bool ani_readwise_ctx_filter_uses_product(ani_readwise_ctx_filter_model_t filter_model)
+{
+	return filter_model == ANI_READWISE_CTX_FILTER_POISSON_PRODUCT ||
+		   filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_NB;
+}
+
+static inline double ani_logaddexp(double a, double b)
+{
+	if (!isfinite(a))
+		return b;
+	if (!isfinite(b))
+		return a;
+	if (a < b) {
+		const double tmp = a;
+		a = b;
+		b = tmp;
+	}
+	return a + log1p(exp(b - a));
+}
+
+static double ani_nb_tail_neglog10(uint32_t k, double mean, double variance)
+{
+	if (k == 0)
+		return 0.0;
+	if (!isfinite(mean) || mean <= 0.0)
+		mean = 1e-12;
+	if (k > 1024u)
+		return 16.0;
+	if (!isfinite(variance) || variance <= mean)
+		return ani_poisson_tail_neglog10(k, mean);
+
+	const double r = (mean * mean) / (variance - mean);
+	if (!isfinite(r) || r <= 0.0)
+		return ani_poisson_tail_neglog10(k, mean);
+	const double p = r / (r + mean);
+	if (!isfinite(p) || p <= 0.0 || p >= 1.0)
+		return ani_poisson_tail_neglog10(k, mean);
+
+	const double log_p = log(p);
+	const double log_q = log1p(-p);
+	double log_pmf = r * log_p; /* NB count of failures before r successes. */
+	double log_cdf = log_pmf;
+	for (uint32_t i = 1; i < k; ++i) {
+		log_pmf += log(((double)i - 1.0 + r) / (double)i) + log_q;
+		log_cdf = ani_logaddexp(log_cdf, log_pmf);
+	}
+	if (log_cdf >= 0.0)
+		return 16.0;
+	const double cdf = exp(log_cdf);
+	if (cdf >= 1.0)
+		return 16.0;
+	const double tail = 1.0 - cdf;
+	if (tail <= 1e-16)
+		return 16.0;
+
+	const double p0 = exp(r * log_p);
+	if (p0 > 0.0 && p0 < 1.0) {
+		const double pos = 1.0 - p0;
+		if (pos > 0.0) {
+			const double conditional_tail = tail / pos;
+			if (conditional_tail > 0.0 && conditional_tail <= 1.0)
+				return -log10(conditional_tail);
+		}
+	}
+	return -log10(tail);
+}
+
+static bool ani_readwise_reject_product_nb_ctx(uint32_t diff,
+											   double cov,
+											   double mean,
+											   double variance,
+											   uint32_t product_nonzero,
+											   uint32_t ref_ctx_total,
+											   double threshold)
+{
+	if (diff == 0)
+		return false;
+	if (threshold <= 0.0)
+		return false;
+	if (product_nonzero < ANI_READWISE_PRODUCT_NB_MIN_NONZERO)
+		return false;
+	if (!isfinite(cov) || cov <= 0.0)
+		return false;
+	if (!isfinite(mean) || mean <= 0.0)
+		return false;
+	const double product = (double)diff * cov;
+	if (!isfinite(product) || product <= mean)
+		return false;
+	const uint32_t k = product >= (double)UINT32_MAX
+						   ? UINT32_MAX
+						   : (uint32_t)ceil(product);
+	double score = ani_nb_tail_neglog10(k, mean, variance);
+	if (ref_ctx_total > 1u)
+		score -= log10((double)ref_ctx_total);
+	return score >= threshold;
+}
+
+static int ani_cmp_double_asc(const void *pa, const void *pb)
+{
+	const double a = *(const double *)pa;
+	const double b = *(const double *)pb;
+	return (a > b) - (a < b);
+}
+
+static void ani_double_vec_push(ani_double_vec_t *v, double x)
+{
+	if (!v)
+		return;
+	if (v->n == v->cap) {
+		uint32_t new_cap = v->cap ? v->cap * 2u : 4u;
+		double *next = realloc(v->a, (size_t)new_cap * sizeof(next[0]));
+		if (!next)
+			err(EXIT_FAILURE, "%s(): OOM product vector", __func__);
+		v->a = next;
+		v->cap = new_cap;
+	}
+	v->a[v->n++] = x;
+}
+
+static void ani_double_vecs_destroy(ani_double_vec_t *vecs, uint32_t n)
+{
+	if (!vecs)
+		return;
+	for (uint32_t i = 0; i < n; ++i)
+		free(vecs[i].a);
+	free(vecs);
+}
+
+static double ani_readwise_product_topfrac_fraction(double threshold)
+{
+	if (!isfinite(threshold) || threshold <= 0.0)
+		return 0.0;
+	if (threshold > 1.0)
+		return 1.0;
+	return threshold;
+}
+
+static inline bool ani_ctxgid_group_marker_unique64(const ctxgidobj_t *index,
+													size_t index_n,
+													size_t begin,
+													size_t end)
+{
+	if (!index || begin >= index_n || end <= begin || end > index_n)
+		return false;
+	const uint64_t ctx = index[begin].ctxgid >> GID_NBITS;
+	if (begin > 0 && (index[begin - 1].ctxgid >> GID_NBITS) == ctx)
+		return false;
+	if (end < index_n && (index[end].ctxgid >> GID_NBITS) == ctx)
+		return false;
+	return true;
+}
+
+static inline bool ani_ctxgid_group_marker_unique128(const ctxgidobj128_t *index,
+													 size_t index_n,
+													 size_t begin,
+													 size_t end)
+{
+	if (!index || begin >= index_n || end <= begin || end > index_n)
+		return false;
+	const uint64_t ctx = index[begin].ctx;
+	if (begin > 0 && index[begin - 1].ctx == ctx)
+		return false;
+	if (end < index_n && index[end].ctx == ctx)
+		return false;
+	return true;
+}
+
+static double *ani_readwise_product_topfrac_thresholds(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	double coverage_scale,
+	double fraction,
+	bool marker_only)
+{
+	if (!index || !ref_ctx_cov || ref_n == 0)
+		return NULL;
+	fraction = ani_readwise_product_topfrac_fraction(fraction);
+	if (fraction <= 0.0)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+
+	ani_double_vec_t *products = calloc((size_t)ref_n, sizeof(products[0]));
+	double *thresholds = malloc((size_t)ref_n * sizeof(thresholds[0]));
+	if (!products || !thresholds)
+		err(EXIT_FAILURE, "%s(): OOM product top-fraction thresholds", __func__);
+	for (uint32_t rn = 0; rn < ref_n; ++rn)
+		thresholds[rn] = NAN;
+
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		const double cov = (double)coverage_raw / coverage_scale;
+		const double product = (double)diff * cov;
+		if (!isfinite(product) || product < 0.0)
+			continue;
+		ani_double_vec_push(&products[gid], product);
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		ani_double_vec_t *v = &products[rn];
+		if (!v->n)
+			continue;
+		qsort(v->a, v->n, sizeof(v->a[0]), ani_cmp_double_asc);
+		uint32_t drop_n = (uint32_t)ceil((double)v->n * fraction);
+		if (drop_n < 1u)
+			drop_n = 1u;
+		if (drop_n > v->n)
+			drop_n = v->n;
+		thresholds[rn] = v->a[v->n - drop_n];
+	}
+
+	ani_double_vecs_destroy(products, ref_n);
+	return thresholds;
+}
+
+static double ani_double_vec_lower_median(ani_double_vec_t *v)
+{
+	if (!v || !v->n)
+		return NAN;
+	qsort(v->a, v->n, sizeof(v->a[0]), ani_cmp_double_asc);
+	return v->a[(v->n - 1u) / 2u];
+}
+
+static inline double ani_readwise_topfrac_product_score(uint32_t diff,
+														double cov,
+														bool plus_one)
+{
+	if (!isfinite(cov) || cov <= 0.0)
+		return NAN;
+	const double factor = plus_one ? (double)diff + 1.0 : (double)diff;
+	return factor * cov;
+}
+
+static ani_readwise_product_topfrac_median_t *ani_readwise_product_topfrac_median_stats(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	double coverage_scale,
+	double fraction,
+	bool plus_one,
+	bool marker_only)
+{
+	if (!index || !ref_ctx_cov || ref_n == 0)
+		return NULL;
+	fraction = ani_readwise_product_topfrac_fraction(fraction);
+	if (fraction <= 0.0)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+
+	ani_double_vec_t *products = calloc((size_t)ref_n, sizeof(products[0]));
+	ani_double_vec_t *diffs = calloc((size_t)ref_n, sizeof(diffs[0]));
+	ani_double_vec_t *covs = calloc((size_t)ref_n, sizeof(covs[0]));
+	ani_readwise_product_topfrac_median_t *stats =
+		malloc((size_t)ref_n * sizeof(stats[0]));
+	if (!products || !diffs || !covs || !stats)
+		err(EXIT_FAILURE, "%s(): OOM product top-fraction median stats", __func__);
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		stats[rn].product_threshold = NAN;
+		stats[rn].median_diff = 0u;
+		stats[rn].median_cov = NAN;
+	}
+
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		const double cov = (double)coverage_raw / coverage_scale;
+		const double product = ani_readwise_topfrac_product_score(diff, cov, plus_one);
+		if (!isfinite(product) || product < 0.0 || !isfinite(cov) || cov <= 0.0)
+			continue;
+		ani_double_vec_push(&products[gid], product);
+		ani_double_vec_push(&diffs[gid], (double)diff);
+		ani_double_vec_push(&covs[gid], cov);
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		ani_double_vec_t *pv = &products[rn];
+		if (!pv->n)
+			continue;
+		qsort(pv->a, pv->n, sizeof(pv->a[0]), ani_cmp_double_asc);
+		uint32_t drop_n = (uint32_t)ceil((double)pv->n * fraction);
+		if (drop_n < 1u)
+			drop_n = 1u;
+		if (drop_n > pv->n)
+			drop_n = pv->n;
+		stats[rn].product_threshold = pv->a[pv->n - drop_n];
+
+		const double median_diff = ani_double_vec_lower_median(&diffs[rn]);
+		const double median_cov = ani_double_vec_lower_median(&covs[rn]);
+		if (isfinite(median_diff) && median_diff > 0.0)
+			stats[rn].median_diff = median_diff >= (double)UINT32_MAX
+										 ? UINT32_MAX
+										 : (uint32_t)llround(median_diff);
+		if (isfinite(median_cov) && median_cov > 0.0)
+			stats[rn].median_cov = median_cov;
+	}
+
+	ani_double_vecs_destroy(products, ref_n);
+	ani_double_vecs_destroy(diffs, ref_n);
+	ani_double_vecs_destroy(covs, ref_n);
+	return stats;
+}
+
+static double *ani_readwise_product_topfrac_thresholds128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	double coverage_scale,
+	double fraction,
+	bool marker_only)
+{
+	if (!index || !ref_ctx_cov || ref_n == 0)
+		return NULL;
+	fraction = ani_readwise_product_topfrac_fraction(fraction);
+	if (fraction <= 0.0)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+
+	ani_double_vec_t *products = calloc((size_t)ref_n, sizeof(products[0]));
+	double *thresholds = malloc((size_t)ref_n * sizeof(thresholds[0]));
+	if (!products || !thresholds)
+		err(EXIT_FAILURE, "%s(): OOM product top-fraction thresholds", __func__);
+	for (uint32_t rn = 0; rn < ref_n; ++rn)
+		thresholds[rn] = NAN;
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		const double cov = (double)coverage_raw / coverage_scale;
+		const double product = (double)diff * cov;
+		if (!isfinite(product) || product < 0.0)
+			continue;
+		ani_double_vec_push(&products[gid], product);
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		ani_double_vec_t *v = &products[rn];
+		if (!v->n)
+			continue;
+		qsort(v->a, v->n, sizeof(v->a[0]), ani_cmp_double_asc);
+		uint32_t drop_n = (uint32_t)ceil((double)v->n * fraction);
+		if (drop_n < 1u)
+			drop_n = 1u;
+		if (drop_n > v->n)
+			drop_n = v->n;
+		thresholds[rn] = v->a[v->n - drop_n];
+	}
+
+	ani_double_vecs_destroy(products, ref_n);
+	return thresholds;
+}
+
+static ani_readwise_product_topfrac_median_t *ani_readwise_product_topfrac_median_stats128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	double coverage_scale,
+	double fraction,
+	bool plus_one,
+	bool marker_only)
+{
+	if (!index || !ref_ctx_cov || ref_n == 0)
+		return NULL;
+	fraction = ani_readwise_product_topfrac_fraction(fraction);
+	if (fraction <= 0.0)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+
+	ani_double_vec_t *products = calloc((size_t)ref_n, sizeof(products[0]));
+	ani_double_vec_t *diffs = calloc((size_t)ref_n, sizeof(diffs[0]));
+	ani_double_vec_t *covs = calloc((size_t)ref_n, sizeof(covs[0]));
+	ani_readwise_product_topfrac_median_t *stats =
+		malloc((size_t)ref_n * sizeof(stats[0]));
+	if (!products || !diffs || !covs || !stats)
+		err(EXIT_FAILURE, "%s(): OOM product top-fraction median stats", __func__);
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		stats[rn].product_threshold = NAN;
+		stats[rn].median_diff = 0u;
+		stats[rn].median_cov = NAN;
+	}
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		const double cov = (double)coverage_raw / coverage_scale;
+		const double product = ani_readwise_topfrac_product_score(diff, cov, plus_one);
+		if (!isfinite(product) || product < 0.0 || !isfinite(cov) || cov <= 0.0)
+			continue;
+		ani_double_vec_push(&products[gid], product);
+		ani_double_vec_push(&diffs[gid], (double)diff);
+		ani_double_vec_push(&covs[gid], cov);
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		ani_double_vec_t *pv = &products[rn];
+		if (!pv->n)
+			continue;
+		qsort(pv->a, pv->n, sizeof(pv->a[0]), ani_cmp_double_asc);
+		uint32_t drop_n = (uint32_t)ceil((double)pv->n * fraction);
+		if (drop_n < 1u)
+			drop_n = 1u;
+		if (drop_n > pv->n)
+			drop_n = pv->n;
+		stats[rn].product_threshold = pv->a[pv->n - drop_n];
+
+		const double median_diff = ani_double_vec_lower_median(&diffs[rn]);
+		const double median_cov = ani_double_vec_lower_median(&covs[rn]);
+		if (isfinite(median_diff) && median_diff > 0.0)
+			stats[rn].median_diff = median_diff >= (double)UINT32_MAX
+										 ? UINT32_MAX
+										 : (uint32_t)llround(median_diff);
+		if (isfinite(median_cov) && median_cov > 0.0)
+			stats[rn].median_cov = median_cov;
+	}
+
+	ani_double_vecs_destroy(products, ref_n);
+	ani_double_vecs_destroy(diffs, ref_n);
+	ani_double_vecs_destroy(covs, ref_n);
+	return stats;
+}
+
+static bool ani_readwise_reject_product_topfrac_ctx(uint32_t diff,
+													double cov,
+													double product_threshold)
+{
+	if (diff == 0)
+		return false;
+	if (!isfinite(cov) || cov <= 0.0)
+		return false;
+	if (!isfinite(product_threshold) || product_threshold < 0.0)
+		return false;
+	const double product = (double)diff * cov;
+	return product > 0.0 && product >= product_threshold;
+}
+
+static bool ani_readwise_apply_product_topfrac_median_ctx(uint32_t *diff,
+														  double *cov,
+														  const ani_readwise_product_topfrac_median_t *stats,
+														  bool plus_one)
+{
+	if (!diff || !cov || !stats)
+		return false;
+	if (*diff == 0 && !plus_one)
+		return false;
+	if (!isfinite(*cov) || *cov <= 0.0)
+		return false;
+	if (!isfinite(stats->product_threshold) || stats->product_threshold < 0.0)
+		return false;
+	if (!isfinite(stats->median_cov) || stats->median_cov <= 0.0)
+		return false;
+	const double product = ani_readwise_topfrac_product_score(*diff, *cov, plus_one);
+	if (!(product > 0.0 && product >= stats->product_threshold))
+		return false;
+	*diff = stats->median_diff;
+	*cov = stats->median_cov;
+	return true;
+}
+
+
+static void ani_readwise_trace_emit(const ani_readwise_trace_t *trace,
+									const char *read_name,
+									uint64_t unit_id,
+									uint64_t qctx,
+									size_t ref_begin,
+									uint32_t diff,
+									uint32_t best_diff,
+									size_t candidate_n,
+									size_t selected_n,
+									uint32_t cov_inc)
+{
+	if (!trace || !trace->fp)
+		return;
+#ifdef _OPENMP
+#pragma omp critical(minco_readwise_trace)
+#endif
+	{
+		fprintf(trace->fp,
+				"%s\t%" PRIu64 "\t%" PRIu64 "\t%zu\t%u\t%u\t%zu\t%zu\t%u\t%s\n",
+				read_name ? read_name : "",
+				unit_id,
+				qctx,
+				ref_begin,
+				diff,
+				best_diff,
+				candidate_n,
+				selected_n,
+				cov_inc,
+				trace->ref_name ? trace->ref_name : "");
+	}
+}
+
+static bool ani_readwise_candidate_selected_by_mode(ani_readwise_assign_mode_t assign_mode,
+													uint32_t diff,
+													uint32_t best_diff,
+													size_t selected_n)
+{
+	if (assign_mode == ANI_READWISE_ASSIGN_ALL)
+		return true;
+	if (diff != best_diff)
+		return false;
+	if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE)
+		return selected_n == 1;
+	return selected_n > 0;
+}
+
+static void ani_readwise_edge_trace_emit_group(ani_readwise_edge_trace_t *edge,
+											   const char *read_name,
+											   uint64_t unit_id,
+											   uint64_t qctx,
+											   const kv_readwise_candidate_t *candidates,
+											   uint32_t best_diff,
+											   size_t selected_n,
+											   uint32_t cov_inc,
+											   ani_readwise_assign_mode_t assign_mode)
+{
+	if (!edge || !edge->fp || !candidates)
+		return;
+	const size_t candidate_n = kv_size(*candidates);
+	if (!candidate_n)
+		return;
+	if (edge->ambiguous_only && candidate_n <= 1)
+		return;
+	if (edge->max_candidate_refs && candidate_n > edge->max_candidate_refs)
+		return;
+#ifdef _OPENMP
+#pragma omp critical(minco_readwise_edge_trace)
+#endif
+	{
+		for (size_t ci = 0; ci < candidate_n; ++ci) {
+			if (edge->max_edges && edge->emitted_edges >= edge->max_edges)
+				break;
+			const ani_readwise_candidate_t *cand = &kv_A(*candidates, ci);
+			const bool selected = ani_readwise_candidate_selected_by_mode(
+				assign_mode, cand->diff, best_diff, selected_n);
+			if (edge->selected_only && !selected)
+				continue;
+			++edge->emitted_edges;
+			fprintf(edge->fp,
+					"%" PRIu64 "\t%s\t%" PRIu64 "\t%" PRIu64 "\t%zu\t%zu\t%u\t%u\t%u\t%zu\t%zu\t%u\t%u\n",
+					edge->emitted_edges,
+					read_name ? read_name : "",
+					unit_id,
+					qctx,
+					ci,
+					cand->ref_begin,
+					cand->gid,
+					cand->diff,
+					best_diff,
+					candidate_n,
+					selected_n,
+					selected ? 1u : 0u,
+					cov_inc);
+		}
+	}
 }
 
 static void ani_density_units_destroy(kv_density_unit_t *units)
 {
 	if (!units)
 		return;
-	for (size_t i = 0; i < kv_size(*units); ++i)
+	for (size_t i = 0; i < kv_size(*units); ++i) {
 		v_free(&kv_A(*units, i).vec);
+		free(kv_A(*units, i).read_name);
+	}
+	kv_destroy(*units);
+}
+
+static void ani_density_units96_destroy(kv_density_unit96_t *units)
+{
+	if (!units)
+		return;
+	for (size_t i = 0; i < kv_size(*units); ++i) {
+		ani_ctxobj96_vec_free(&kv_A(*units, i).vec);
+		free(kv_A(*units, i).read_name);
+	}
 	kv_destroy(*units);
 }
 
@@ -4288,6 +5499,8 @@ static void ani_readwise_seq_batch_destroy(ani_readwise_seq_rec_t *batch,
 		return;
 	for (size_t i = 0; i < n; ++i)
 		free(batch[i].seq);
+	for (size_t i = 0; i < n; ++i)
+		free(batch[i].name);
 }
 
 static void ani_readwise_thread_state_init(ani_readwise_thread_state_t *st,
@@ -4380,6 +5593,8 @@ static void ani_merge_readwise_thread_batch(
 	ani_readwise_acc_t *acc,
 	uint8_t *ref_hit_bits,
 	uint32_t *ref_ctx_cov,
+	uint32_t *ref_ctx_mindiff_cov,
+	uint16_t *ref_ctx_hit_weight,
 	ani_u64_set_t *qry_ctx_seen,
 	ani_u64_set_t *qry_ref_ctx_seen,
 	const ctxgidobj_t *index,
@@ -4417,10 +5632,69 @@ static void ani_merge_readwise_thread_batch(
 		if (ref_ctx_cov) {
 			for (size_t i = 0; i < kv_size(st->ref_ctx_cov_hits); ++i) {
 				const uint64_t hit = kv_A(st->ref_ctx_cov_hits, i);
-				const size_t idx = (size_t)(hit >> 4);
+				const size_t idx = (size_t)(hit >> ANI_REFCOV_HIT_SHIFT);
+				const uint32_t inc = (uint32_t)((hit >> 4) & ANI_REFCOV_HIT_INC_MASK);
 				const uint32_t diff = (uint32_t)(hit & 0xfu);
-				if (idx < index_n)
-					ani_ref_covdiff_add_hit(&ref_ctx_cov[idx], diff);
+				if (idx < index_n) {
+					ani_ref_covdiff_add_scaled_hit(&ref_ctx_cov[idx], diff, inc);
+					if (ref_ctx_mindiff_cov)
+						ani_ref_covmindiff_add_scaled_hit(&ref_ctx_mindiff_cov[idx], diff, inc);
+					if (ref_ctx_hit_weight && inc > ref_ctx_hit_weight[idx])
+						ref_ctx_hit_weight[idx] = (uint16_t)inc;
+				}
+			}
+		}
+		ani_readwise_thread_state_clear_batch(st, ref_n);
+	}
+}
+
+static void ani_merge_readwise_thread_batch128(
+	ani_readwise_thread_state_t *states,
+	int n_states,
+	ani_readwise_acc_t *acc,
+	uint8_t *ref_hit_bits,
+	uint32_t *ref_ctx_cov,
+	uint32_t *ref_ctx_mindiff_cov,
+	uint16_t *ref_ctx_hit_weight,
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n)
+{
+	if (!states || n_states < 1)
+		return;
+	for (int t = 0; t < n_states; ++t) {
+		ani_readwise_thread_state_t *st = &states[t];
+		for (uint32_t rn = 0; rn < ref_n; ++rn) {
+			acc[rn].XnY_ctx += st->acc[rn].XnY_ctx;
+			acc[rn].N_diff_obj += st->acc[rn].N_diff_obj;
+			acc[rn].N_diff_obj_section += st->acc[rn].N_diff_obj_section;
+			acc[rn].N_mut2_ctx += st->acc[rn].N_mut2_ctx;
+			acc[rn].reads_with_ctx_match += st->acc[rn].reads_with_ctx_match;
+			acc[rn].blocks_with_ctx_match += st->acc[rn].blocks_with_ctx_match;
+		}
+		for (size_t i = 0; i < kv_size(st->ref_ctx_hit_positions); ++i) {
+			const size_t idx = kv_A(st->ref_ctx_hit_positions, i);
+			if (idx >= index_n)
+				continue;
+			if (!ani_bitset_test_set(ref_hit_bits, idx)) {
+				const uint32_t gid = index[idx].gid;
+				if (gid < ref_n)
+					acc[gid].ref_ctx_hit++;
+			}
+		}
+		if (ref_ctx_cov) {
+			for (size_t i = 0; i < kv_size(st->ref_ctx_cov_hits); ++i) {
+				const uint64_t hit = kv_A(st->ref_ctx_cov_hits, i);
+				const size_t idx = (size_t)(hit >> ANI_REFCOV_HIT_SHIFT);
+				const uint32_t inc = (uint32_t)((hit >> 4) & ANI_REFCOV_HIT_INC_MASK);
+				const uint32_t diff = (uint32_t)(hit & 0xfu);
+				if (idx < index_n) {
+					ani_ref_covdiff_add_scaled_hit(&ref_ctx_cov[idx], diff, inc);
+					if (ref_ctx_mindiff_cov)
+						ani_ref_covmindiff_add_scaled_hit(&ref_ctx_mindiff_cov[idx], diff, inc);
+					if (ref_ctx_hit_weight && inc > ref_ctx_hit_weight[idx])
+						ref_ctx_hit_weight[idx] = (uint16_t)inc;
+				}
 			}
 		}
 		ani_readwise_thread_state_clear_batch(st, ref_n);
@@ -4756,6 +6030,127 @@ static void ani_extract_read_density_ctxobjs(const char *s, int len, u64vec *vec
 	}
 }
 
+static void ani_ctxobj96_vec_init(ani_ctxobj96_vec_t *v, size_t cap)
+{
+	v->n = 0;
+	v->m = cap;
+	v->a = cap ? (ctxobj96_t *)malloc(cap * sizeof(v->a[0])) : NULL;
+	if (cap && !v->a)
+		err(EXIT_FAILURE, "%s(): OOM ctxobj96 read vector", __func__);
+}
+
+static void ani_ctxobj96_vec_free(ani_ctxobj96_vec_t *v)
+{
+	if (!v)
+		return;
+	free(v->a);
+	v->a = NULL;
+	v->n = v->m = 0;
+}
+
+static void ani_ctxobj96_vec_reserve(ani_ctxobj96_vec_t *v, size_t need)
+{
+	if (need <= v->m)
+		return;
+	size_t cap = v->m ? v->m : 128u;
+	while (cap < need)
+		cap <<= 1;
+	ctxobj96_t *next = (ctxobj96_t *)realloc(v->a, cap * sizeof(v->a[0]));
+	if (!next)
+		err(EXIT_FAILURE, "%s(): OOM ctxobj96 read vector", __func__);
+	v->a = next;
+	v->m = cap;
+}
+
+static inline void ani_ctxobj96_vec_push(ani_ctxobj96_vec_t *v, ctxobj96_t rec)
+{
+	if (v->n == v->m)
+		ani_ctxobj96_vec_reserve(v, v->m ? (v->m << 1) : 128u);
+	v->a[v->n++] = rec;
+}
+
+static int ani_ctxobj96_cmp(const void *pa, const void *pb)
+{
+	const ctxobj96_t *a = (const ctxobj96_t *)pa;
+	const ctxobj96_t *b = (const ctxobj96_t *)pb;
+	if (a->ctx != b->ctx)
+		return (a->ctx > b->ctx) - (a->ctx < b->ctx);
+	return (a->obj > b->obj) - (a->obj < b->obj);
+}
+
+static size_t ani_ctxobj96_dedup_sorted(ctxobj96_t *a, size_t n)
+{
+	if (n <= 1)
+		return n;
+	size_t w = 0;
+	for (size_t r = 1; r < n; ++r)
+		if (a[r].ctx != a[w].ctx || a[r].obj != a[w].obj)
+			a[++w] = a[r];
+	return w + 1;
+}
+
+static inline __uint128_t ani_mask128_bits(unsigned bits)
+{
+	if (bits >= 128)
+		return ~((__uint128_t)0);
+	return (((__uint128_t)1) << bits) - 1u;
+}
+
+static inline ctxobj96_t ani_coden128_to_ctxobj96(__uint128_t tuple, int codens)
+{
+	uint64_t ctx = 0;
+	uint32_t obj = (uint32_t)(tuple & 0x3u);
+	for (int i = 0; i < codens; ++i) {
+		tuple >>= 2;
+		ctx |= (uint64_t)(tuple & 0xFu) << (4 * i);
+		tuple >>= 4;
+		obj |= (uint32_t)(tuple & 0x3u) << (2 * (i + 1));
+	}
+	return ctxobj96_make(ctx, obj);
+}
+
+static void ani_extract_read_density_ctxobjs96(const char *s, int len,
+											   ani_ctxobj96_vec_t *vec,
+											   uint64_t density_threshold)
+{
+	if (len < (int)klen)
+		return;
+	const unsigned tuple_bits = 2u * klen;
+	const __uint128_t tuple_mask = ani_mask128_bits(tuple_bits);
+	const unsigned rev_shift = 2u * (klen - 1u);
+	__uint128_t tuple = 0, crv = 0;
+	int base = 0;
+
+	for (int pos = 0; pos < len; ++pos) {
+		const int bmap = Basemap[(unsigned char)s[pos]];
+		if (unlikely(bmap == DEFAULT)) {
+			base = 0;
+			tuple = 0;
+			crv = 0;
+			continue;
+		}
+		const __uint128_t b2 = (uint64_t)bmap;
+		tuple = ((tuple << 2) | b2) & tuple_mask;
+		crv = (crv >> 2) | ((b2 ^ 3u) << rev_shift);
+		if (unlikely(++base < (int)klen))
+			continue;
+
+		const ctxobj96_t fwd = ani_coden128_to_ctxobj96(tuple, NUM_CODENS);
+		const ctxobj96_t rev = ani_coden128_to_ctxobj96(crv, NUM_CODENS);
+		const ctxobj96_t rec =
+			(fwd.ctx < rev.ctx || (fwd.ctx == rev.ctx && fwd.obj <= rev.obj))
+				? fwd
+				: rev;
+#if ANI_APPLY_SOURCE_FILTER
+		if (unlikely((uint32_t)mix64(rec.ctx) > FILTER))
+			continue;
+#endif
+		if (mix64(rec.ctx ^ (uint64_t)MINCO_SEED) > density_threshold)
+			continue;
+		ani_ctxobj96_vec_push(vec, rec);
+	}
+}
+
 static int ani_min_diff_sections_read_run_vs_ref_index(const uint64_t *qry,
 													   size_t qry_begin,
 													   size_t qry_end,
@@ -4799,7 +6194,11 @@ static void ani_process_density_ctxobj_unit(
 	kv_u64_t *ref_ctx_cov_hits,
 	ani_u64_set_t *qry_ctx_seen,
 	ani_u64_set_t *qry_ref_ctx_seen,
-	ani_readwise_acc_t *acc)
+	ani_readwise_assign_mode_t assign_mode,
+	ani_readwise_acc_t *acc,
+	const char *unit_read_name,
+	const ani_readwise_trace_t *trace,
+	ani_readwise_edge_trace_t *edge_trace)
 {
 	if (!unit_vec || unit_vec->n == 0)
 		return;
@@ -4810,6 +6209,8 @@ static void ani_process_density_ctxobj_unit(
 	if (unit_reads_with_density_ctx == 0)
 		unit_reads_with_density_ctx = 1;
 
+	kv_readwise_candidate_t candidates;
+	kv_init(candidates);
 	for (size_t q = 0; q < unit_vec->n; ) {
 		const uint64_t qctx = unit_vec->a[q] >> nobjbits;
 		const size_t qbeg = q;
@@ -4818,6 +6219,8 @@ static void ani_process_density_ctxobj_unit(
 		if (qry_ctx_seen)
 			(void)ani_u64_set_insert(qry_ctx_seen, qctx);
 
+		kv_size(candidates) = 0;
+		uint32_t best_diff = UINT32_MAX;
 		size_t pos = lb_in_bucket_ctxgid(index, fence, fence_k, qctx);
 		while (pos < index_n && (index[pos].ctxgid >> GID_NBITS) == qctx) {
 			const uint64_t ctxgid = index[pos].ctxgid;
@@ -4830,6 +6233,54 @@ static void ani_process_density_ctxobj_unit(
 			if (ignoreconflict && ref_end - ref_begin > 1)
 				continue;
 
+			const int min_diff = ani_min_diff_sections_read_run_vs_ref_index(
+				unit_vec->a, qbeg, qend, index, ref_begin, ref_end, objmask);
+			ani_readwise_candidate_t cand = {
+				.ref_begin = ref_begin,
+				.gid = gid,
+				.diff = (uint32_t)min_diff,
+			};
+			kv_push(ani_readwise_candidate_t, candidates, cand);
+			if ((uint32_t)min_diff < best_diff)
+				best_diff = (uint32_t)min_diff;
+		}
+		if (kv_size(candidates) == 0)
+			continue;
+
+		size_t selected_n = kv_size(candidates);
+		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
+			selected_n = 0;
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+				if (kv_A(candidates, ci).diff == best_diff)
+					++selected_n;
+			if (!selected_n)
+				continue;
+			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
+				selected_n != 1)
+				continue;
+		}
+		uint32_t cov_inc = 1u;
+		if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT) {
+			cov_inc = selected_n
+						  ? (uint32_t)((ANI_REFCOV_SPLIT_SCALE + selected_n / 2u) / selected_n)
+						  : ANI_REFCOV_SPLIT_SCALE;
+			if (!cov_inc)
+				cov_inc = 1u;
+		}
+		ani_readwise_edge_trace_emit_group(edge_trace, unit_read_name, unit_id,
+										   qctx, &candidates, best_diff,
+										   selected_n, cov_inc, assign_mode);
+
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+			const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
+				continue;
+			const uint32_t gid = cand->gid;
+			const size_t ref_begin = cand->ref_begin;
+			if (trace && trace->fp && gid == trace->gid)
+				ani_readwise_trace_emit(trace, unit_read_name, unit_id, qctx,
+										ref_begin, cand->diff, best_diff,
+										kv_size(candidates), selected_n, cov_inc);
 			if (read_marks[gid] != unit_id) {
 				read_marks[gid] = unit_id;
 				acc[gid].reads_with_ctx_match += unit_reads_with_density_ctx;
@@ -4847,21 +6298,20 @@ static void ani_process_density_ctxobj_unit(
 					acc[gid].qry_ctx_hit++;
 			}
 
-			const int min_diff = ani_min_diff_sections_read_run_vs_ref_index(
-				unit_vec->a, qbeg, qend, index, ref_begin, ref_end, objmask);
 			if (ref_ctx_cov)
-				ani_ref_covdiff_add_hit(&ref_ctx_cov[ref_begin], (uint32_t)min_diff);
+				ani_ref_covdiff_add_scaled_hit(&ref_ctx_cov[ref_begin], cand->diff, cov_inc);
 			else if (ref_ctx_cov_hits)
 				kv_push(uint64_t, *ref_ctx_cov_hits,
-						ani_ref_covdiff_pack_hit(ref_begin, (uint32_t)min_diff));
-			if (min_diff > 0) {
+						ani_ref_covdiff_pack_hit(ref_begin, cand->diff, cov_inc));
+			if (cand->diff > 0) {
 				acc[gid].N_diff_obj++;
-				acc[gid].N_diff_obj_section += (uint64_t)min_diff;
-				if (min_diff > 1)
+				acc[gid].N_diff_obj_section += (uint64_t)cand->diff;
+				if (cand->diff > 1)
 					acc[gid].N_mut2_ctx++;
 			}
 		}
 	}
+	kv_destroy(candidates);
 }
 
 static void ani_process_density_units_parallel(
@@ -4878,7 +6328,10 @@ static void ani_process_density_units_parallel(
 	uint64_t gidmask_local,
 	uint64_t objmask,
 	bool need_ref_ctx_cov,
-	bool track_query_sets)
+	bool track_query_sets,
+	ani_readwise_assign_mode_t assign_mode,
+	const ani_readwise_trace_t *trace,
+	ani_readwise_edge_trace_t *edge_trace)
 {
 	const size_t unit_n = units ? kv_size(*units) : 0;
 	if (!unit_n)
@@ -4897,14 +6350,19 @@ static void ani_process_density_units_parallel(
 			need_ref_ctx_cov ? &st->ref_ctx_cov_hits : NULL,
 			track_query_sets ? &st->qry_ctx_seen : NULL,
 			track_query_sets ? &st->qry_ref_ctx_seen : NULL,
-			st->acc);
+			assign_mode,
+			st->acc,
+			unit->read_name,
+			trace,
+			edge_trace);
 	}
 }
 
 static void ani_density_unit_push_move(kv_density_unit_t *units,
 									   u64vec *vec,
 									   uint64_t id,
-									   uint64_t reads_with_density_ctx)
+									   uint64_t reads_with_density_ctx,
+									   const char *read_name)
 {
 	if (!vec || vec->n == 0)
 		return;
@@ -4912,15 +6370,227 @@ static void ani_density_unit_push_move(kv_density_unit_t *units,
 		.vec = *vec,
 		.id = id,
 		.reads_with_density_ctx = reads_with_density_ctx ? reads_with_density_ctx : 1,
+		.read_name = read_name ? strdup(read_name) : NULL,
 	};
+	if (read_name && !unit.read_name)
+		err(EXIT_FAILURE, "%s(): OOM readwise trace read name", __func__);
 	kv_push(ani_density_unit_t, *units, unit);
 	v_init(vec, 0);
+}
+
+static int ani_min_diff_sections_read_run_vs_ref_index128(const ctxobj96_t *qry,
+														  size_t qry_begin,
+														  size_t qry_end,
+														  const ctxgidobj128_t *ref,
+														  size_t ref_begin,
+														  size_t ref_end)
+{
+	int min_diff_sections = NUM_CODENS + 1;
+	for (size_t qi = qry_begin; qi < qry_end; ++qi) {
+		const uint32_t obj_q = qry[qi].obj;
+		for (size_t ri = ref_begin; ri < ref_end; ++ri) {
+			const uint32_t diff = obj_q ^ ref[ri].obj;
+			if (diff == 0)
+				return 0;
+			const int d = dna_popcount(diff);
+			if (d < min_diff_sections)
+				min_diff_sections = d;
+		}
+	}
+	return min_diff_sections;
+}
+
+static void ani_process_density_ctxobj96_unit(
+	ani_ctxobj96_vec_t *unit_vec,
+	uint64_t unit_id,
+	uint64_t unit_reads_with_density_ctx,
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	uint64_t *read_marks,
+	uint8_t *ref_hit_bits,
+	uint32_t *ref_ctx_cov,
+	kv_size_t *ref_ctx_hit_positions,
+	kv_u64_t *ref_ctx_cov_hits,
+	ani_readwise_assign_mode_t assign_mode,
+	ani_readwise_acc_t *acc,
+	const char *unit_read_name,
+	const ani_readwise_trace_t *trace,
+	ani_readwise_edge_trace_t *edge_trace)
+{
+	if (!unit_vec || unit_vec->n == 0)
+		return;
+	qsort(unit_vec->a, unit_vec->n, sizeof(unit_vec->a[0]), ani_ctxobj96_cmp);
+	unit_vec->n = ani_ctxobj96_dedup_sorted(unit_vec->a, unit_vec->n);
+	if (unit_vec->n == 0)
+		return;
+	if (unit_reads_with_density_ctx == 0)
+		unit_reads_with_density_ctx = 1;
+
+	kv_readwise_candidate_t candidates;
+	kv_init(candidates);
+	for (size_t q = 0; q < unit_vec->n; ) {
+		const uint64_t qctx = unit_vec->a[q].ctx;
+		const size_t qbeg = q;
+		do { ++q; } while (q < unit_vec->n && unit_vec->a[q].ctx == qctx);
+		const size_t qend = q;
+
+		kv_size(candidates) = 0;
+		uint32_t best_diff = UINT32_MAX;
+		size_t pos = lb_in_bucket_ctxgid128(index, fence, fence_k, qctx);
+		while (pos < index_n && index[pos].ctx == qctx) {
+			const uint64_t ctx = index[pos].ctx;
+			const uint32_t gid = index[pos].gid;
+			const size_t ref_begin = pos;
+			do { ++pos; } while (pos < index_n &&
+								  index[pos].ctx == ctx &&
+								  index[pos].gid == gid);
+			const size_t ref_end = pos;
+			if (gid >= ref_n)
+				continue;
+			if (ignoreconflict && ref_end - ref_begin > 1)
+				continue;
+
+			const int min_diff = ani_min_diff_sections_read_run_vs_ref_index128(
+				unit_vec->a, qbeg, qend, index, ref_begin, ref_end);
+			ani_readwise_candidate_t cand = {
+				.ref_begin = ref_begin,
+				.gid = gid,
+				.diff = (uint32_t)min_diff,
+			};
+			kv_push(ani_readwise_candidate_t, candidates, cand);
+			if ((uint32_t)min_diff < best_diff)
+				best_diff = (uint32_t)min_diff;
+		}
+		if (kv_size(candidates) == 0)
+			continue;
+
+		size_t selected_n = kv_size(candidates);
+		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
+			selected_n = 0;
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+				if (kv_A(candidates, ci).diff == best_diff)
+					++selected_n;
+			if (!selected_n)
+				continue;
+			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
+				selected_n != 1)
+				continue;
+		}
+		uint32_t cov_inc = 1u;
+		if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT) {
+			cov_inc = selected_n
+						  ? (uint32_t)((ANI_REFCOV_SPLIT_SCALE + selected_n / 2u) / selected_n)
+						  : ANI_REFCOV_SPLIT_SCALE;
+			if (!cov_inc)
+				cov_inc = 1u;
+		}
+		ani_readwise_edge_trace_emit_group(edge_trace, unit_read_name, unit_id,
+										   qctx, &candidates, best_diff,
+										   selected_n, cov_inc, assign_mode);
+
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+			const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+			if (assign_mode != ANI_READWISE_ASSIGN_ALL && cand->diff != best_diff)
+				continue;
+			const uint32_t gid = cand->gid;
+			const size_t ref_begin = cand->ref_begin;
+			if (trace && trace->fp && gid == trace->gid)
+				ani_readwise_trace_emit(trace, unit_read_name, unit_id, qctx,
+										ref_begin, cand->diff, best_diff,
+										kv_size(candidates), selected_n, cov_inc);
+			if (read_marks[gid] != unit_id) {
+				read_marks[gid] = unit_id;
+				acc[gid].reads_with_ctx_match += unit_reads_with_density_ctx;
+				acc[gid].blocks_with_ctx_match++;
+			}
+			acc[gid].XnY_ctx++;
+			if (!ani_bitset_test_set(ref_hit_bits, ref_begin)) {
+				acc[gid].ref_ctx_hit++;
+				if (ref_ctx_hit_positions)
+					kv_push(size_t, *ref_ctx_hit_positions, ref_begin);
+			}
+			if (ref_ctx_cov)
+				ani_ref_covdiff_add_scaled_hit(&ref_ctx_cov[ref_begin], cand->diff, cov_inc);
+			else if (ref_ctx_cov_hits)
+				kv_push(uint64_t, *ref_ctx_cov_hits,
+						ani_ref_covdiff_pack_hit(ref_begin, cand->diff, cov_inc));
+			if (cand->diff > 0) {
+				acc[gid].N_diff_obj++;
+				acc[gid].N_diff_obj_section += (uint64_t)cand->diff;
+				if (cand->diff > 1)
+					acc[gid].N_mut2_ctx++;
+			}
+		}
+	}
+	kv_destroy(candidates);
+}
+
+static void ani_process_density_units96_parallel(
+	kv_density_unit96_t *units,
+	ani_readwise_thread_state_t *states,
+	int worker_n,
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	const size_t *fence,
+	int fence_k,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	bool need_ref_ctx_cov,
+	ani_readwise_assign_mode_t assign_mode,
+	const ani_readwise_trace_t *trace,
+	ani_readwise_edge_trace_t *edge_trace)
+{
+	const size_t unit_n = units ? kv_size(*units) : 0;
+	if (!unit_n)
+		return;
+#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 64)
+	for (size_t i = 0; i < unit_n; ++i) {
+		const int tid = omp_get_thread_num();
+		ani_readwise_thread_state_t *st = &states[tid];
+		ani_density_unit96_t *unit = &kv_A(*units, i);
+		ani_process_density_ctxobj96_unit(
+			&unit->vec, unit->id, unit->reads_with_density_ctx,
+			index, index_n, fence, fence_k, ref_n, ignoreconflict,
+			st->read_marks, st->ref_hit_bits, NULL,
+			&st->ref_ctx_hit_positions,
+			need_ref_ctx_cov ? &st->ref_ctx_cov_hits : NULL,
+			assign_mode,
+			st->acc,
+			unit->read_name,
+			trace,
+			edge_trace);
+	}
+}
+
+static void ani_density_unit96_push_move(kv_density_unit96_t *units,
+										 ani_ctxobj96_vec_t *vec,
+										 uint64_t id,
+										 uint64_t reads_with_density_ctx,
+										 const char *read_name)
+{
+	if (!vec || vec->n == 0)
+		return;
+	ani_density_unit96_t unit = {
+		.vec = *vec,
+		.id = id,
+		.reads_with_density_ctx = reads_with_density_ctx ? reads_with_density_ctx : 1,
+		.read_name = read_name ? strdup(read_name) : NULL,
+	};
+	if (read_name && !unit.read_name)
+		err(EXIT_FAILURE, "%s(): OOM readwise trace read name", __func__);
+	kv_push(ani_density_unit96_t, *units, unit);
+	ani_ctxobj96_vec_init(vec, 0);
 }
 
 static uint32_t *ani_ref_ctx_counts_from_sorted_index(const ctxgidobj_t *index,
 													  size_t index_n,
 													  uint32_t ref_n,
-													  bool ignoreconflict)
+													  bool ignoreconflict,
+													  bool marker_only)
 {
 	uint32_t *counts = calloc((size_t)ref_n, sizeof(counts[0]));
 	if (!counts)
@@ -4931,7 +6601,33 @@ static uint32_t *ani_ref_ctx_counts_from_sorted_index(const ctxgidobj_t *index,
 		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
 		const size_t begin = i;
 		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
-		if (gid < ref_n && (!ignoreconflict || i - begin == 1))
+		if (gid < ref_n &&
+			(!ignoreconflict || i - begin == 1) &&
+			(!marker_only || ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+			counts[gid]++;
+	}
+	return counts;
+}
+
+static uint32_t *ani_ref_ctx_counts_from_sorted_index128(const ctxgidobj128_t *index,
+														 size_t index_n,
+														 uint32_t ref_n,
+														 bool ignoreconflict,
+														 bool marker_only)
+{
+	uint32_t *counts = calloc((size_t)ref_n, sizeof(counts[0]));
+	if (!counts)
+		err(EXIT_FAILURE, "%s(): OOM reference context counts", __func__);
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid < ref_n &&
+			(!ignoreconflict || i - begin == 1) &&
+			(!marker_only || ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
 			counts[gid]++;
 	}
 	return counts;
@@ -4943,14 +6639,21 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 	uint32_t ref_n,
 	bool ignoreconflict,
 	const uint32_t *ref_ctx_cov,
+	const uint16_t *ref_ctx_hit_weight,
 	const uint32_t *ref_ctx_total,
-	const ani_readwise_acc_t *acc)
+	const ani_readwise_acc_t *acc,
+	double coverage_scale,
+	bool marker_only)
 {
 	ani_readwise_abundance_t *stats = calloc((size_t)ref_n, sizeof(stats[0]));
 	long double *sum = calloc((size_t)ref_n, sizeof(sum[0]));
 	long double *sumsq = calloc((size_t)ref_n, sizeof(sumsq[0]));
-	if (!stats || !sum || !sumsq)
+	long double *hit_weight = calloc((size_t)ref_n, sizeof(hit_weight[0]));
+	if (!stats || !sum || !sumsq || !hit_weight)
 		err(EXIT_FAILURE, "%s(): OOM abundance stats", __func__);
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	const long double inv_coverage_scale = 1.0L / (long double)coverage_scale;
 
 	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
 	for (size_t i = 0; i < index_n; ) {
@@ -4958,13 +6661,20 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
 		const size_t begin = i;
 		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
-		if (gid >= ref_n || (ignoreconflict && i - begin > 1))
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
 			continue;
 		const long double cov = ref_ctx_cov
-									? (long double)ani_ref_covdiff_coverage(ref_ctx_cov[begin])
+									? (long double)ani_ref_covdiff_coverage(ref_ctx_cov[begin]) * inv_coverage_scale
 									: 0.0L;
 		sum[gid] += cov;
 		sumsq[gid] += cov * cov;
+		if (ref_ctx_hit_weight && ref_ctx_hit_weight[begin] > 0) {
+			long double hit = (long double)ref_ctx_hit_weight[begin] * inv_coverage_scale;
+			if (hit > 1.0L)
+				hit = 1.0L;
+			hit_weight[gid] += hit;
+		}
 	}
 
 	long double total_mean_depth = 0.0L;
@@ -4979,11 +6689,13 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 			var = 0.0L;
 		if (var < 0.0L)
 			var = 0.0L;
-		const uint64_t hit = acc ? acc[rn].ref_ctx_hit : 0;
-		const long double breadth = hit ? (long double)hit / denom : 0.0L;
+		const long double hit = ref_ctx_hit_weight
+									? hit_weight[rn]
+									: (long double)(acc ? acc[rn].ref_ctx_hit : 0);
+		const long double breadth = hit > 0.0L ? hit / denom : 0.0L;
 		stats[rn].ref_breadth = (double)breadth;
 		stats[rn].ref_mean_depth = (double)mean;
-		stats[rn].ref_hit_mean_depth = hit ? (double)(sum[rn] / (long double)hit) : 0.0;
+		stats[rn].ref_hit_mean_depth = hit > 0.0L ? (double)(sum[rn] / hit) : 0.0;
 		stats[rn].ref_depth_variance = (double)var;
 		stats[rn].ref_depth_cv = mean > 0.0L ? (double)(sqrtl(var) / mean) : 0.0;
 		stats[rn].ref_zero_fraction = (double)(1.0L - breadth);
@@ -4997,6 +6709,88 @@ static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage(
 
 	free(sum);
 	free(sumsq);
+	free(hit_weight);
+	return stats;
+}
+
+static ani_readwise_abundance_t *ani_depth_abundance_from_ref_coverage128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const uint16_t *ref_ctx_hit_weight,
+	const uint32_t *ref_ctx_total,
+	const ani_readwise_acc_t *acc,
+	double coverage_scale,
+	bool marker_only)
+{
+	ani_readwise_abundance_t *stats = calloc((size_t)ref_n, sizeof(stats[0]));
+	long double *sum = calloc((size_t)ref_n, sizeof(sum[0]));
+	long double *sumsq = calloc((size_t)ref_n, sizeof(sumsq[0]));
+	long double *hit_weight = calloc((size_t)ref_n, sizeof(hit_weight[0]));
+	if (!stats || !sum || !sumsq || !hit_weight)
+		err(EXIT_FAILURE, "%s(): OOM abundance stats", __func__);
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	const long double inv_coverage_scale = 1.0L / (long double)coverage_scale;
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const long double cov = ref_ctx_cov
+									? (long double)ani_ref_covdiff_coverage(ref_ctx_cov[begin]) * inv_coverage_scale
+									: 0.0L;
+		sum[gid] += cov;
+		sumsq[gid] += cov * cov;
+		if (ref_ctx_hit_weight && ref_ctx_hit_weight[begin] > 0) {
+			long double hit = (long double)ref_ctx_hit_weight[begin] * inv_coverage_scale;
+			if (hit > 1.0L)
+				hit = 1.0L;
+			hit_weight[gid] += hit;
+		}
+	}
+
+	long double total_mean_depth = 0.0L;
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const uint32_t total = ref_ctx_total ? ref_ctx_total[rn] : 0;
+		if (!total)
+			continue;
+		const long double denom = (long double)total;
+		const long double mean = sum[rn] / denom;
+		long double var = sumsq[rn] / denom - mean * mean;
+		if (var < 0.0L && var > -1e-12L)
+			var = 0.0L;
+		if (var < 0.0L)
+			var = 0.0L;
+		const long double hit = ref_ctx_hit_weight
+									? hit_weight[rn]
+									: (long double)(acc ? acc[rn].ref_ctx_hit : 0);
+		const long double breadth = hit > 0.0L ? hit / denom : 0.0L;
+		stats[rn].ref_breadth = (double)breadth;
+		stats[rn].ref_mean_depth = (double)mean;
+		stats[rn].ref_hit_mean_depth = hit > 0.0L ? (double)(sum[rn] / hit) : 0.0;
+		stats[rn].ref_depth_variance = (double)var;
+		stats[rn].ref_depth_cv = mean > 0.0L ? (double)(sqrtl(var) / mean) : 0.0;
+		stats[rn].ref_zero_fraction = (double)(1.0L - breadth);
+		total_mean_depth += mean;
+	}
+	if (total_mean_depth > 0.0L) {
+		for (uint32_t rn = 0; rn < ref_n; ++rn)
+			stats[rn].relative_depth =
+				(double)((long double)stats[rn].ref_mean_depth / total_mean_depth);
+	}
+
+	free(sum);
+	free(sumsq);
+	free(hit_weight);
 	return stats;
 }
 
@@ -5005,7 +6799,8 @@ static ani_readwise_acc_t *ani_unique_best_features_from_ref_covdiff(
 	size_t index_n,
 	uint32_t ref_n,
 	bool ignoreconflict,
-	const uint32_t *ref_ctx_cov)
+	const uint32_t *ref_ctx_cov,
+	bool marker_only)
 {
 	if (!ref_ctx_cov)
 		return NULL;
@@ -5019,7 +6814,8 @@ static ani_readwise_acc_t *ani_unique_best_features_from_ref_covdiff(
 		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
 		const size_t begin = i;
 		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
-		if (gid >= ref_n || (ignoreconflict && i - begin > 1))
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
 			continue;
 		const uint32_t packed = ref_ctx_cov[begin];
 		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
@@ -5035,6 +6831,982 @@ static ani_readwise_acc_t *ani_unique_best_features_from_ref_covdiff(
 		}
 	}
 	return features;
+}
+
+static ani_readwise_acc_t *ani_unique_best_features_from_ref_covdiff128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	bool marker_only)
+{
+	if (!ref_ctx_cov)
+		return NULL;
+	ani_readwise_acc_t *features = calloc((size_t)ref_n, sizeof(features[0]));
+	if (!features)
+		err(EXIT_FAILURE, "%s(): OOM unique readwise ANI features", __func__);
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !ani_ref_covdiff_coverage(packed))
+			continue;
+		const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+		features[gid].XnY_ctx++;
+		if (diff > 0) {
+			features[gid].N_diff_obj++;
+			features[gid].N_diff_obj_section += (uint64_t)diff;
+			if (diff > 1)
+				features[gid].N_mut2_ctx++;
+		}
+	}
+	return features;
+}
+
+static inline uint64_t ani_readwise_scaled_round_u64(uint64_t x, uint32_t scale)
+{
+	if (scale <= 1u)
+		return x;
+	return (x + (uint64_t)scale / 2u) / (uint64_t)scale;
+}
+
+static inline uint32_t ani_readwise_scaled_round_u32(uint64_t x, uint32_t scale)
+{
+	return ani_clamp_u64_to_u32(ani_readwise_scaled_round_u64(x, scale));
+}
+
+static inline int ani_readwise_scaled_round_int(uint64_t x, uint32_t scale)
+{
+	return ani_clamp_u64_to_int(ani_readwise_scaled_round_u64(x, scale));
+}
+
+static inline uint64_t ani_readwise_probability_weight(double keep_probability)
+{
+	if (!isfinite(keep_probability) || keep_probability <= 0.0)
+		return 0;
+	if (keep_probability >= 1.0)
+		return ANI_READWISE_PROB_SCALE;
+	return (uint64_t)llround(keep_probability * (double)ANI_READWISE_PROB_SCALE);
+}
+
+static ani_readwise_acc_t *ani_reliable_features_from_ref_covdiff(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const ani_readwise_abundance_t *abundance_stats,
+	const uint32_t *ref_ctx_total,
+	ani_readwise_ctx_filter_model_t filter_model,
+	double coverage_scale,
+	double fake_threshold,
+	ani_readwise_filter_stats_t *filter_stats,
+	bool marker_only)
+{
+	if (!ref_ctx_cov || !abundance_stats)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	if (!isfinite(fake_threshold) || fake_threshold <= 0.0)
+		fake_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD;
+
+	ani_readwise_acc_t *features = calloc((size_t)ref_n, sizeof(features[0]));
+	if (!features)
+		err(EXIT_FAILURE, "%s(): OOM reliable readwise ANI features", __func__);
+	if (filter_stats)
+		memset(filter_stats, 0, (size_t)ref_n * sizeof(filter_stats[0]));
+
+	long double *product_sum = NULL;
+	long double *product_sumsq = NULL;
+	double *product_max = NULL;
+	uint32_t *product_nonzero = NULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		product_sum = calloc((size_t)ref_n, sizeof(product_sum[0]));
+		product_sumsq = calloc((size_t)ref_n, sizeof(product_sumsq[0]));
+		product_max = calloc((size_t)ref_n, sizeof(product_max[0]));
+		product_nonzero = calloc((size_t)ref_n, sizeof(product_nonzero[0]));
+		if (!product_sum || !product_sumsq || !product_max || !product_nonzero)
+			err(EXIT_FAILURE, "%s(): OOM readwise product filter stats", __func__);
+	}
+
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		for (size_t i = 0; i < index_n; ) {
+			const uint64_t ctxgid = index[i].ctxgid;
+			const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+			const size_t begin = i;
+			do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+			if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+				(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+				continue;
+			const uint32_t packed = ref_ctx_cov[begin];
+			const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+			const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+			if (!code || !coverage_raw)
+				continue;
+			const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+			if (!diff)
+				continue;
+			const double cov = (double)coverage_raw / coverage_scale;
+			const double product = (double)diff * cov;
+			if (!isfinite(product) || product <= 0.0)
+				continue;
+			product_sum[gid] += (long double)product;
+			product_sumsq[gid] += (long double)product * (long double)product;
+			if (product > product_max[gid])
+				product_max[gid] = product;
+			product_nonzero[gid]++;
+		}
+	}
+	double *product_topfrac_thresholds = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC) {
+		product_topfrac_thresholds = ani_readwise_product_topfrac_thresholds(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold, marker_only);
+	}
+	ani_readwise_product_topfrac_median_t *product_topfrac_medians = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+		filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) {
+		product_topfrac_medians = ani_readwise_product_topfrac_median_stats(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold,
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN,
+			marker_only);
+	}
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t raw_diff = ani_ref_covdiff_decode_diff(code);
+		if (filter_stats)
+			filter_stats[gid].raw_xny_ctx++;
+		uint32_t diff = raw_diff;
+		double cov = (double)coverage_raw / coverage_scale;
+		const double fake_prob = ani_readwise_fake_ctx_probability(
+			raw_diff, cov, &abundance_stats[gid], fake_threshold);
+		if (filter_stats) {
+			filter_stats[gid].fake_prob_sum += (long double)fake_prob;
+			filter_stats[gid].fake_prob_weighted_sum += (long double)fake_prob * (long double)cov;
+			filter_stats[gid].fake_prob_weight_sum += (long double)cov;
+		}
+		double product_lambda = 0.0;
+		double product_nb_mean = 0.0;
+		double product_nb_variance = 0.0;
+		uint32_t product_nb_nonzero = 0u;
+		if (ani_readwise_ctx_filter_uses_product(filter_model) &&
+			ref_ctx_total && ref_ctx_total[gid]) {
+			long double robust_sum = product_sum[gid];
+			long double robust_sumsq = product_sumsq[gid];
+			uint32_t robust_n = product_nonzero[gid];
+			if (product_nonzero[gid] > 1u)
+				robust_sum -= (long double)product_max[gid];
+			if (product_nonzero[gid] > 1u) {
+				robust_sumsq -= (long double)product_max[gid] * (long double)product_max[gid];
+				robust_n--;
+			}
+			if (robust_sum < 0.0L)
+				robust_sum = 0.0L;
+			if (robust_sumsq < 0.0L)
+				robust_sumsq = 0.0L;
+			product_lambda = (double)(robust_sum / (long double)ref_ctx_total[gid]);
+			if (robust_n > 0u) {
+				product_nb_nonzero = robust_n;
+				product_nb_mean = (double)(robust_sum / (long double)robust_n);
+				if (robust_n > 1u) {
+					const long double mean_ld = robust_sum / (long double)robust_n;
+					long double ss = robust_sumsq - robust_sum * mean_ld;
+					if (ss < 0.0L)
+						ss = 0.0L;
+					product_nb_variance = (double)(ss / (long double)(robust_n - 1u));
+				} else {
+					product_nb_variance = product_nb_mean;
+				}
+			}
+		}
+		const bool adjusted =
+			((filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+			  filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) &&
+			 ani_readwise_apply_product_topfrac_median_ctx(
+				 &diff, &cov,
+				 product_topfrac_medians ? &product_topfrac_medians[gid] : NULL,
+				 filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN));
+		const bool reject =
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DIFF &&
+			 ani_readwise_reject_poisson_diff_ctx(
+				 raw_diff, cov, &abundance_stats[gid], fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DEPTH &&
+			 ani_readwise_reject_poisson_depth_ctx(
+				 raw_diff, cov, &abundance_stats[gid],
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_PRODUCT &&
+			 ani_readwise_reject_poisson_product_ctx(
+				 raw_diff, cov, product_lambda,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_NB &&
+			 ani_readwise_reject_product_nb_ctx(
+				 raw_diff, cov, product_nb_mean, product_nb_variance,
+				 product_nb_nonzero,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC &&
+			 ani_readwise_reject_product_topfrac_ctx(
+				 raw_diff, cov,
+				 product_topfrac_thresholds ? product_topfrac_thresholds[gid] : NAN));
+		if (reject) {
+			if (filter_stats) {
+				filter_stats[gid].rejected_ctx++;
+				if (raw_diff > 0)
+					filter_stats[gid].rejected_diff_ctx++;
+			}
+			continue;
+		}
+		if (adjusted && filter_stats) {
+			filter_stats[gid].rejected_ctx++;
+			if (raw_diff > 0)
+				filter_stats[gid].rejected_diff_ctx++;
+		}
+		uint64_t weight = 1u;
+		if (filter_model == ANI_READWISE_CTX_FILTER_FAKE_PROB)
+			weight = raw_diff == 0
+						 ? (uint64_t)ANI_READWISE_PROB_SCALE
+						 : ani_readwise_probability_weight(1.0 - fake_prob);
+		if (!weight)
+			continue;
+		features[gid].XnY_ctx += weight;
+		if (diff > 0) {
+			features[gid].N_diff_obj += weight;
+			features[gid].N_diff_obj_section += weight * (uint64_t)diff;
+			if (diff > 1)
+				features[gid].N_mut2_ctx += weight;
+		}
+	}
+	free(product_sum);
+	free(product_sumsq);
+	free(product_max);
+	free(product_nonzero);
+	free(product_topfrac_thresholds);
+	free(product_topfrac_medians);
+	return features;
+}
+
+static ani_readwise_acc_t *ani_reliable_features_from_ref_covdiff128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const ani_readwise_abundance_t *abundance_stats,
+	const uint32_t *ref_ctx_total,
+	ani_readwise_ctx_filter_model_t filter_model,
+	double coverage_scale,
+	double fake_threshold,
+	ani_readwise_filter_stats_t *filter_stats,
+	bool marker_only)
+{
+	if (!ref_ctx_cov || !abundance_stats)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	if (!isfinite(fake_threshold) || fake_threshold <= 0.0)
+		fake_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD;
+
+	ani_readwise_acc_t *features = calloc((size_t)ref_n, sizeof(features[0]));
+	if (!features)
+		err(EXIT_FAILURE, "%s(): OOM reliable readwise ANI features", __func__);
+	if (filter_stats)
+		memset(filter_stats, 0, (size_t)ref_n * sizeof(filter_stats[0]));
+
+	long double *product_sum = NULL;
+	long double *product_sumsq = NULL;
+	double *product_max = NULL;
+	uint32_t *product_nonzero = NULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		product_sum = calloc((size_t)ref_n, sizeof(product_sum[0]));
+		product_sumsq = calloc((size_t)ref_n, sizeof(product_sumsq[0]));
+		product_max = calloc((size_t)ref_n, sizeof(product_max[0]));
+		product_nonzero = calloc((size_t)ref_n, sizeof(product_nonzero[0]));
+		if (!product_sum || !product_sumsq || !product_max || !product_nonzero)
+			err(EXIT_FAILURE, "%s(): OOM readwise product filter stats", __func__);
+	}
+
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		for (size_t i = 0; i < index_n; ) {
+			const uint64_t ctx = index[i].ctx;
+			const uint32_t gid = index[i].gid;
+			const size_t begin = i;
+			do { ++i; } while (i < index_n &&
+								index[i].ctx == ctx &&
+								index[i].gid == gid);
+			if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+				(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+				continue;
+			const uint32_t packed = ref_ctx_cov[begin];
+			const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+			const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+			if (!code || !coverage_raw)
+				continue;
+			const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+			if (!diff)
+				continue;
+			const double cov = (double)coverage_raw / coverage_scale;
+			const double product = (double)diff * cov;
+			if (!isfinite(product) || product <= 0.0)
+				continue;
+			product_sum[gid] += (long double)product;
+			product_sumsq[gid] += (long double)product * (long double)product;
+			if (product > product_max[gid])
+				product_max[gid] = product;
+			product_nonzero[gid]++;
+		}
+	}
+	double *product_topfrac_thresholds = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC) {
+		product_topfrac_thresholds = ani_readwise_product_topfrac_thresholds128(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold, marker_only);
+	}
+	ani_readwise_product_topfrac_median_t *product_topfrac_medians = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+		filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) {
+		product_topfrac_medians = ani_readwise_product_topfrac_median_stats128(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold,
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN,
+			marker_only);
+	}
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t raw_diff = ani_ref_covdiff_decode_diff(code);
+		if (filter_stats)
+			filter_stats[gid].raw_xny_ctx++;
+		uint32_t diff = raw_diff;
+		double cov = (double)coverage_raw / coverage_scale;
+		const double fake_prob = ani_readwise_fake_ctx_probability(
+			raw_diff, cov, &abundance_stats[gid], fake_threshold);
+		if (filter_stats) {
+			filter_stats[gid].fake_prob_sum += (long double)fake_prob;
+			filter_stats[gid].fake_prob_weighted_sum += (long double)fake_prob * (long double)cov;
+			filter_stats[gid].fake_prob_weight_sum += (long double)cov;
+		}
+		double product_lambda = 0.0;
+		double product_nb_mean = 0.0;
+		double product_nb_variance = 0.0;
+		uint32_t product_nb_nonzero = 0u;
+		if (ani_readwise_ctx_filter_uses_product(filter_model) &&
+			ref_ctx_total && ref_ctx_total[gid]) {
+			long double robust_sum = product_sum[gid];
+			long double robust_sumsq = product_sumsq[gid];
+			uint32_t robust_n = product_nonzero[gid];
+			if (product_nonzero[gid] > 1u)
+				robust_sum -= (long double)product_max[gid];
+			if (product_nonzero[gid] > 1u) {
+				robust_sumsq -= (long double)product_max[gid] * (long double)product_max[gid];
+				robust_n--;
+			}
+			if (robust_sum < 0.0L)
+				robust_sum = 0.0L;
+			if (robust_sumsq < 0.0L)
+				robust_sumsq = 0.0L;
+			product_lambda = (double)(robust_sum / (long double)ref_ctx_total[gid]);
+			if (robust_n > 0u) {
+				product_nb_nonzero = robust_n;
+				product_nb_mean = (double)(robust_sum / (long double)robust_n);
+				if (robust_n > 1u) {
+					const long double mean_ld = robust_sum / (long double)robust_n;
+					long double ss = robust_sumsq - robust_sum * mean_ld;
+					if (ss < 0.0L)
+						ss = 0.0L;
+					product_nb_variance = (double)(ss / (long double)(robust_n - 1u));
+				} else {
+					product_nb_variance = product_nb_mean;
+				}
+			}
+		}
+		const bool adjusted =
+			((filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+			  filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) &&
+			 ani_readwise_apply_product_topfrac_median_ctx(
+				 &diff, &cov,
+				 product_topfrac_medians ? &product_topfrac_medians[gid] : NULL,
+				 filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN));
+		const bool reject =
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DIFF &&
+			 ani_readwise_reject_poisson_diff_ctx(
+				 raw_diff, cov, &abundance_stats[gid], fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DEPTH &&
+			 ani_readwise_reject_poisson_depth_ctx(
+				 raw_diff, cov, &abundance_stats[gid],
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_PRODUCT &&
+			 ani_readwise_reject_poisson_product_ctx(
+				 raw_diff, cov, product_lambda,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_NB &&
+			 ani_readwise_reject_product_nb_ctx(
+				 raw_diff, cov, product_nb_mean, product_nb_variance,
+				 product_nb_nonzero,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC &&
+			 ani_readwise_reject_product_topfrac_ctx(
+				 raw_diff, cov,
+				 product_topfrac_thresholds ? product_topfrac_thresholds[gid] : NAN));
+		if (reject) {
+			if (filter_stats) {
+				filter_stats[gid].rejected_ctx++;
+				if (raw_diff > 0)
+					filter_stats[gid].rejected_diff_ctx++;
+			}
+			continue;
+		}
+		if (adjusted && filter_stats) {
+			filter_stats[gid].rejected_ctx++;
+			if (raw_diff > 0)
+				filter_stats[gid].rejected_diff_ctx++;
+		}
+		uint64_t weight = 1u;
+		if (filter_model == ANI_READWISE_CTX_FILTER_FAKE_PROB)
+			weight = raw_diff == 0
+						 ? (uint64_t)ANI_READWISE_PROB_SCALE
+						 : ani_readwise_probability_weight(1.0 - fake_prob);
+		if (!weight)
+			continue;
+		features[gid].XnY_ctx += weight;
+		if (diff > 0) {
+			features[gid].N_diff_obj += weight;
+			features[gid].N_diff_obj_section += weight * (uint64_t)diff;
+			if (diff > 1)
+				features[gid].N_mut2_ctx += weight;
+		}
+	}
+	free(product_sum);
+	free(product_sumsq);
+	free(product_max);
+	free(product_nonzero);
+	free(product_topfrac_thresholds);
+	free(product_topfrac_medians);
+	return features;
+}
+
+static ani_readwise_reliable_abundance_t *ani_reliable_abundance_from_ref_covdiff(
+	const ctxgidobj_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const uint16_t *ref_ctx_hit_weight,
+	const ani_readwise_abundance_t *abundance_stats,
+	const uint32_t *ref_ctx_total,
+	ani_readwise_ctx_filter_model_t filter_model,
+	double coverage_scale,
+	double fake_threshold,
+	bool marker_only)
+{
+	if (!ref_ctx_cov || !abundance_stats || !ref_ctx_total)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	if (!isfinite(fake_threshold) || fake_threshold <= 0.0)
+		fake_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD;
+
+	ani_readwise_reliable_abundance_t *stats =
+		calloc((size_t)ref_n, sizeof(stats[0]));
+	long double *sum = calloc((size_t)ref_n, sizeof(sum[0]));
+	long double *sumsq = calloc((size_t)ref_n, sizeof(sumsq[0]));
+	long double *hit_weight = calloc((size_t)ref_n, sizeof(hit_weight[0]));
+	long double *hit_sum = calloc((size_t)ref_n, sizeof(hit_sum[0]));
+	long double *hit_sumsq = calloc((size_t)ref_n, sizeof(hit_sumsq[0]));
+	uint64_t *hit_ctx = calloc((size_t)ref_n, sizeof(hit_ctx[0]));
+	if (!stats || !sum || !sumsq || !hit_weight ||
+		!hit_sum || !hit_sumsq || !hit_ctx)
+		err(EXIT_FAILURE, "%s(): OOM reliable abundance stats", __func__);
+
+	long double *product_sum = NULL;
+	long double *product_sumsq = NULL;
+	double *product_max = NULL;
+	uint32_t *product_nonzero = NULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		product_sum = calloc((size_t)ref_n, sizeof(product_sum[0]));
+		product_sumsq = calloc((size_t)ref_n, sizeof(product_sumsq[0]));
+		product_max = calloc((size_t)ref_n, sizeof(product_max[0]));
+		product_nonzero = calloc((size_t)ref_n, sizeof(product_nonzero[0]));
+		if (!product_sum || !product_sumsq || !product_max || !product_nonzero)
+			err(EXIT_FAILURE, "%s(): OOM reliable abundance product stats", __func__);
+	}
+
+	const long double inv_coverage_scale = 1.0L / (long double)coverage_scale;
+	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		for (size_t i = 0; i < index_n; ) {
+			const uint64_t ctxgid = index[i].ctxgid;
+			const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+			const size_t begin = i;
+			do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+			if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+				(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+				continue;
+			const uint32_t packed = ref_ctx_cov[begin];
+			const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+			const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+			if (!code || !coverage_raw)
+				continue;
+			const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+			if (!diff)
+				continue;
+			const double cov = (double)coverage_raw / coverage_scale;
+			const double product = (double)diff * cov;
+			if (!isfinite(product) || product <= 0.0)
+				continue;
+			product_sum[gid] += (long double)product;
+			product_sumsq[gid] += (long double)product * (long double)product;
+			if (product > product_max[gid])
+				product_max[gid] = product;
+			product_nonzero[gid]++;
+		}
+	}
+	double *product_topfrac_thresholds = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC) {
+		product_topfrac_thresholds = ani_readwise_product_topfrac_thresholds(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold, marker_only);
+	}
+	ani_readwise_product_topfrac_median_t *product_topfrac_medians = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+		filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) {
+		product_topfrac_medians = ani_readwise_product_topfrac_median_stats(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold,
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN,
+			marker_only);
+	}
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctxgid = index[i].ctxgid;
+		const uint32_t gid = (uint32_t)(ctxgid & gidmask_local);
+		const size_t begin = i;
+		do { ++i; } while (i < index_n && index[i].ctxgid == ctxgid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique64(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t raw_diff = ani_ref_covdiff_decode_diff(code);
+		uint32_t diff = raw_diff;
+		double cov = (double)coverage_raw / coverage_scale;
+
+		double product_lambda = 0.0;
+		double product_nb_mean = 0.0;
+		double product_nb_variance = 0.0;
+		uint32_t product_nb_nonzero = 0u;
+		if (ani_readwise_ctx_filter_uses_product(filter_model) &&
+			ref_ctx_total[gid]) {
+			long double robust_sum = product_sum[gid];
+			long double robust_sumsq = product_sumsq[gid];
+			uint32_t robust_n = product_nonzero[gid];
+			if (product_nonzero[gid] > 1u)
+				robust_sum -= (long double)product_max[gid];
+			if (product_nonzero[gid] > 1u) {
+				robust_sumsq -= (long double)product_max[gid] * (long double)product_max[gid];
+				robust_n--;
+			}
+			if (robust_sum < 0.0L)
+				robust_sum = 0.0L;
+			if (robust_sumsq < 0.0L)
+				robust_sumsq = 0.0L;
+			product_lambda = (double)(robust_sum / (long double)ref_ctx_total[gid]);
+			if (robust_n > 0u) {
+				product_nb_nonzero = robust_n;
+				product_nb_mean = (double)(robust_sum / (long double)robust_n);
+				if (robust_n > 1u) {
+					const long double mean_ld = robust_sum / (long double)robust_n;
+					long double ss = robust_sumsq - robust_sum * mean_ld;
+					if (ss < 0.0L)
+						ss = 0.0L;
+					product_nb_variance = (double)(ss / (long double)(robust_n - 1u));
+				} else {
+					product_nb_variance = product_nb_mean;
+				}
+			}
+		}
+		if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN)
+			(void)ani_readwise_apply_product_topfrac_median_ctx(
+				&diff, &cov,
+				product_topfrac_medians ? &product_topfrac_medians[gid] : NULL,
+				filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN);
+		const bool reject =
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DIFF &&
+			 ani_readwise_reject_poisson_diff_ctx(
+				 raw_diff, cov, &abundance_stats[gid], fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DEPTH &&
+			 ani_readwise_reject_poisson_depth_ctx(
+				 raw_diff, cov, &abundance_stats[gid],
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_PRODUCT &&
+			 ani_readwise_reject_poisson_product_ctx(
+				 raw_diff, cov, product_lambda,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_NB &&
+			 ani_readwise_reject_product_nb_ctx(
+				 raw_diff, cov, product_nb_mean, product_nb_variance,
+				 product_nb_nonzero,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC &&
+			 ani_readwise_reject_product_topfrac_ctx(
+				 raw_diff, cov,
+				 product_topfrac_thresholds ? product_topfrac_thresholds[gid] : NAN));
+		if (reject)
+			continue;
+
+		const long double cov_ld = (long double)cov;
+		sum[gid] += cov_ld;
+		sumsq[gid] += cov_ld * cov_ld;
+		hit_sum[gid] += cov_ld;
+		hit_sumsq[gid] += cov_ld * cov_ld;
+		hit_ctx[gid]++;
+		if (ref_ctx_hit_weight && ref_ctx_hit_weight[begin] > 0) {
+			long double hit = (long double)ref_ctx_hit_weight[begin] * inv_coverage_scale;
+			if (hit > 1.0L)
+				hit = 1.0L;
+			hit_weight[gid] += hit;
+		} else {
+			hit_weight[gid] += 1.0L;
+		}
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const uint32_t total = ref_ctx_total[rn];
+		if (!total)
+			continue;
+		const long double denom = (long double)total;
+		const long double breadth = hit_weight[rn] > 0.0L
+										? hit_weight[rn] / denom
+										: 0.0L;
+		const long double mean = sum[rn] / denom;
+		long double hit_mean = 0.0L;
+		long double hit_var = 0.0L;
+		if (hit_ctx[rn]) {
+			hit_mean = hit_sum[rn] / (long double)hit_ctx[rn];
+			hit_var = hit_sumsq[rn] / (long double)hit_ctx[rn] - hit_mean * hit_mean;
+			if (hit_var < 0.0L && hit_var > -1e-12L)
+				hit_var = 0.0L;
+			if (hit_var < 0.0L)
+				hit_var = 0.0L;
+		}
+		stats[rn].ref_breadth = (double)breadth;
+		stats[rn].ref_mean_depth = (double)mean;
+		stats[rn].ref_hit_ctx = hit_ctx[rn];
+		stats[rn].ref_hit_mean_depth = (double)hit_mean;
+		stats[rn].ref_hit_median_depth =
+			product_topfrac_medians &&
+					isfinite(product_topfrac_medians[rn].median_cov) &&
+					product_topfrac_medians[rn].median_cov > 0.0
+				? product_topfrac_medians[rn].median_cov
+				: 0.0;
+		stats[rn].ref_hit_depth_variance = (double)hit_var;
+		stats[rn].ref_zip_af = ani_zip_corrected_af(
+			stats[rn].ref_breadth, stats[rn].ref_mean_depth);
+	}
+
+	free(sum);
+	free(sumsq);
+	free(hit_weight);
+	free(hit_sum);
+	free(hit_sumsq);
+	free(hit_ctx);
+	free(product_sum);
+	free(product_sumsq);
+	free(product_max);
+	free(product_nonzero);
+	free(product_topfrac_thresholds);
+	free(product_topfrac_medians);
+	return stats;
+}
+
+static ani_readwise_reliable_abundance_t *ani_reliable_abundance_from_ref_covdiff128(
+	const ctxgidobj128_t *index,
+	size_t index_n,
+	uint32_t ref_n,
+	bool ignoreconflict,
+	const uint32_t *ref_ctx_cov,
+	const uint16_t *ref_ctx_hit_weight,
+	const ani_readwise_abundance_t *abundance_stats,
+	const uint32_t *ref_ctx_total,
+	ani_readwise_ctx_filter_model_t filter_model,
+	double coverage_scale,
+	double fake_threshold,
+	bool marker_only)
+{
+	if (!ref_ctx_cov || !abundance_stats || !ref_ctx_total)
+		return NULL;
+	if (!isfinite(coverage_scale) || coverage_scale <= 0.0)
+		coverage_scale = 1.0;
+	if (!isfinite(fake_threshold) || fake_threshold <= 0.0)
+		fake_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD;
+
+	ani_readwise_reliable_abundance_t *stats =
+		calloc((size_t)ref_n, sizeof(stats[0]));
+	long double *sum = calloc((size_t)ref_n, sizeof(sum[0]));
+	long double *sumsq = calloc((size_t)ref_n, sizeof(sumsq[0]));
+	long double *hit_weight = calloc((size_t)ref_n, sizeof(hit_weight[0]));
+	long double *hit_sum = calloc((size_t)ref_n, sizeof(hit_sum[0]));
+	long double *hit_sumsq = calloc((size_t)ref_n, sizeof(hit_sumsq[0]));
+	uint64_t *hit_ctx = calloc((size_t)ref_n, sizeof(hit_ctx[0]));
+	if (!stats || !sum || !sumsq || !hit_weight ||
+		!hit_sum || !hit_sumsq || !hit_ctx)
+		err(EXIT_FAILURE, "%s(): OOM reliable abundance stats", __func__);
+
+	long double *product_sum = NULL;
+	long double *product_sumsq = NULL;
+	double *product_max = NULL;
+	uint32_t *product_nonzero = NULL;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		product_sum = calloc((size_t)ref_n, sizeof(product_sum[0]));
+		product_sumsq = calloc((size_t)ref_n, sizeof(product_sumsq[0]));
+		product_max = calloc((size_t)ref_n, sizeof(product_max[0]));
+		product_nonzero = calloc((size_t)ref_n, sizeof(product_nonzero[0]));
+		if (!product_sum || !product_sumsq || !product_max || !product_nonzero)
+			err(EXIT_FAILURE, "%s(): OOM reliable abundance product stats", __func__);
+	}
+
+	const long double inv_coverage_scale = 1.0L / (long double)coverage_scale;
+	if (ani_readwise_ctx_filter_uses_product(filter_model)) {
+		for (size_t i = 0; i < index_n; ) {
+			const uint64_t ctx = index[i].ctx;
+			const uint32_t gid = index[i].gid;
+			const size_t begin = i;
+			do { ++i; } while (i < index_n &&
+								index[i].ctx == ctx &&
+								index[i].gid == gid);
+			if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+				(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+				continue;
+			const uint32_t packed = ref_ctx_cov[begin];
+			const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+			const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+			if (!code || !coverage_raw)
+				continue;
+			const uint32_t diff = ani_ref_covdiff_decode_diff(code);
+			if (!diff)
+				continue;
+			const double cov = (double)coverage_raw / coverage_scale;
+			const double product = (double)diff * cov;
+			if (!isfinite(product) || product <= 0.0)
+				continue;
+			product_sum[gid] += (long double)product;
+			product_sumsq[gid] += (long double)product * (long double)product;
+			if (product > product_max[gid])
+				product_max[gid] = product;
+			product_nonzero[gid]++;
+		}
+	}
+	double *product_topfrac_thresholds = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC) {
+		product_topfrac_thresholds = ani_readwise_product_topfrac_thresholds128(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold, marker_only);
+	}
+	ani_readwise_product_topfrac_median_t *product_topfrac_medians = NULL;
+	if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+		filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN) {
+		product_topfrac_medians = ani_readwise_product_topfrac_median_stats128(
+			index, index_n, ref_n, ignoreconflict, ref_ctx_cov,
+			coverage_scale, fake_threshold,
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN,
+			marker_only);
+	}
+
+	for (size_t i = 0; i < index_n; ) {
+		const uint64_t ctx = index[i].ctx;
+		const uint32_t gid = index[i].gid;
+		const size_t begin = i;
+		do { ++i; } while (i < index_n &&
+							index[i].ctx == ctx &&
+							index[i].gid == gid);
+		if (gid >= ref_n || (ignoreconflict && i - begin > 1) ||
+			(marker_only && !ani_ctxgid_group_marker_unique128(index, index_n, begin, i)))
+			continue;
+		const uint32_t packed = ref_ctx_cov[begin];
+		const uint32_t coverage_raw = ani_ref_covdiff_coverage(packed);
+		const uint32_t code = packed >> ANI_REFCOV_DIFF_SHIFT;
+		if (!code || !coverage_raw)
+			continue;
+		const uint32_t raw_diff = ani_ref_covdiff_decode_diff(code);
+		uint32_t diff = raw_diff;
+		double cov = (double)coverage_raw / coverage_scale;
+
+		double product_lambda = 0.0;
+		double product_nb_mean = 0.0;
+		double product_nb_variance = 0.0;
+		uint32_t product_nb_nonzero = 0u;
+		if (ani_readwise_ctx_filter_uses_product(filter_model) &&
+			ref_ctx_total[gid]) {
+			long double robust_sum = product_sum[gid];
+			long double robust_sumsq = product_sumsq[gid];
+			uint32_t robust_n = product_nonzero[gid];
+			if (product_nonzero[gid] > 1u)
+				robust_sum -= (long double)product_max[gid];
+			if (product_nonzero[gid] > 1u) {
+				robust_sumsq -= (long double)product_max[gid] * (long double)product_max[gid];
+				robust_n--;
+			}
+			if (robust_sum < 0.0L)
+				robust_sum = 0.0L;
+			if (robust_sumsq < 0.0L)
+				robust_sumsq = 0.0L;
+			product_lambda = (double)(robust_sum / (long double)ref_ctx_total[gid]);
+			if (robust_n > 0u) {
+				product_nb_nonzero = robust_n;
+				product_nb_mean = (double)(robust_sum / (long double)robust_n);
+				if (robust_n > 1u) {
+					const long double mean_ld = robust_sum / (long double)robust_n;
+					long double ss = robust_sumsq - robust_sum * mean_ld;
+					if (ss < 0.0L)
+						ss = 0.0L;
+					product_nb_variance = (double)(ss / (long double)(robust_n - 1u));
+				} else {
+					product_nb_variance = product_nb_mean;
+				}
+			}
+		}
+		if (filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN ||
+			filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN)
+			(void)ani_readwise_apply_product_topfrac_median_ctx(
+				&diff, &cov,
+				product_topfrac_medians ? &product_topfrac_medians[gid] : NULL,
+				filter_model == ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN);
+		const bool reject =
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DIFF &&
+			 ani_readwise_reject_poisson_diff_ctx(
+				 raw_diff, cov, &abundance_stats[gid], fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_DEPTH &&
+			 ani_readwise_reject_poisson_depth_ctx(
+				 raw_diff, cov, &abundance_stats[gid],
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_POISSON_PRODUCT &&
+			 ani_readwise_reject_poisson_product_ctx(
+				 raw_diff, cov, product_lambda,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_NB &&
+			 ani_readwise_reject_product_nb_ctx(
+				 raw_diff, cov, product_nb_mean, product_nb_variance,
+				 product_nb_nonzero,
+				 ref_ctx_total ? ref_ctx_total[gid] : 0u,
+				 fake_threshold)) ||
+			(filter_model == ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC &&
+			 ani_readwise_reject_product_topfrac_ctx(
+				 raw_diff, cov,
+				 product_topfrac_thresholds ? product_topfrac_thresholds[gid] : NAN));
+		if (reject)
+			continue;
+
+		const long double cov_ld = (long double)cov;
+		sum[gid] += cov_ld;
+		sumsq[gid] += cov_ld * cov_ld;
+		hit_sum[gid] += cov_ld;
+		hit_sumsq[gid] += cov_ld * cov_ld;
+		hit_ctx[gid]++;
+		if (ref_ctx_hit_weight && ref_ctx_hit_weight[begin] > 0) {
+			long double hit = (long double)ref_ctx_hit_weight[begin] * inv_coverage_scale;
+			if (hit > 1.0L)
+				hit = 1.0L;
+			hit_weight[gid] += hit;
+		} else {
+			hit_weight[gid] += 1.0L;
+		}
+	}
+
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const uint32_t total = ref_ctx_total[rn];
+		if (!total)
+			continue;
+		const long double denom = (long double)total;
+		const long double breadth = hit_weight[rn] > 0.0L
+										? hit_weight[rn] / denom
+										: 0.0L;
+		const long double mean = sum[rn] / denom;
+		long double hit_mean = 0.0L;
+		long double hit_var = 0.0L;
+		if (hit_ctx[rn]) {
+			hit_mean = hit_sum[rn] / (long double)hit_ctx[rn];
+			hit_var = hit_sumsq[rn] / (long double)hit_ctx[rn] - hit_mean * hit_mean;
+			if (hit_var < 0.0L && hit_var > -1e-12L)
+				hit_var = 0.0L;
+			if (hit_var < 0.0L)
+				hit_var = 0.0L;
+		}
+		stats[rn].ref_breadth = (double)breadth;
+		stats[rn].ref_mean_depth = (double)mean;
+		stats[rn].ref_hit_ctx = hit_ctx[rn];
+		stats[rn].ref_hit_mean_depth = (double)hit_mean;
+		stats[rn].ref_hit_median_depth =
+			product_topfrac_medians &&
+					isfinite(product_topfrac_medians[rn].median_cov) &&
+					product_topfrac_medians[rn].median_cov > 0.0
+				? product_topfrac_medians[rn].median_cov
+				: 0.0;
+		stats[rn].ref_hit_depth_variance = (double)hit_var;
+		stats[rn].ref_zip_af = ani_zip_corrected_af(
+			stats[rn].ref_breadth, stats[rn].ref_mean_depth);
+	}
+
+	free(sum);
+	free(sumsq);
+	free(hit_weight);
+	free(hit_sum);
+	free(hit_sumsq);
+	free(hit_ctx);
+	free(product_sum);
+	free(product_sumsq);
+	free(product_max);
+	free(product_nonzero);
+	free(product_topfrac_thresholds);
+	free(product_topfrac_medians);
+	return stats;
 }
 
 int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *query_path,
@@ -5063,24 +7835,106 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 										: ANI_MODEL_REFERENCE_SKETCH_SIZE;
 	const uint32_t ref_n = (uint32_t)ref_stat->infile_num;
 	char (*refname)[PATHLEN] = (char (*)[PATHLEN])(ref_stat + 1);
+	ani_readwise_trace_t readwise_trace = {0};
+	const char *trace_ref_match = getenv("MINCO_READWISE_TRACE_REF");
+	const char *trace_out_path = getenv("MINCO_READWISE_TRACE_OUT");
+	if (trace_ref_match && trace_ref_match[0] && trace_out_path && trace_out_path[0]) {
+		bool found_trace_ref = false;
+		for (uint32_t rn = 0; rn < ref_n; ++rn) {
+			if (strstr(refname[rn], trace_ref_match) == NULL)
+				continue;
+			readwise_trace.gid = rn;
+			readwise_trace.ref_name = refname[rn];
+			found_trace_ref = true;
+			break;
+		}
+		if (!found_trace_ref)
+			errx(EXIT_FAILURE,
+				 "MINCO_READWISE_TRACE_REF target not found in reference sketch: %s",
+				 trace_ref_match);
+		readwise_trace.fp = fopen(trace_out_path, "w");
+		if (!readwise_trace.fp)
+			err(errno, "Cannot write MINCO_READWISE_TRACE_OUT %s", trace_out_path);
+		fprintf(readwise_trace.fp,
+				"read_id\tunit_id\tqctx\tref_begin\tdiff\tbest_diff\tcandidate_refs\tselected_refs\tcov_inc\tref\n");
+		fprintf(stderr,
+				"minco readwise: tracing assignments for ref gid=%u match=%s to %s\n",
+				readwise_trace.gid, trace_ref_match, trace_out_path);
+	}
+	ani_readwise_edge_trace_t edge_trace = {0};
+	const char *edge_out_path = getenv("MINCO_READWISE_EDGE_OUT");
+	if (edge_out_path && edge_out_path[0]) {
+		edge_trace.max_edges = 10000000ULL;
+		edge_trace.max_candidate_refs = 64u;
+		edge_trace.ambiguous_only = true;
+		edge_trace.selected_only = false;
+		const char *edge_max = getenv("MINCO_READWISE_EDGE_MAX");
+		if (edge_max && edge_max[0])
+			edge_trace.max_edges = strtoull(edge_max, NULL, 10);
+		const char *edge_max_cand = getenv("MINCO_READWISE_EDGE_MAX_CANDIDATES");
+		if (edge_max_cand && edge_max_cand[0]) {
+			const unsigned long v = strtoul(edge_max_cand, NULL, 10);
+			edge_trace.max_candidate_refs = v > UINT32_MAX ? UINT32_MAX : (uint32_t)v;
+		}
+		const char *edge_ambiguous_only = getenv("MINCO_READWISE_EDGE_AMBIGUOUS_ONLY");
+		if (edge_ambiguous_only && edge_ambiguous_only[0] &&
+			strcmp(edge_ambiguous_only, "0") == 0)
+			edge_trace.ambiguous_only = false;
+		const char *edge_selected_only = getenv("MINCO_READWISE_EDGE_SELECTED_ONLY");
+		if (edge_selected_only && edge_selected_only[0] &&
+			strcmp(edge_selected_only, "0") != 0)
+			edge_trace.selected_only = true;
+		edge_trace.fp = fopen(edge_out_path, "w");
+		if (!edge_trace.fp)
+			err(errno, "Cannot write MINCO_READWISE_EDGE_OUT %s", edge_out_path);
+		fprintf(edge_trace.fp,
+				"edge_id\tread_id\tunit_id\tqctx\tedge_rank\tref_begin\tgid\tdiff\tbest_diff\tcandidate_refs\tselected_refs\tselected_by_mode\tcov_inc\n");
+		fprintf(stderr,
+				"minco readwise: ambiguity edge dump active; out=%s max_edges=%" PRIu64
+				" max_candidate_refs=%u ambiguous_only=%u selected_only=%u\n",
+				edge_out_path, edge_trace.max_edges, edge_trace.max_candidate_refs,
+				edge_trace.ambiguous_only ? 1u : 0u,
+				edge_trace.selected_only ? 1u : 0u);
+	}
 	FILTER = UINT32_MAX >> ref_stat->compat_filter_shift;
 	const_comask_init(ref_stat);
-	if (Bitslen.ctx + GID_NBITS > 64)
+	const bool ref_uses_ctxobj96 =
+		minco_stat_needs_ctxobj96(ref_stat) ||
+		minco_stat_needs_ctxgidobj128(ref_stat);
+	fprintf(stderr,
+			"minco readwise: reference sketch coden_len=%d; ctx_bits=%u; obj_bits=%u; storage=%s\n",
+			ref_stat->coden_len > 0 ? ref_stat->coden_len : NUM_CODENS,
+			minco_stat_ctx_bits(ref_stat),
+			minco_stat_obj_bits(ref_stat),
+			ref_uses_ctxobj96 ? "ctxobj96" : "ctxobj64");
+	if (ref_uses_ctxobj96 && !ani_opt->readwise_profile_only)
+		errx(EXIT_FAILURE,
+			 "ctxobj96 readwise density ANI currently requires --readwise-profile-only");
+	if (!ref_uses_ctxobj96 && Bitslen.ctx + GID_NBITS > 64)
 		errx(EXIT_FAILURE, "%s(): context bits (%u) + gid bits (%u) exceed 64",
 			 __func__, Bitslen.ctx, GID_NBITS);
 
-	if (!file_exists_in_folder(ani_opt->refdir, sorted_comb_ctxgid64obj32))
+	const char *index_suffix = ref_uses_ctxobj96
+		? sorted_comb_ctx64gid32obj32
+		: sorted_comb_ctxgid64obj32;
+	if (!file_exists_in_folder(ani_opt->refdir, index_suffix))
 		gen_inverted_index_for_minco(ani_opt->refdir);
-	char *index_path = test_get_fullpath(ani_opt->refdir, sorted_comb_ctxgid64obj32);
+	char *index_path = test_get_fullpath(ani_opt->refdir, index_suffix);
 	size_t index_bytes = 0;
 	bool index_is_mmap = false;
-	ctxgidobj_t *index = read_reference_sorted_index(index_path, &index_bytes, &index_is_mmap);
+	void *index_mem = read_reference_sorted_index(index_path, &index_bytes, &index_is_mmap);
 	free(index_path);
-	if (index_bytes % sizeof(index[0]) != 0)
+	ctxgidobj_t *index = ref_uses_ctxobj96 ? NULL : (ctxgidobj_t *)index_mem;
+	ctxgidobj128_t *index96 = ref_uses_ctxobj96 ? (ctxgidobj128_t *)index_mem : NULL;
+	const size_t index_item_size = ref_uses_ctxobj96 ? sizeof(index96[0]) : sizeof(index[0]);
+	if (index_bytes % index_item_size != 0)
 		errx(EXIT_FAILURE, "%s(): malformed sorted reference index", __func__);
-	const size_t index_n = index_bytes / sizeof(index[0]);
-	uint32_t *ref_ctx_total = ani_ref_ctx_counts_from_sorted_index(
-		index, index_n, ref_n, ani_opt->ignoreconflict);
+	const size_t index_n = index_bytes / index_item_size;
+	uint32_t *ref_ctx_total = ref_uses_ctxobj96
+		? ani_ref_ctx_counts_from_sorted_index128(index96, index_n, ref_n,
+												  ani_opt->ignoreconflict, false)
+		: ani_ref_ctx_counts_from_sorted_index(index, index_n, ref_n,
+											   ani_opt->ignoreconflict, false);
 	char (*refanno)[PATHLEN] = read_optional_sketch_annotations(ani_opt->refdir, (int)ref_n);
 	infile_meta_t *ref_infile_meta =
 		ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
@@ -5090,18 +7944,44 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	size_t *fence = malloc((fence_buckets + 1u) * sizeof(*fence));
 	if (!fence)
 		err(EXIT_FAILURE, "%s(): OOM fenceposts", __func__);
-	if (minco_build_fenceposts_ctxgid(index, index_n, fence_k, fence) != 0)
+	if (ref_uses_ctxobj96
+			? minco_build_fenceposts_ctxgid128(index96, index_n, fence_k, fence) != 0
+			: minco_build_fenceposts_ctxgid(index, index_n, fence_k, fence) != 0)
 		errx(EXIT_FAILURE, "%s(): failed to build reference fenceposts", __func__);
 
 	ani_readwise_acc_t *acc = calloc((size_t)ref_n, sizeof(acc[0]));
 	uint8_t *ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
-	uint32_t *ref_ctx_cov = ani_opt->abundance_model != ANI_ABUNDANCE_NONE
+	const bool need_ref_ctx_cov =
+		ani_opt->abundance_model != ANI_ABUNDANCE_NONE ||
+		ani_opt->readwise_ctx_filter_model != ANI_READWISE_CTX_FILTER_NONE;
+	const bool test_mindiff_depth =
+		need_ref_ctx_cov && getenv("MINCO_TEST_MINDIFF_DEPTH") &&
+		getenv("MINCO_TEST_MINDIFF_DEPTH")[0] != '\0' &&
+		strcmp(getenv("MINCO_TEST_MINDIFF_DEPTH"), "0") != 0;
+	uint32_t *ref_ctx_cov = need_ref_ctx_cov
 		? calloc(index_n, sizeof(ref_ctx_cov[0]))
 		: NULL;
+	uint32_t *ref_ctx_mindiff_cov = test_mindiff_depth
+		? calloc(index_n, sizeof(ref_ctx_mindiff_cov[0]))
+		: NULL;
+	uint16_t *ref_ctx_hit_weight =
+		need_ref_ctx_cov &&
+				ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT
+			? calloc(index_n, sizeof(ref_ctx_hit_weight[0]))
+			: NULL;
 	if (!acc || !ref_hit_bits)
 		err(EXIT_FAILURE, "%s(): OOM readwise accumulators", __func__);
-	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE && !ref_ctx_cov)
+	if (need_ref_ctx_cov && !ref_ctx_cov)
 		err(EXIT_FAILURE, "%s(): OOM readwise abundance coverage", __func__);
+	if (test_mindiff_depth && !ref_ctx_mindiff_cov)
+		err(EXIT_FAILURE, "%s(): OOM readwise min-diff coverage", __func__);
+	if (need_ref_ctx_cov &&
+		ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT &&
+		!ref_ctx_hit_weight)
+		err(EXIT_FAILURE, "%s(): OOM readwise split hit weights", __func__);
+	if (test_mindiff_depth)
+		fprintf(stderr,
+				"minco readwise: experimental min-diff-depth mode active for reliable ctx metrics\n");
 	const bool profile_only = ani_opt->readwise_profile_only;
 	if (profile_only)
 		fprintf(stderr,
@@ -5140,14 +8020,31 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	uint64_t total_reads = 0;
 	uint64_t total_density_blocks = 0;
 	uint64_t block_reads_with_density_ctx = 0;
-	u64vec block_vec;
-	v_init(&block_vec, ani_opt->density_block_ctx > 2048u ? ani_opt->density_block_ctx : 2048u);
+	u64vec block_vec = {0};
+	ani_ctxobj96_vec_t block_vec96 = {0};
+	if (ref_uses_ctxobj96)
+		ani_ctxobj96_vec_init(&block_vec96,
+							   ani_opt->density_block_ctx > 2048u
+								   ? ani_opt->density_block_ctx
+								   : 2048u);
+	else
+		v_init(&block_vec, ani_opt->density_block_ctx > 2048u ? ani_opt->density_block_ctx : 2048u);
 	const uint32_t density_block_ctx = ani_opt->density_block_ctx;
 	const bool density_block_mode = density_block_ctx > 1u;
 	if (density_block_mode)
 		fprintf(stderr,
 				"minco readwise: density block mode active; density_block_ctx=%u\n",
 				density_block_ctx);
+	if (ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF)
+		fprintf(stderr,
+				"minco readwise: shared-context assignment active; mode=best-diff\n");
+	else if (ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT)
+		fprintf(stderr,
+				"minco readwise: shared-context assignment active; mode=best-diff-split; coverage_scale=%u\n",
+				ANI_REFCOV_SPLIT_SCALE);
+	else if (ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE)
+		fprintf(stderr,
+				"minco readwise: shared-context assignment active; mode=best-diff-unique\n");
 	if (worker_n > 1)
 		fprintf(stderr,
 				"minco readwise: parallel density processing active; threads=%d; batch_reads=%u\n",
@@ -5164,7 +8061,14 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 				err(EXIT_FAILURE, "%s(): OOM read batch sequence", __func__);
 			memcpy(copy, seq->seq.s, len);
 			copy[len] = '\0';
+			char *name_copy = NULL;
+			if (seq->name.s) {
+				name_copy = strdup(seq->name.s);
+				if (!name_copy)
+					err(EXIT_FAILURE, "%s(): OOM read batch name", __func__);
+			}
 			batch[batch_n].seq = copy;
+			batch[batch_n].name = name_copy;
 			batch[batch_n].len = (int)len;
 			++batch_n;
 			++total_reads;
@@ -5173,15 +8077,81 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		if (!batch_n)
 			break;
 
-		u64vec *read_vecs = calloc(batch_n, sizeof(read_vecs[0]));
-		if (!read_vecs)
+		u64vec *read_vecs = ref_uses_ctxobj96 ? NULL : calloc(batch_n, sizeof(read_vecs[0]));
+		ani_ctxobj96_vec_t *read_vecs96 = ref_uses_ctxobj96
+			? calloc(batch_n, sizeof(read_vecs96[0]))
+			: NULL;
+		if ((!ref_uses_ctxobj96 && !read_vecs) ||
+			(ref_uses_ctxobj96 && !read_vecs96))
 			err(EXIT_FAILURE, "%s(): OOM read density vectors", __func__);
 #pragma omp parallel for num_threads(worker_n) schedule(dynamic, 256)
 		for (size_t i = 0; i < batch_n; ++i) {
-			v_init(&read_vecs[i], 128);
-			ani_extract_read_density_ctxobjs(batch[i].seq, batch[i].len,
-											 &read_vecs[i], nobjbits,
-											 density_threshold);
+			if (ref_uses_ctxobj96) {
+				ani_ctxobj96_vec_init(&read_vecs96[i], 128);
+				ani_extract_read_density_ctxobjs96(batch[i].seq, batch[i].len,
+												   &read_vecs96[i],
+												   density_threshold);
+			} else {
+				v_init(&read_vecs[i], 128);
+				ani_extract_read_density_ctxobjs(batch[i].seq, batch[i].len,
+												 &read_vecs[i], nobjbits,
+												 density_threshold);
+			}
+		}
+
+		if (ref_uses_ctxobj96) {
+			kv_density_unit96_t units96;
+			kv_init(units96);
+			for (size_t i = 0; i < batch_n; ++i) {
+				if (read_vecs96[i].n == 0) {
+					ani_ctxobj96_vec_free(&read_vecs96[i]);
+					continue;
+				}
+				if (density_block_mode) {
+					ani_ctxobj96_vec_reserve(&block_vec96,
+											 block_vec96.n + read_vecs96[i].n);
+					memcpy(block_vec96.a + block_vec96.n, read_vecs96[i].a,
+						   read_vecs96[i].n * sizeof(read_vecs96[i].a[0]));
+					block_vec96.n += read_vecs96[i].n;
+					block_reads_with_density_ctx++;
+					ani_ctxobj96_vec_free(&read_vecs96[i]);
+					if (block_vec96.n < (size_t)density_block_ctx)
+						continue;
+					++total_density_blocks;
+					ani_density_unit96_push_move(&units96, &block_vec96,
+												 total_density_blocks,
+												 block_reads_with_density_ctx,
+												 NULL);
+					ani_ctxobj96_vec_init(&block_vec96,
+										   ani_opt->density_block_ctx > 2048u
+											   ? ani_opt->density_block_ctx
+											   : 2048u);
+					block_reads_with_density_ctx = 0;
+				} else {
+					++total_density_blocks;
+					ani_density_unit96_push_move(&units96, &read_vecs96[i],
+												 total_density_blocks, 1,
+												 batch[i].name);
+				}
+			}
+			free(read_vecs96);
+			ani_readwise_seq_batch_destroy(batch, batch_n);
+
+			ani_process_density_units96_parallel(
+				&units96, thread_states, worker_n,
+				index96, index_n, fence, fence_k, ref_n,
+				ani_opt->ignoreconflict,
+				ref_ctx_cov != NULL, ani_opt->readwise_assign_mode,
+				readwise_trace.fp ? &readwise_trace : NULL,
+				edge_trace.fp ? &edge_trace : NULL);
+			ani_merge_readwise_thread_batch128(
+				thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+				ref_ctx_mindiff_cov,
+				ref_ctx_hit_weight,
+				index96, index_n,
+				ref_n);
+			ani_density_units96_destroy(&units96);
+			continue;
 		}
 
 		kv_density_unit_t units;
@@ -5203,7 +8173,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 				++total_density_blocks;
 				ani_density_unit_push_move(&units, &block_vec,
 										   total_density_blocks,
-										   block_reads_with_density_ctx);
+										   block_reads_with_density_ctx,
+										   NULL);
 				v_init(&block_vec, ani_opt->density_block_ctx > 2048u
 										? ani_opt->density_block_ctx
 										: 2048u);
@@ -5211,7 +8182,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			} else {
 				++total_density_blocks;
 				ani_density_unit_push_move(&units, &read_vecs[i],
-										   total_density_blocks, 1);
+										   total_density_blocks, 1,
+										   batch[i].name);
 			}
 		}
 		free(read_vecs);
@@ -5221,28 +8193,58 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			&units, thread_states, worker_n,
 			index, index_n, fence, fence_k, ref_n,
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
-			ref_ctx_cov != NULL, !profile_only);
+			ref_ctx_cov != NULL, !profile_only, ani_opt->readwise_assign_mode,
+			readwise_trace.fp ? &readwise_trace : NULL,
+			edge_trace.fp ? &edge_trace : NULL);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+			ref_ctx_mindiff_cov,
+			ref_ctx_hit_weight,
 			profile_only ? NULL : &qry_ctx_seen,
 			profile_only ? NULL : &qry_ref_ctx_seen,
 			index, index_n,
 			ref_n, gidmask_local);
 		ani_density_units_destroy(&units);
 	}
-	if (density_block_mode && block_vec.n > 0) {
+	if (density_block_mode && ref_uses_ctxobj96 && block_vec96.n > 0) {
+		kv_density_unit96_t units96;
+		kv_init(units96);
+		++total_density_blocks;
+		ani_density_unit96_push_move(&units96, &block_vec96, total_density_blocks,
+									 block_reads_with_density_ctx,
+									 NULL);
+		ani_process_density_units96_parallel(
+			&units96, thread_states, worker_n,
+			index96, index_n, fence, fence_k, ref_n,
+			ani_opt->ignoreconflict,
+			ref_ctx_cov != NULL, ani_opt->readwise_assign_mode,
+			readwise_trace.fp ? &readwise_trace : NULL,
+			edge_trace.fp ? &edge_trace : NULL);
+		ani_merge_readwise_thread_batch128(
+			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+			ref_ctx_mindiff_cov,
+			ref_ctx_hit_weight,
+			index96, index_n,
+			ref_n);
+		ani_density_units96_destroy(&units96);
+	} else if (density_block_mode && block_vec.n > 0) {
 		kv_density_unit_t units;
 		kv_init(units);
 		++total_density_blocks;
 		ani_density_unit_push_move(&units, &block_vec, total_density_blocks,
-								   block_reads_with_density_ctx);
+								   block_reads_with_density_ctx,
+								   NULL);
 		ani_process_density_units_parallel(
 			&units, thread_states, worker_n,
 			index, index_n, fence, fence_k, ref_n,
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
-			ref_ctx_cov != NULL, !profile_only);
+			ref_ctx_cov != NULL, !profile_only, ani_opt->readwise_assign_mode,
+			readwise_trace.fp ? &readwise_trace : NULL,
+			edge_trace.fp ? &edge_trace : NULL);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
+			ref_ctx_mindiff_cov,
+			ref_ctx_hit_weight,
 			profile_only ? NULL : &qry_ctx_seen,
 			profile_only ? NULL : &qry_ref_ctx_seen,
 			index, index_n,
@@ -5250,9 +8252,23 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_density_units_destroy(&units);
 	}
 	ani_readwise_progress_done(&stream, &progress, total_reads);
-	v_free(&block_vec);
+	if (ref_uses_ctxobj96)
+		ani_ctxobj96_vec_free(&block_vec96);
+	else
+		v_free(&block_vec);
 	kseq_destroy(seq);
 	ani_close_fastx_stream(&stream);
+	if (readwise_trace.fp) {
+		fclose(readwise_trace.fp);
+		readwise_trace.fp = NULL;
+	}
+	if (edge_trace.fp) {
+		fprintf(stderr,
+				"minco readwise: ambiguity edge dump wrote %" PRIu64 " edges\n",
+				edge_trace.emitted_edges);
+		fclose(edge_trace.fp);
+		edge_trace.fp = NULL;
+	}
 	for (int t = 0; t < worker_n; ++t)
 		ani_readwise_thread_state_destroy(&thread_states[t]);
 	free(thread_states);
@@ -5275,7 +8291,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_opt->ntop < 0;
 	if (auto_readwise_abundance_report)
 	{
-		uint64_t auto_ctxcut = ani_readwise_default_support_cut();
+		uint64_t auto_ctxcut =
+			ani_readwise_default_min_support_cut(ref_ctx_total, ref_n);
 		if (auto_ctxcut > (uint64_t)INT_MAX)
 			auto_ctxcut = (uint64_t)INT_MAX;
 		ani_opt->ctxcut = (int)auto_ctxcut;
@@ -5283,7 +8300,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_opt->anicut = 0.96f;
 		fprintf(stderr,
 				"minco readwise: default abundance report active; support_cut=%d; "
-				"breadth>=0.5; anicut=0.96; calls=major|low_abundance\n",
+				"breadth>=0.5; anicut=0.96; calls=major|low_abundance; "
+				"final support is checked per reference marker count\n",
 				ani_opt->ctxcut);
 	}
 	ani_opt->readwise_query = true;
@@ -5299,22 +8317,151 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	const uint64_t total_unique_qry_ctx = profile_only ? 0 : qry_ctx_seen.n;
 	const uint32_t global_qry_ctx_for_dist = ani_clamp_u64_to_u32(total_unique_qry_ctx);
 	ani_readwise_abundance_t *abundance_stats = NULL;
-	if (ani_opt->abundance_model != ANI_ABUNDANCE_NONE)
-		abundance_stats = ani_depth_abundance_from_ref_coverage(
-			index, index_n, ref_n, ani_opt->ignoreconflict,
-			ref_ctx_cov, ref_ctx_total, acc);
-	ani_readwise_acc_t *unique_feature_acc =
-		ani_unique_best_features_from_ref_covdiff(
-			index, index_n, ref_n, ani_opt->ignoreconflict, ref_ctx_cov);
-	const ani_readwise_acc_t *feature_acc = unique_feature_acc ? unique_feature_acc : acc;
+	const bool need_abundance_stats =
+		ani_opt->abundance_model != ANI_ABUNDANCE_NONE ||
+		ani_opt->readwise_ctx_filter_model != ANI_READWISE_CTX_FILTER_NONE;
+	double coverage_scale =
+		ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT
+			? (double)ANI_REFCOV_SPLIT_SCALE
+			: 1.0;
+	if (need_abundance_stats)
+	{
+		abundance_stats = ref_uses_ctxobj96
+			? ani_depth_abundance_from_ref_coverage128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, ref_ctx_hit_weight, ref_ctx_total, acc, coverage_scale, false)
+			: ani_depth_abundance_from_ref_coverage(
+				  index, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, ref_ctx_hit_weight, ref_ctx_total, acc, coverage_scale, false);
+	}
+	ani_readwise_acc_t *raw_feature_acc =
+		ref_uses_ctxobj96
+			? ani_unique_best_features_from_ref_covdiff128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict, ref_ctx_cov, false)
+			: ani_unique_best_features_from_ref_covdiff(
+				  index, index_n, ref_n, ani_opt->ignoreconflict, ref_ctx_cov, false);
+	ani_readwise_filter_stats_t *ctx_filter_stats = NULL;
+	ani_readwise_acc_t *filtered_feature_acc = NULL;
+	ani_readwise_reliable_abundance_t *reliable_abundance_stats = NULL;
+	const uint32_t *reliable_ref_ctx_cov =
+		ref_ctx_mindiff_cov ? ref_ctx_mindiff_cov : ref_ctx_cov;
+	if (ani_opt->readwise_ctx_filter_model != ANI_READWISE_CTX_FILTER_NONE &&
+		raw_feature_acc && abundance_stats) {
+		ctx_filter_stats = calloc((size_t)ref_n, sizeof(ctx_filter_stats[0]));
+		if (!ctx_filter_stats)
+			err(EXIT_FAILURE, "%s(): OOM readwise ctx filter stats", __func__);
+		filtered_feature_acc = ref_uses_ctxobj96
+			? ani_reliable_features_from_ref_covdiff128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict,
+				  reliable_ref_ctx_cov, abundance_stats, ref_ctx_total,
+				  ani_opt->readwise_ctx_filter_model,
+				  coverage_scale,
+				  ani_opt->readwise_fake_ctx_threshold, ctx_filter_stats, false)
+			: ani_reliable_features_from_ref_covdiff(
+				  index, index_n, ref_n, ani_opt->ignoreconflict,
+				  reliable_ref_ctx_cov, abundance_stats, ref_ctx_total,
+				  ani_opt->readwise_ctx_filter_model,
+				  coverage_scale,
+				  ani_opt->readwise_fake_ctx_threshold, ctx_filter_stats, false);
+		reliable_abundance_stats = ref_uses_ctxobj96
+			? ani_reliable_abundance_from_ref_covdiff128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict,
+				  reliable_ref_ctx_cov, ref_ctx_hit_weight, abundance_stats, ref_ctx_total,
+				  ani_opt->readwise_ctx_filter_model,
+				  coverage_scale,
+				  ani_opt->readwise_fake_ctx_threshold, false)
+			: ani_reliable_abundance_from_ref_covdiff(
+				  index, index_n, ref_n, ani_opt->ignoreconflict,
+				  reliable_ref_ctx_cov, ref_ctx_hit_weight, abundance_stats, ref_ctx_total,
+				  ani_opt->readwise_ctx_filter_model,
+				  coverage_scale,
+				  ani_opt->readwise_fake_ctx_threshold, false);
+	}
+	uint32_t *marker_ref_ctx_total = NULL;
+	ani_readwise_abundance_t *marker_abundance_stats = NULL;
+	ani_readwise_acc_t *marker_raw_feature_acc = NULL;
+	ani_readwise_acc_t *marker_filtered_feature_acc = NULL;
+	ani_readwise_reliable_abundance_t *marker_reliable_abundance_stats = NULL;
+	if (ani_opt->readwise_dual_evidence) {
+		marker_ref_ctx_total = ref_uses_ctxobj96
+			? ani_ref_ctx_counts_from_sorted_index128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict, true)
+			: ani_ref_ctx_counts_from_sorted_index(
+				  index, index_n, ref_n, ani_opt->ignoreconflict, true);
+		marker_abundance_stats = ref_uses_ctxobj96
+			? ani_depth_abundance_from_ref_coverage128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, ref_ctx_hit_weight, marker_ref_ctx_total, acc,
+				  coverage_scale, true)
+			: ani_depth_abundance_from_ref_coverage(
+				  index, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, ref_ctx_hit_weight, marker_ref_ctx_total, acc,
+				  coverage_scale, true);
+		marker_raw_feature_acc = ref_uses_ctxobj96
+			? ani_unique_best_features_from_ref_covdiff128(
+				  index96, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, true)
+			: ani_unique_best_features_from_ref_covdiff(
+				  index, index_n, ref_n, ani_opt->ignoreconflict,
+				  ref_ctx_cov, true);
+		if (ani_opt->readwise_ctx_filter_model != ANI_READWISE_CTX_FILTER_NONE &&
+			marker_raw_feature_acc && marker_abundance_stats) {
+			marker_filtered_feature_acc = ref_uses_ctxobj96
+				? ani_reliable_features_from_ref_covdiff128(
+					  index96, index_n, ref_n, ani_opt->ignoreconflict,
+					  reliable_ref_ctx_cov, marker_abundance_stats, marker_ref_ctx_total,
+					  ani_opt->readwise_ctx_filter_model,
+					  coverage_scale,
+					  ani_opt->readwise_fake_ctx_threshold, NULL, true)
+				: ani_reliable_features_from_ref_covdiff(
+					  index, index_n, ref_n, ani_opt->ignoreconflict,
+					  reliable_ref_ctx_cov, marker_abundance_stats, marker_ref_ctx_total,
+					  ani_opt->readwise_ctx_filter_model,
+					  coverage_scale,
+					  ani_opt->readwise_fake_ctx_threshold, NULL, true);
+			marker_reliable_abundance_stats = ref_uses_ctxobj96
+				? ani_reliable_abundance_from_ref_covdiff128(
+					  index96, index_n, ref_n, ani_opt->ignoreconflict,
+					  reliable_ref_ctx_cov, ref_ctx_hit_weight, marker_abundance_stats,
+					  marker_ref_ctx_total, ani_opt->readwise_ctx_filter_model,
+					  coverage_scale, ani_opt->readwise_fake_ctx_threshold, true)
+				: ani_reliable_abundance_from_ref_covdiff(
+					  index, index_n, ref_n, ani_opt->ignoreconflict,
+					  reliable_ref_ctx_cov, ref_ctx_hit_weight, marker_abundance_stats,
+					  marker_ref_ctx_total, ani_opt->readwise_ctx_filter_model,
+					  coverage_scale, ani_opt->readwise_fake_ctx_threshold, true);
+		}
+	}
+	const ani_readwise_acc_t *support_feature_acc =
+		filtered_feature_acc ? filtered_feature_acc :
+		(raw_feature_acc ? raw_feature_acc : acc);
+	const ani_readwise_acc_t *ani_feature_acc =
+#if MINCO_REPORT_FILTERED_READWISE_ANI
+		support_feature_acc;
+#else
+		raw_feature_acc ? raw_feature_acc : support_feature_acc;
+#endif
+	const ani_readwise_acc_t *marker_feature_acc =
+		marker_filtered_feature_acc ? marker_filtered_feature_acc :
+		marker_raw_feature_acc;
+	const uint32_t feature_scale =
+		filtered_feature_acc &&
+				ani_opt->readwise_ctx_filter_model == ANI_READWISE_CTX_FILTER_FAKE_PROB
+			? ANI_READWISE_PROB_SCALE
+			: 1u;
 	for (uint32_t rn = 0; rn < ref_n; ++rn) {
 		const ani_readwise_acc_t *a = &acc[rn];
-		const ani_readwise_acc_t *fa = &feature_acc[rn];
+		const ani_readwise_acc_t *support_fa = &support_feature_acc[rn];
+		const ani_readwise_acc_t *ani_fa = &ani_feature_acc[rn];
 		const uint64_t qry_ctx_hit = profile_only ? a->ref_ctx_hit : a->qry_ctx_hit;
 		const uint64_t unique_overlap = qry_ctx_hit < a->ref_ctx_hit ? qry_ctx_hit : a->ref_ctx_hit;
 		if (unique_overlap < (uint64_t)ani_opt->ctxcut)
 			continue;
-		if (!fa->XnY_ctx || !ref_ctx_total[rn])
+		const uint64_t effective_xny_ctx =
+			ani_readwise_scaled_round_u64(support_fa->XnY_ctx, feature_scale);
+		if (!effective_xny_ctx || !ref_ctx_total[rn])
+			continue;
+		if (effective_xny_ctx < (uint64_t)ani_opt->ctxcut)
 			continue;
 		const double ref_af = (double)a->ref_ctx_hit / (double)ref_ctx_total[rn];
 		if (!profile_only && !total_unique_qry_ctx)
@@ -5331,11 +8478,11 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			continue;
 
 		ani_features_t f = {
-			.XnY_ctx = ani_clamp_u64_to_u32(fa->XnY_ctx),
+			.XnY_ctx = ani_clamp_u64_to_u32(ani_fa->XnY_ctx),
 			.X_ctx = profile_only ? ref_ctx_total[rn] : global_qry_ctx_for_dist,
-			.N_diff_obj_section = ani_clamp_u64_to_u32(fa->N_diff_obj_section),
-			.N_mut2_ctx = ani_clamp_u64_to_u32(fa->N_mut2_ctx),
-			.N_diff_obj = ani_clamp_u64_to_u32(fa->N_diff_obj),
+			.N_diff_obj_section = ani_clamp_u64_to_u32(ani_fa->N_diff_obj_section),
+			.N_mut2_ctx = ani_clamp_u64_to_u32(ani_fa->N_mut2_ctx),
+			.N_diff_obj = ani_clamp_u64_to_u32(ani_fa->N_diff_obj),
 		};
 		const uint32_t qry_ctx_for_dist =
 			profile_only ? ref_ctx_total[rn] : global_qry_ctx_for_dist;
@@ -5348,26 +8495,146 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			density_af,
 			NULL,
 			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
-		row.XnY_ctx = ani_clamp_u64_to_int(fa->XnY_ctx);
-		row.N_diff_obj = ani_clamp_u64_to_int(fa->N_diff_obj);
-		row.N_diff_obj_section = ani_clamp_u64_to_int(fa->N_diff_obj_section);
-		row.N_mut2_ctx = ani_clamp_u64_to_int(fa->N_mut2_ctx);
+		row.XnY_ctx = ani_readwise_scaled_round_int(ani_fa->XnY_ctx, 1u);
+		row.N_diff_obj = ani_readwise_scaled_round_int(ani_fa->N_diff_obj, 1u);
+		row.N_diff_obj_section = ani_readwise_scaled_round_int(ani_fa->N_diff_obj_section, 1u);
+		row.N_mut2_ctx = ani_readwise_scaled_round_int(ani_fa->N_mut2_ctx, 1u);
 		row.readwise_total_reads = total_reads;
 		row.readwise_reads_with_ctx_match = a->reads_with_ctx_match;
 		row.readwise_unique_query_ctx = total_unique_qry_ctx;
 		row.readwise_unique_query_ctx_hit = qry_ctx_hit;
 		row.readwise_unique_ref_ctx_hit = a->ref_ctx_hit;
+		row.readwise_ref_ctx_total = ref_ctx_total[rn];
 		row.readwise_density_block_ctx = density_block_mode ? density_block_ctx : 0u;
 		row.readwise_total_density_blocks = total_density_blocks;
 		row.readwise_blocks_with_ctx_match = a->blocks_with_ctx_match;
+		row.readwise_raw_xny_ctx = raw_feature_acc
+									   ? raw_feature_acc[rn].XnY_ctx
+									   : ani_fa->XnY_ctx;
+		if (ctx_filter_stats) {
+			row.readwise_rejected_ctx = ctx_filter_stats[rn].rejected_ctx;
+			row.readwise_rejected_diff_ctx = ctx_filter_stats[rn].rejected_diff_ctx;
+			const double fake_prob_mean = ctx_filter_stats[rn].raw_xny_ctx
+											  ? (double)(ctx_filter_stats[rn].fake_prob_sum /
+														 (long double)ctx_filter_stats[rn].raw_xny_ctx)
+											  : 0.0;
+			const double fake_prob_weighted = ctx_filter_stats[rn].fake_prob_weight_sum > 0.0L
+												  ? (double)(ctx_filter_stats[rn].fake_prob_weighted_sum /
+															 ctx_filter_stats[rn].fake_prob_weight_sum)
+												  : 0.0;
+			row.readwise_fake_ctx_prob_mean = fake_prob_mean;
+			row.readwise_fake_ctx_prob_weighted = fake_prob_weighted;
+			row.readwise_fake_ctx_fraction =
+				ani_opt->readwise_ctx_filter_model == ANI_READWISE_CTX_FILTER_FAKE_PROB
+					? fake_prob_mean
+					: (ctx_filter_stats[rn].raw_xny_ctx
+						   ? (double)ctx_filter_stats[rn].rejected_ctx /
+								 (double)ctx_filter_stats[rn].raw_xny_ctx
+						   : 0.0);
+		}
 		if (abundance_stats) {
 			row.abundance_ref_breadth = abundance_stats[rn].ref_breadth;
 			row.abundance_ref_mean_depth = abundance_stats[rn].ref_mean_depth;
 			row.abundance_ref_hit_mean_depth = abundance_stats[rn].ref_hit_mean_depth;
-			row.abundance_ref_depth_variance = abundance_stats[rn].ref_depth_variance;
-			row.abundance_ref_depth_cv = abundance_stats[rn].ref_depth_cv;
-			row.abundance_ref_zero_fraction = abundance_stats[rn].ref_zero_fraction;
-			row.abundance_relative_depth = abundance_stats[rn].relative_depth;
+            row.abundance_ref_depth_variance = abundance_stats[rn].ref_depth_variance;
+            row.abundance_ref_depth_cv = abundance_stats[rn].ref_depth_cv;
+            row.abundance_ref_zero_fraction = abundance_stats[rn].ref_zero_fraction;
+            row.abundance_relative_depth = abundance_stats[rn].relative_depth;
+			row.abundance_ref_zip_af = ani_zip_corrected_af(
+				row.abundance_ref_breadth, row.abundance_ref_mean_depth);
+			row.abundance_ref_zip_aaf_ani =
+				aaf_ani_from_containment(row.abundance_ref_zip_af);
+			if (reliable_abundance_stats) {
+				row.reliable_ref_breadth = reliable_abundance_stats[rn].ref_breadth;
+				row.reliable_ref_mean_depth = reliable_abundance_stats[rn].ref_mean_depth;
+				row.reliable_ref_hit_ctx = reliable_abundance_stats[rn].ref_hit_ctx;
+				row.reliable_ref_hit_mean_depth =
+					reliable_abundance_stats[rn].ref_hit_mean_depth;
+				row.reliable_ref_hit_median_depth =
+					reliable_abundance_stats[rn].ref_hit_median_depth;
+				row.reliable_ref_hit_depth_variance =
+					reliable_abundance_stats[rn].ref_hit_depth_variance;
+				row.reliable_ref_zip_af = reliable_abundance_stats[rn].ref_zip_af;
+			} else {
+				row.reliable_ref_breadth = row.abundance_ref_breadth;
+				row.reliable_ref_mean_depth = row.abundance_ref_mean_depth;
+				row.reliable_ref_hit_ctx = a->ref_ctx_hit;
+				row.reliable_ref_hit_mean_depth = row.abundance_ref_hit_mean_depth;
+				row.reliable_ref_hit_median_depth = 0.0;
+				row.reliable_ref_hit_depth_variance = row.abundance_ref_depth_variance;
+				row.reliable_ref_zip_af = row.abundance_ref_zip_af;
+			}
+			row.abundance_effective_depth =
+				ani_readwise_effective_abundance_depth(&row);
+			if (ani_opt->readwise_dual_evidence) {
+				const ani_readwise_acc_t *marker_fa =
+					marker_feature_acc ? &marker_feature_acc[rn] : NULL;
+				row.marker_xny_ctx = marker_fa
+					? ani_readwise_scaled_round_u64(marker_fa->XnY_ctx, feature_scale)
+					: 0u;
+				row.marker_raw_xny_ctx = marker_raw_feature_acc
+					? marker_raw_feature_acc[rn].XnY_ctx
+					: row.marker_xny_ctx;
+				row.marker_n_diff_obj = marker_fa
+					? ani_readwise_scaled_round_u64(marker_fa->N_diff_obj, feature_scale)
+					: 0u;
+				row.marker_n_diff_obj_section = marker_fa
+					? ani_readwise_scaled_round_u64(marker_fa->N_diff_obj_section, feature_scale)
+					: 0u;
+				row.marker_n_mut2_ctx = marker_fa
+					? ani_readwise_scaled_round_u64(marker_fa->N_mut2_ctx, feature_scale)
+					: 0u;
+				row.marker_ref_ctx_total = marker_ref_ctx_total
+					? marker_ref_ctx_total[rn]
+					: 0u;
+				if (marker_abundance_stats) {
+					row.marker_ref_breadth = marker_abundance_stats[rn].ref_breadth;
+					row.marker_ref_mean_depth = marker_abundance_stats[rn].ref_mean_depth;
+					row.marker_ref_hit_mean_depth =
+						marker_abundance_stats[rn].ref_hit_mean_depth;
+					row.marker_ref_depth_variance =
+						marker_abundance_stats[rn].ref_depth_variance;
+					row.marker_ref_depth_cv = marker_abundance_stats[rn].ref_depth_cv;
+					row.marker_ref_zero_fraction =
+						marker_abundance_stats[rn].ref_zero_fraction;
+					row.marker_relative_depth = marker_abundance_stats[rn].relative_depth;
+					row.marker_ref_zip_af = ani_zip_corrected_af(
+						row.marker_ref_breadth, row.marker_ref_mean_depth);
+					row.marker_ref_zip_aaf_ani =
+						aaf_ani_from_containment(row.marker_ref_zip_af);
+				}
+				if (marker_reliable_abundance_stats) {
+					row.marker_reliable_ref_breadth =
+						marker_reliable_abundance_stats[rn].ref_breadth;
+					row.marker_reliable_ref_mean_depth =
+						marker_reliable_abundance_stats[rn].ref_mean_depth;
+					row.marker_reliable_ref_hit_ctx =
+						marker_reliable_abundance_stats[rn].ref_hit_ctx;
+					row.marker_reliable_ref_hit_mean_depth =
+						marker_reliable_abundance_stats[rn].ref_hit_mean_depth;
+					row.marker_reliable_ref_hit_median_depth =
+						marker_reliable_abundance_stats[rn].ref_hit_median_depth;
+					row.marker_reliable_ref_hit_depth_variance =
+						marker_reliable_abundance_stats[rn].ref_hit_depth_variance;
+					row.marker_reliable_ref_zip_af =
+						marker_reliable_abundance_stats[rn].ref_zip_af;
+				} else {
+					row.marker_reliable_ref_breadth = row.marker_ref_breadth;
+					row.marker_reliable_ref_mean_depth = row.marker_ref_mean_depth;
+					row.marker_reliable_ref_hit_ctx = row.marker_raw_xny_ctx;
+					row.marker_reliable_ref_hit_mean_depth =
+						row.marker_ref_hit_mean_depth;
+					row.marker_reliable_ref_hit_median_depth = 0.0;
+					row.marker_reliable_ref_hit_depth_variance =
+						row.marker_ref_depth_variance;
+					row.marker_reliable_ref_zip_af = row.marker_ref_zip_af;
+				}
+				row.marker_effective_depth =
+					ani_readwise_effective_abundance_depth_values(
+						row.marker_reliable_ref_hit_median_depth,
+						row.marker_reliable_ref_mean_depth,
+						row.marker_reliable_ref_zip_af);
+			}
 		}
 		const uint32_t unique_overlap_u32 = ani_clamp_u64_to_u32(unique_overlap);
 		row.mash_dist = get_mashD(Bitslen.ctx / 2, ref_ctx_total[rn],
@@ -5413,19 +8680,29 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	if (outfp != stdout)
 		fclose(outfp);
 	free(abundance_stats);
-	free(unique_feature_acc);
+	free(reliable_abundance_stats);
+	free(raw_feature_acc);
+	free(filtered_feature_acc);
+	free(marker_ref_ctx_total);
+	free(marker_abundance_stats);
+	free(marker_raw_feature_acc);
+	free(marker_filtered_feature_acc);
+	free(marker_reliable_abundance_stats);
+	free(ctx_filter_stats);
 	ani_u64_set_destroy(&qry_ctx_seen);
 	ani_u64_set_destroy(&qry_ref_ctx_seen);
 	free(acc);
 	free(ref_hit_bits);
 	free(ref_ctx_cov);
+	free(ref_ctx_mindiff_cov);
+	free(ref_ctx_hit_weight);
 	free(fence);
 	free(ref_ctx_total);
 	if (refanno)
 		free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
 	if (ref_infile_meta)
 		free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
-	free_reference_sorted_index(index, index_bytes, index_is_mmap);
+	free_reference_sorted_index((ctxgidobj_t *)index_mem, index_bytes, index_is_mmap);
 	free_read_from_file(ref_stat, ref_stat_size);
 	return 0;
 }

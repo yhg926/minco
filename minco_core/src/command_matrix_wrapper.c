@@ -46,7 +46,8 @@ enum
   MATRIX_KEY_INDEX_SAMPLE_STEP,
   MATRIX_KEY_PROGRESS,
   MATRIX_KEY_SPARSE,
-  MATRIX_KEY_DEDUP_STRATEGY
+  MATRIX_KEY_DEDUP_STRATEGY,
+  MATRIX_KEY_MARKERDB_WARN_THRESHOLD
 };
 
 enum
@@ -81,6 +82,7 @@ static struct argp_option opt_matrix[] =
 	{"index-max-ctx-freq", MATRIX_KEY_INDEX_MAX_CTX_FREQ, "<INT>", 0, "Indexed sparse candidate mode: skip context groups above this frequency; 0 keeps all contexts. [256]", MATRIX_GROUP_FILTER},
 	{"index-min-votes", MATRIX_KEY_INDEX_MIN_VOTES, "<INT>", 0, "Indexed sparse candidate mode: exact-score pairs with at least this many candidate context votes. [1]", MATRIX_GROUP_FILTER},
 	{"index-sample-step", MATRIX_KEY_INDEX_SAMPLE_STEP, "<INT>", 0, "Indexed sparse candidate mode: use every Nth query context for nomination. [1]", MATRIX_GROUP_FILTER},
+	{"markerdb-warn-threshold", MATRIX_KEY_MARKERDB_WARN_THRESHOLD, "<INT>", 0, "With dedup-plan, predict post-dedup context-markerdb sizes and warn for kept refs below this threshold. 0 disables the warning. [500]", MATRIX_GROUP_FILTER},
 
 	{0, 0, 0, 0, "Output files:", MATRIX_GROUP_OUTPUT},
 	{"glist",'g',"<FILE>",0,"Write sample grouping/report file.", MATRIX_GROUP_OUTPUT},
@@ -156,6 +158,7 @@ matrix_opt_t matrix_opt ={
 	.index_max_ctx_freq = 256,
 	.index_min_votes = 1,
 	.index_sample_step = 1,
+	.markerdb_warn_threshold = 500,
 	.p = 1,
 	.d = 0, //diagonal
 	.diagonal_value = 0.0,
@@ -318,6 +321,12 @@ static error_t parse_matrix(int key, char* arg, struct argp_state* state) {
     case MATRIX_KEY_PROGRESS:
     {
       matrix_opt.progress_mode = parse_matrix_progress(state, arg);
+      break;
+    }
+    case MATRIX_KEY_MARKERDB_WARN_THRESHOLD:
+    {
+      matrix_opt.markerdb_warn_threshold =
+        (uint32_t)parse_int_range(state, "--markerdb-warn-threshold", arg, 0, INT32_MAX);
       break;
     }
     case MATRIX_KEY_DEDUP_STRATEGY:

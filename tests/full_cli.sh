@@ -287,6 +287,16 @@ fi
   --cami-profile "$WORK/ani_readwise_abundance_profile_only.profile" \
   --cami-sample-id full_cli_profile_only -m 0 -f 0 -n 0 -t 0 -p 2 \
   -o "$WORK/ani_readwise_abundance_profile_only.tsv"
+"$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref --abundance-est depth \
+  --readwise-profile-only --readwise-ani naive \
+  --readwise-ctx-filter poisson-depth --readwise-fake-threshold 1.30103 \
+  -m 0 -f 0 -n 0 -t 0 -p 2 \
+  -o "$WORK/ani_readwise_poisson_depth.tsv"
+"$BIN" ani -r "$WORK/ctx_one" --qraw "$WORK/a_reads.fq" --query-density ref --abundance-est depth \
+  --readwise-profile-only --readwise-ani naive \
+  --readwise-ctx-filter poisson-product --readwise-fake-threshold 1.30103 \
+  -m 0 -f 0 -n 0 -t 0 -p 2 \
+  -o "$WORK/ani_readwise_poisson_product.tsv"
 "$BIN" ani -r "$WORK/ctx_both" -q "$WORK/b.fna" --query-density ref -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_query_density_combined.tsv"
 "$BIN" ani -r "$WORK/base" --qraw "$WORK/reads" -m 0 -f 0 -n 0 -t 0 -p 2 -o "$WORK/ani_qraw.tsv"
 assert_nonempty "$WORK/ani_detail.tsv"
@@ -304,6 +314,8 @@ assert_nonempty "$WORK/ani_readwise_abundance_cami.tsv"
 assert_nonempty "$WORK/ani_readwise_abundance.profile"
 assert_nonempty "$WORK/ani_readwise_abundance_profile_only.tsv"
 assert_nonempty "$WORK/ani_readwise_abundance_profile_only.profile"
+assert_nonempty "$WORK/ani_readwise_poisson_depth.tsv"
+assert_nonempty "$WORK/ani_readwise_poisson_product.tsv"
 assert_nonempty "$WORK/ani_query_density_combined.tsv"
 assert_nonempty "$WORK/ani_qraw.tsv"
 grep -q 'Reads_with_ctx_match' "$WORK/ani_readwise_density.tsv"
@@ -311,6 +323,10 @@ grep -q 'readwise_coverage' "$WORK/ani_readwise_density.tsv"
 grep -q 'Relative_abundance_depth' "$WORK/ani_readwise_abundance.tsv"
 grep -q 'Normalized_abundance_depth' "$WORK/ani_readwise_abundance.tsv"
 grep -q 'Ref_mean_depth' "$WORK/ani_readwise_abundance.tsv"
+grep -q 'Rejected_ctx' "$WORK/ani_readwise_poisson_depth.tsv"
+grep -q 'Fake_ctx_fraction' "$WORK/ani_readwise_poisson_depth.tsv"
+grep -q 'Rejected_ctx' "$WORK/ani_readwise_poisson_product.tsv"
+grep -q 'Fake_ctx_fraction' "$WORK/ani_readwise_poisson_product.tsv"
 grep -q '^@SampleID:full_cli_sample$' "$WORK/ani_readwise_abundance.profile"
 grep -q '^@@TAXID' "$WORK/ani_readwise_abundance.profile"
 grep -q $'^2\tsuperkingdom\t2\tBacteria\t' "$WORK/ani_readwise_abundance.profile"
@@ -358,7 +374,9 @@ assert_nonempty "$WORK/ani_lists.tsv"
 "$BIN" matrix --format clusters --cut 0.2 -q "$WORK/base" -o "$WORK/matrix_clusters.tsv"
 "$BIN" matrix --format dedup-plan --cut 0.001 --keep-out "$WORK/plan_keep.txt" \
   --remove-out "$WORK/plan_remove.txt" --edge-out "$WORK/plan_edges.tsv" \
-  --keep-matrix-out "$WORK/plan_keep_matrix.tsv" -q "$WORK/base" -o "$WORK/matrix_dedup_plan.tsv"
+  --keep-matrix-out "$WORK/plan_keep_matrix.tsv" -q "$WORK/base" \
+  -o "$WORK/matrix_dedup_plan.tsv" > "$WORK/matrix_dedup_plan.log" 2>&1
+grep -q "predicted context markerdb after dedup-plan" "$WORK/matrix_dedup_plan.log"
 "$BIN" matrix --format full --matrix-format phylip --matrix-idmap "$WORK/matrix.idmap.tsv" \
   -q "$WORK/base" -d -o "$WORK/matrix.phy"
 assert_nonempty "$WORK/matrix_full.tsv"

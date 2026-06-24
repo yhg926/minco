@@ -218,6 +218,40 @@ void ctxgidobj_sort_array(ctxgidobj_t *arr, size_t n) {
     ctxgidobj_parallel_quicksort(arr, n);
 }
 
+static int ctxobj96_cmp(const void *pa, const void *pb)
+{
+    const ctxobj96_t *a = (const ctxobj96_t *)pa;
+    const ctxobj96_t *b = (const ctxobj96_t *)pb;
+    if (a->ctx != b->ctx)
+        return (a->ctx > b->ctx) - (a->ctx < b->ctx);
+    return (a->obj > b->obj) - (a->obj < b->obj);
+}
+
+static int ctxgidobj128_cmp(const void *pa, const void *pb)
+{
+    const ctxgidobj128_t *a = (const ctxgidobj128_t *)pa;
+    const ctxgidobj128_t *b = (const ctxgidobj128_t *)pb;
+    if (a->ctx != b->ctx)
+        return (a->ctx > b->ctx) - (a->ctx < b->ctx);
+    if (a->gid != b->gid)
+        return (a->gid > b->gid) - (a->gid < b->gid);
+    return (a->obj > b->obj) - (a->obj < b->obj);
+}
+
+void ctxobj96_sort_array(ctxobj96_t *arr, size_t n)
+{
+    if (!arr || n < 2)
+        return;
+    qsort(arr, n, sizeof(arr[0]), ctxobj96_cmp);
+}
+
+void ctxgidobj128_sort_array(ctxgidobj128_t *arr, size_t n)
+{
+    if (!arr || n < 2)
+        return;
+    qsort(arr, n, sizeof(arr[0]), ctxgidobj128_cmp);
+}
+
 /*Methods 3 lib for count #overlp intergers between uint64_t a[N]  and b[M]*/
 #include <stdint.h>
 #include <stdbool.h>

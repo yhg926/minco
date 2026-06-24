@@ -1,5 +1,6 @@
 # Build outputs
 /bin/
+/minco_core/bin*/
 /minco_core/obj*/
 *.o
 *.d
@@ -27,8 +28,15 @@ __pycache__/
 *.time
 *.time.txt
 *.time.log
+/minco.ctxobj*
+/minco.stat
+/2026-06-23_threshold_combo_search_all_metrics/__pycache__/
+/2026-06-23_threshold_combo_search_all_metrics/results/
+/2026-06-23_threshold_combo_search_all_metrics/*.tsv
 
 # Research experiment data products. Keep notes and scripts in Git.
+/research/experiments/**/results/
+/research/experiments/**/results_*/
 /research/experiments/**/*.tsv
 /research/experiments/**/*.msh
 /research/experiments/**/*.kmini
@@ -38,6 +46,18 @@ __pycache__/
 /research/experiments/**/*.time.log
 /research/experiments/**/time_*.txt
 /research/experiments/**/*.hfrag
+/research/experiments/**/*.png
+/research/experiments/**/*.fa
+/research/experiments/**/*.delta
+/research/experiments/**/*.filter
+/research/experiments/**/*.list
+/research/experiments/**/*.missing
+/research/experiments/**/provenance/code_diff.patch
+/research/experiments/**/minco.ctxobj*
+/research/experiments/**/minco.stat
+/research/experiments/**/minco.infilemeta
+/research/experiments/**/minco.ctxmeta
+/research/experiments/**/minco.refindex.*
 /research/experiments/**/tmp/
 /research/experiments/**/tmp_*/
 /research/experiments/**/genomes.minco/

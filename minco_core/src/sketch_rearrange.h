@@ -5,6 +5,21 @@
 #include <math.h>
 #include <tgmath.h>
 #define GID_NBITS 20
+
+// coden-aware context-object pattern
+// NUM_CODENS > 11 uses the extended ctxobj96/ctxgidobj128 payload paths.
+#ifndef NUM_CODENS
+#define NUM_CODENS 11
+#endif
+
+#ifndef MINCO_ENABLE_CTXOBJ96
+#define MINCO_ENABLE_CTXOBJ96 0
+#endif
+
+#ifndef MINCO_MAX_EXTENDED_CODENS
+#define MINCO_MAX_EXTENDED_CODENS 15
+#endif
+
 //glovbal public vars
 //uint32_t FILTER,hash_id;
 extern uint64_t ctxmask,tupmask,ho_mask_len, hc_mask_len, io_mask_len, ho_mask_left,hc_mask_left, io_mask, hc_mask_right, ho_mask_right;
@@ -15,6 +30,9 @@ typedef uint32_t obj_t ; // optional uint64_t
 typedef struct id_obj{uint32_t gid;obj_t obj;} id_obj_t;
 typedef struct { int num; uint32_t *idx ;} inverted_t;
 typedef struct __attribute__((packed)) {  uint32_t part[3];} uint96_t;
+/* Extended ctx/object records for coden layouts whose ctx+obj payload no
+ * longer fits in the legacy uint64_t ctxobj record.
+ */
 //typedef struct  {uint64_t ctxgid; uint32_t obj;} ctxgidobj_t;
 typedef struct  __attribute__((packed)) {uint64_t ctxgid; uint32_t obj;} ctxgidobj_t;
 typedef struct {uint8_t ctx; uint8_t gid; uint8_t obj;} bitslen_t;
@@ -24,6 +42,96 @@ typedef struct {uint64_t ctx; uint32_t gid; uint32_t obj;} tmp_ctxgidobj_t;
 void const_comask_init(minco_sketch_stat_t *minco_stat );
 
 ctxgidobj_t *ctxobj64_2ctxgidobj(uint64_t *sketch_index, uint64_t *ctxobj64, int infile_num, uint32_t arrlen);
+ctxgidobj128_t *ctxobj96_2ctxgidobj128(uint64_t *sketch_index, ctxobj96_t *ctxobj96, int infile_num, uint32_t arrlen);
+
+static inline uint32_t minco_coden_ctx_bits(int codens)
+{
+    return codens > 0 ? (uint32_t)(4 * codens) : 0u;
+}
+
+static inline uint32_t minco_coden_obj_bits(int codens)
+{
+    return codens > 0 ? (uint32_t)(2 * (codens + 1)) : 0u;
+}
+
+static inline int minco_coden_full_klen(int codens)
+{
+    return 3 * codens + 1;
+}
+
+static inline int minco_coden_legacy_klen(int codens)
+{
+    return codens < 11 ? minco_coden_full_klen(codens) : 32;
+}
+
+static inline int minco_compiled_coden_klen(void)
+{
+#if NUM_CODENS > 11 && MINCO_ENABLE_CTXOBJ96
+    return minco_coden_full_klen(NUM_CODENS);
+#else
+    return minco_coden_legacy_klen(NUM_CODENS);
+#endif
+}
+
+static inline uint32_t minco_stat_ctx_bits(const minco_sketch_stat_t *stat)
+{
+    return stat && stat->coden_len > 0
+               ? minco_coden_ctx_bits(stat->coden_len)
+               : (uint32_t)(4 * (stat ? stat->hclen : 0));
+}
+
+static inline uint32_t minco_stat_obj_bits(const minco_sketch_stat_t *stat)
+{
+    const uint32_t ctx_bits = minco_stat_ctx_bits(stat);
+    const int total_bits = stat ? 2 * stat->klen : 0;
+    return total_bits > (int)ctx_bits ? (uint32_t)(total_bits - (int)ctx_bits) : 0u;
+}
+
+static inline bool minco_stat_needs_ctxobj96(const minco_sketch_stat_t *stat)
+{
+    const uint32_t ctx_bits = minco_stat_ctx_bits(stat);
+    const uint32_t obj_bits = minco_stat_obj_bits(stat);
+    return ctx_bits > 64u || obj_bits > 32u || ctx_bits + obj_bits > 64u;
+}
+
+static inline bool minco_stat_needs_ctxgidobj128(const minco_sketch_stat_t *stat)
+{
+    const uint32_t ctx_bits = minco_stat_ctx_bits(stat);
+    const uint32_t obj_bits = minco_stat_obj_bits(stat);
+    return ctx_bits > 64u || obj_bits > 32u || ctx_bits + GID_NBITS > 64u;
+}
+
+static inline void minco_reject_extended_ctxobj_if_needed(const char *func,
+                                                          const minco_sketch_stat_t *stat,
+                                                          const char *path_name)
+{
+    if (!minco_stat_needs_ctxobj96(stat) && !minco_stat_needs_ctxgidobj128(stat))
+        return;
+    fprintf(stderr,
+            "%s(): %s needs extended ctx/object records "
+            "(ctx_bits=%u obj_bits=%u ctx+gid_bits=%u), but this code path still "
+            "uses packed minco.ctxobj64 / minco.refindex.ctxgid64obj32. "
+            "Use a ctxobj96-aware command path or rebuild without the extended "
+            "coden layout.\n",
+            func ? func : "minco",
+            path_name ? path_name : "sketch",
+            minco_stat_ctx_bits(stat),
+            minco_stat_obj_bits(stat),
+            minco_stat_ctx_bits(stat) + GID_NBITS);
+    exit(EXIT_FAILURE);
+}
+
+static inline ctxobj96_t ctxobj96_make(uint64_t ctx, uint32_t obj)
+{
+    ctxobj96_t out = {.ctx = ctx, .obj = obj};
+    return out;
+}
+
+static inline ctxgidobj128_t ctxgidobj128_make(uint64_t ctx, uint32_t gid, uint32_t obj)
+{
+    ctxgidobj128_t out = {.ctx = ctx, .gid = gid, .obj = obj};
+    return out;
+}
 
 //other versions of the functions are ignored
 //void sketch64_2ctxobj64(uint64_t *sketch64, uint32_t arrlen);
@@ -101,11 +209,6 @@ static inline ctxgidobj_t uint64_ctxobj2ctxgidobj96( uint64_t ctxobj64, uint32_t
 
 
 
-//coden aware context object pattern
-// may set to >10 for unassembled data  
-#ifndef NUM_CODENS
-#define NUM_CODENS 11
-#endif   
 static inline uint64_t generate_coden_pattern64 (){
     uint64_t pattern = 0;
     for (int i = 0; i < NUM_CODENS ; ++i) {

@@ -1,0 +1,73 @@
+ M CHANGELOG.md
+ M README.md
+ M docs/USER_MANUAL.md
+ M minco_core/src/command_ani.c
+ M minco_core/src/command_ani.h
+ M minco_core/src/command_ani_wrapper.c
+ M minco_core/src/command_matrix.c
+ M minco_core/src/command_matrix.h
+ M minco_core/src/command_matrix_wrapper.c
+ M minco_core/src/command_operate.c
+ M minco_core/src/command_set_wrapper.c
+ M minco_core/src/command_set_wrapper.h
+ M minco_core/src/command_sketch.c
+ M minco_core/src/command_sketch_wrapper.c
+ M minco_core/src/global_basic.c
+ M minco_core/src/global_basic.h
+ M minco_core/src/minco_sort.c
+ M minco_core/src/minco_sort.h
+ M minco_core/src/pairwise_graph.c
+ M minco_core/src/sketch_rearrange.c
+ M minco_core/src/sketch_rearrange.h
+ M tests/full_cli.sh
+ M tests/smoke.sh
+?? 2026-06-23_threshold_combo_search_all_metrics/
+?? minco.ctxobj96
+?? minco.ctxobj96.offsets
+?? minco.stat
+?? minco_core/bin/
+?? minco_core/bin_adjani/
+?? minco_core/bin_coden15/
+?? minco_core/bin_coden15_adjani/
+?? minco_core/bin_hashbottomk/
+?? research/CURRENT_BEST.md
+?? research/PROGRESS.md
+?? research/TODO.md
+?? research/claims.tsv
+?? research/experiments/2026-06-20_cami2_marine_extra_samples/
+?? research/experiments/2026-06-20_cami2_marine_s1000_choice/
+?? research/experiments/2026-06-20_cami3_toy_human_gut_sample0/
+?? research/experiments/2026-06-20_cami3_toygut_truth_ani_diagnosis/
+?? research/experiments/2026-06-20_metakssd_marine_sample0_comparison/
+?? research/experiments/2026-06-20_minco_readwise_assignment_fix/
+?? research/experiments/2026-06-20_minco_readwise_correction_research/
+?? research/experiments/2026-06-21_gtdb_s2000_dedup_markerdb_readwise/
+?? research/experiments/2026-06-21_minco_external_strain_holdout/
+?? research/experiments/2026-06-21_minco_hybrid_unique_split_readwise_rule/
+?? research/experiments/2026-06-21_minco_multisample_call_calibration/
+?? research/experiments/2026-06-21_minco_refcentric_truth_mouse0/
+?? research/experiments/2026-06-21_minco_third_domain_plant_calibration/
+?? research/experiments/2026-06-21_minco_toy_mouse_gut_sample0/
+?? research/experiments/2026-06-22_cami2_toymouse_density_block/
+?? research/experiments/2026-06-22_cami2_toymouse_more_gtdb/
+?? research/experiments/2026-06-22_cami3_toygut_ctxobj_markerdb/
+?? research/experiments/2026-06-22_cami3_toygut_current_minco_vs_sylph/
+?? research/experiments/2026-06-22_minco_sylph_abundance_model/
+?? research/experiments/2026-06-22_s2000_ctxobj_markerdb_toymouse/
+?? research/experiments/2026-06-23_cami3_source_ref_ani_accuracy/
+?? research/experiments/2026-06-23_cami3_toygut_abundance_rescue/
+?? research/experiments/2026-06-23_cami3_toygut_coden15_formula_af/
+?? research/experiments/2026-06-23_cami3_toygut_gtdb_ani_accuracy/
+?? research/experiments/2026-06-23_gtdb_s2000_coden15_toymouse/
+?? research/experiments/2026-06-23_hybrid_full_sketch_unique_marker_fallback/
+?? research/experiments/2026-06-23_low_abundance_ctx_contamination/
+?? research/experiments/2026-06-23_readwise_ani_defake_sweep/
+?? research/experiments/2026-06-23_toymouse_source_rep_ani/
+?? research/experiments/2026-06-23_universal_strategy_search/
+?? research/experiments/2026-06-24_abundance_feature_calibration/
+?? research/experiments/2026-06-24_addback_abundance_normalization_search/
+?? research/experiments/2026-06-24_context_level_ambiguity_em_prototype/
+?? research/experiments/2026-06-24_cross_domain_spot_comparison/
+?? research/experiments/2026-06-24_full_s2000_marked_unique_full_benchmark/
+?? research/experiments/2026-06-24_integrated_dual_evidence_benchmark/
+?? research/experiments/2026-06-24_virtual_s2000_marker_index_benchmark/

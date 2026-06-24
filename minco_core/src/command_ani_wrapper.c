@@ -58,7 +58,12 @@ enum
 	ANI_CAMI_PROFILE,
 	ANI_CAMI_TAXMAP,
 	ANI_CAMI_SAMPLE_ID,
-	ANI_READWISE_PROFILE_ONLY
+	ANI_READWISE_PROFILE_ONLY,
+	ANI_READWISE_ASSIGN,
+	ANI_READWISE_ANI,
+	ANI_READWISE_CTX_FILTER,
+	ANI_READWISE_FAKE_THRESHOLD,
+	ANI_READWISE_DUAL_EVIDENCE
 };
 
 enum
@@ -107,6 +112,11 @@ static struct argp_option opt_ani[] =
 		{"cami-taxmap", ANI_CAMI_TAXMAP, "<TSV>", 0, "TSV mapping ref key/accession to CAMI taxonomy: ref_key, TAXID, RANK, TAXPATH, TAXPATHSN, optional _CAMI_genomeID, _CAMI_OTU.", ANI_GROUP_REPORT},
 		{"cami-sample-id", ANI_CAMI_SAMPLE_ID, "<ID>", 0, "Sample ID for --cami-profile header. Defaults to query basename or minco_sample for stdin.", ANI_GROUP_REPORT},
 		{"readwise-profile-only", ANI_READWISE_PROFILE_ONLY, 0, 0, "Experimental: in direct readwise FASTQ abundance mode, skip exact global query-context sets to keep memory bounded for large metagenomes.", ANI_GROUP_REPORT},
+		{"readwise-assign", ANI_READWISE_ASSIGN, "<best-diff-unique|all|best-diff|best-diff-split>", 0, "Experimental: assign shared readwise query contexts by keeping only uniquely best object-difference hits, all matching refs, all best-diff refs, or split coverage across best-diff ties. [best-diff-unique]", ANI_GROUP_REPORT},
+		{"readwise-ani", ANI_READWISE_ANI, "<zip-aaf|naive>", 0, "Experimental: selected ANI model for direct readwise FASTQ depth mode. zip-aaf uses ZIP-corrected context AAF from breadth/depth; naive uses object-difference ANI. [zip-aaf]", ANI_GROUP_REPORT},
+		{"readwise-ctx-filter", ANI_READWISE_CTX_FILTER, "<none|poisson-diff|fake-prob|poisson-depth|poisson-product|product-nb|product-topfrac|product-topfrac-median|product1-topfrac-median>", 0, "Experimental: filter or probability-weight suspicious readwise ANI contexts using breadth/depth surprise plus best object difference. [none]", ANI_GROUP_REPORT},
+		{"readwise-fake-threshold", ANI_READWISE_FAKE_THRESHOLD, "<FLOAT>", 0, "Experimental threshold for --readwise-ctx-filter; lower is stricter. For poisson-depth this is -log10 Bonferroni-adjusted Poisson tail p; 1.30103 is adjusted p<=0.05. For product-topfrac modes this is the per-reference top fraction, e.g. 0.25. [" MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD_STR "]", ANI_GROUP_REPORT},
+		{"readwise-dual-evidence", ANI_READWISE_DUAL_EVIDENCE, 0, 0, "Experimental: with readwise depth profiling, append marker-only evidence columns computed from contexts unique to one reference in the full index.", ANI_GROUP_REPORT},
 		{"top", 'N', "<INT>", 0, "Report at most top N references per query. [all]", ANI_GROUP_REPORT},
 
 		{0, 0, 0, 0, "Execution:", ANI_GROUP_EXECUTION},
@@ -168,10 +178,40 @@ static char doc_ani[] =
 	"read batches and merge batch state while streaming to keep memory bounded.\n"
 	"Use --readwise-profile-only with --abundance-est depth for large\n"
 	"metagenome abundance/CAMI profiling when exact query AF is not needed.\n"
+	"--readwise-assign best-diff-unique drops contexts with tied best matches\n"
+	"and is the default for readwise profiling. Use all for legacy behavior;\n"
+	"best-diff keeps all tied best matches; best-diff-split also splits\n"
+	"coverage and breadth across tied best matches while keeping XnY-style\n"
+	"support counts unweighted.\n"
+	"--readwise-ani zip-aaf is the default selected ANI when depth abundance\n"
+	"is available; use naive to report the object-difference readwise ANI.\n"
+	"--readwise-ctx-filter poisson-diff is experimental and filters only the\n"
+	"contexts used for readwise naive/object-difference ANI features.\n"
+	"--readwise-ctx-filter fake-prob instead estimates P(fake context) and\n"
+	"soft-weights nonzero-diff contexts for readwise naive ANI diagnostics.\n"
+	"--readwise-ctx-filter poisson-depth filters nonzero-diff contexts whose\n"
+	"depth is a Bonferroni-adjusted high-tail Poisson outlier; threshold 1.30103\n"
+	"corresponds to adjusted p<=0.05.\n"
+	"--readwise-ctx-filter poisson-product applies the same adjusted high-tail\n"
+	"test to best_diff*depth, using a robust per-ref lambda after dropping the\n"
+	"largest product outlier.\n"
+	"--readwise-ctx-filter product-nb applies an adjusted high-tail negative\n"
+	"binomial test to positive best_diff*depth values, using a one-outlier\n"
+	"trimmed per-ref fit and falling back to Poisson when not overdispersed.\n"
+	"--readwise-ctx-filter product-topfrac drops positive-product contexts in\n"
+	"the top per-reference best_diff*depth fraction set by\n"
+	"--readwise-fake-threshold, for example 0.25.\n"
+	"--readwise-ctx-filter product-topfrac-median keeps those contexts but\n"
+	"replaces their best_diff and depth with per-reference medians.\n"
+	"--readwise-ctx-filter product1-topfrac-median is the same but ranks\n"
+	"contexts by (best_diff+1)*depth, so high-depth exact matches can be\n"
+	"median-replaced too.\n"
 	"It reports reads processed, rate, and file percent when available to stderr.\n"
 	"Use --save-query-sketch DIR to keep the generated query sketch for debug.\n"
 	"For sequence files, -q keeps conflicts only with --conflict; --qraw keeps\n"
 	"query conflicts by default. Use --readsQC for noisy long-read FASTQ.\n"
+	"--readwise-dual-evidence appends a second evidence channel derived only\n"
+	"from contexts that are unique to one reference in the full readwise index.\n"
 	"\n"
 	"Default filters are -n 0.95, -f 0.5, and -t 3. In direct readwise\n"
 	"--qraw FASTQ density mode with --abundance-est depth and no custom\n"
@@ -198,9 +238,11 @@ static char doc_ani[] =
 		"  support is min(S,max(100,ceil(S/100))) and ANI cutoff is 0.96.\n"
 		"  Normalized abundance sums to 1 over printed rows. It is incompatible\n"
 		"  with --readsQC, --abundance, and --save-query-sketch.\n"
-		"  --readwise-profile-only keeps depth coverage but skips exact global\n"
-		"  query-context sets to avoid memory growth in large metagenomes.\n"
-		"  --cami-profile FILE writes a CAMI taxonomic profile from those printed\n"
+	"  --readwise-profile-only keeps depth coverage but skips exact global\n"
+	"  query-context sets to avoid memory growth in large metagenomes.\n"
+	"  --readwise-dual-evidence appends Marker_* columns and ctx_marker_size\n"
+	"  so downstream gates can mix marker-only and full ctx+obj evidence.\n"
+	"  --cami-profile FILE writes a CAMI taxonomic profile from those printed\n"
 		"  rows using --cami-taxmap TSV taxonomy/lineage metadata. Repeat a\n"
 		"  ref_key on multiple rows to emit multiple lineage ranks.\n"
 	"  Positive -s values print distance in matrix/triangle formats.\n"
@@ -248,6 +290,7 @@ ani_opt_t ani_opt = {
 	.unified_metric = 0,
 	.readwise_query = 0,
 	.readwise_profile_only = 0,
+	.readwise_dual_evidence = 0,
 	.ignoreconflict = 0,
 	.raw_output = 0,
 	.ctxcut = 3,
@@ -274,6 +317,10 @@ ani_opt_t ani_opt = {
 	.density_block_ctx = MINCO_DEFAULT_DENSITY_BLOCK_CTX,
 	.query_density_model = ANI_QUERY_DENSITY_FIXED,
 	.abundance_model = ANI_ABUNDANCE_NONE,
+	.readwise_assign_mode = ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE,
+	.readwise_ani_model = ANI_READWISE_ANI_ZIP_AAF,
+	.readwise_ctx_filter_model = ANI_READWISE_CTX_FILTER_NONE,
+	.readwise_fake_ctx_threshold = MINCO_DEFAULT_READWISE_FAKE_CTX_THRESHOLD,
 	.ntop = -1, //all 
 	.e = 1, // abort
 	.index[0] = '\0',
@@ -345,6 +392,66 @@ static ani_abundance_model_t parse_abundance_model(struct argp_state *state, con
 		return ANI_ABUNDANCE_DEPTH;
 	argp_error(state, "--abundance-est must be one of none or depth");
 	return ANI_ABUNDANCE_NONE;
+}
+
+static ani_readwise_assign_mode_t parse_readwise_assign_mode(struct argp_state *state, const char *arg)
+{
+	if (strcasecmp(arg, "all") == 0 || strcasecmp(arg, "none") == 0 || strcmp(arg, "0") == 0)
+		return ANI_READWISE_ASSIGN_ALL;
+	if (strcasecmp(arg, "best-diff") == 0 || strcasecmp(arg, "best") == 0 || strcmp(arg, "1") == 0)
+		return ANI_READWISE_ASSIGN_BEST_DIFF;
+	if (strcasecmp(arg, "best-diff-split") == 0 || strcasecmp(arg, "best-split") == 0 ||
+		strcasecmp(arg, "split") == 0 || strcmp(arg, "2") == 0)
+		return ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT;
+	if (strcasecmp(arg, "best-diff-unique") == 0 || strcasecmp(arg, "best-unique") == 0 ||
+		strcasecmp(arg, "unique") == 0 || strcmp(arg, "3") == 0)
+		return ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE;
+	argp_error(state, "--readwise-assign must be one of all, best-diff, best-diff-split, or best-diff-unique");
+	return ANI_READWISE_ASSIGN_ALL;
+}
+
+static ani_readwise_ani_model_t parse_readwise_ani_model(struct argp_state *state, const char *arg)
+{
+	if (strcasecmp(arg, "zip-aaf") == 0 || strcasecmp(arg, "zip") == 0 || strcmp(arg, "1") == 0)
+		return ANI_READWISE_ANI_ZIP_AAF;
+	if (strcasecmp(arg, "naive") == 0 || strcasecmp(arg, "raw") == 0 || strcmp(arg, "0") == 0)
+		return ANI_READWISE_ANI_NAIVE;
+	argp_error(state, "--readwise-ani must be one of zip-aaf or naive");
+	return ANI_READWISE_ANI_ZIP_AAF;
+}
+
+static ani_readwise_ctx_filter_model_t parse_readwise_ctx_filter_model(struct argp_state *state, const char *arg)
+{
+	if (strcasecmp(arg, "none") == 0 || strcasecmp(arg, "off") == 0 || strcmp(arg, "0") == 0)
+		return ANI_READWISE_CTX_FILTER_NONE;
+	if (strcasecmp(arg, "poisson-diff") == 0 || strcasecmp(arg, "poisson") == 0 ||
+		strcasecmp(arg, "depth-diff") == 0 || strcmp(arg, "1") == 0)
+		return ANI_READWISE_CTX_FILTER_POISSON_DIFF;
+	if (strcasecmp(arg, "fake-prob") == 0 || strcasecmp(arg, "prob") == 0 ||
+		strcasecmp(arg, "probability") == 0 || strcmp(arg, "2") == 0)
+		return ANI_READWISE_CTX_FILTER_FAKE_PROB;
+	if (strcasecmp(arg, "poisson-depth") == 0 || strcasecmp(arg, "depth") == 0 ||
+		strcasecmp(arg, "depth-outlier") == 0 || strcmp(arg, "3") == 0)
+		return ANI_READWISE_CTX_FILTER_POISSON_DEPTH;
+	if (strcasecmp(arg, "poisson-product") == 0 || strcasecmp(arg, "product") == 0 ||
+		strcasecmp(arg, "diff-depth") == 0 || strcmp(arg, "4") == 0)
+		return ANI_READWISE_CTX_FILTER_POISSON_PRODUCT;
+	if (strcasecmp(arg, "product-nb") == 0 || strcasecmp(arg, "nb-product") == 0 ||
+		strcasecmp(arg, "negative-binomial-product") == 0 || strcmp(arg, "5") == 0)
+		return ANI_READWISE_CTX_FILTER_PRODUCT_NB;
+	if (strcasecmp(arg, "product-topfrac") == 0 || strcasecmp(arg, "topfrac-product") == 0 ||
+		strcasecmp(arg, "product-quantile") == 0 || strcmp(arg, "6") == 0)
+		return ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC;
+	if (strcasecmp(arg, "product-topfrac-median") == 0 || strcasecmp(arg, "topfrac-median") == 0 ||
+		strcasecmp(arg, "product-median") == 0 || strcasecmp(arg, "product-winsor") == 0 ||
+		strcmp(arg, "7") == 0)
+		return ANI_READWISE_CTX_FILTER_PRODUCT_TOPFRAC_MEDIAN;
+	if (strcasecmp(arg, "product1-topfrac-median") == 0 || strcasecmp(arg, "product-plus1-topfrac-median") == 0 ||
+		strcasecmp(arg, "product1-median") == 0 || strcasecmp(arg, "product-plus1-median") == 0 ||
+		strcmp(arg, "8") == 0)
+		return ANI_READWISE_CTX_FILTER_PRODUCT1_TOPFRAC_MEDIAN;
+	argp_error(state, "--readwise-ctx-filter must be one of none, poisson-diff, fake-prob, poisson-depth, poisson-product, product-nb, product-topfrac, product-topfrac-median, or product1-topfrac-median");
+	return ANI_READWISE_CTX_FILTER_NONE;
 }
 
 static void copy_path_arg(struct argp_state *state, const char *option_name,
@@ -526,6 +633,32 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 	case ANI_READWISE_PROFILE_ONLY:
 	{
 		ani_opt.readwise_profile_only = true;
+		break;
+	}
+	case ANI_READWISE_ASSIGN:
+	{
+		ani_opt.readwise_assign_mode = parse_readwise_assign_mode(state, arg);
+		break;
+	}
+	case ANI_READWISE_ANI:
+	{
+		ani_opt.readwise_ani_model = parse_readwise_ani_model(state, arg);
+		break;
+	}
+	case ANI_READWISE_CTX_FILTER:
+	{
+		ani_opt.readwise_ctx_filter_model = parse_readwise_ctx_filter_model(state, arg);
+		break;
+	}
+	case ANI_READWISE_FAKE_THRESHOLD:
+	{
+		ani_opt.readwise_fake_ctx_threshold =
+			parse_nonnegative_double(state, "--readwise-fake-threshold", arg);
+		break;
+	}
+	case ANI_READWISE_DUAL_EVIDENCE:
+	{
+		ani_opt.readwise_dual_evidence = true;
 		break;
 	}
 	case 't':
@@ -715,6 +848,8 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 		}
 		if (ani_opt.readwise_profile_only && ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
 			argp_error(state, "--readwise-profile-only requires --abundance-est depth");
+		if (ani_opt.readwise_dual_evidence && ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+			argp_error(state, "--readwise-dual-evidence requires --abundance-est depth");
 
 		break;
 		/*
@@ -923,9 +1058,12 @@ static bool is_minco_sketch_dir(const char *path)
 	struct stat st;
 	if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
 		return false;
-	return file_exists_in_folder(path, sketch_stat) &&
-		   file_exists_in_folder(path, combined_sketch_suffix) &&
-		   file_exists_in_folder(path, idx_sketch_suffix);
+	if (!file_exists_in_folder(path, sketch_stat))
+		return false;
+	return (file_exists_in_folder(path, combined_sketch_suffix) &&
+			file_exists_in_folder(path, idx_sketch_suffix)) ||
+		   (file_exists_in_folder(path, combined_sketch96_suffix) &&
+			file_exists_in_folder(path, idx_sketch96_suffix));
 }
 
 static minco_sketch_stat_t read_minco_sketch_stat_info(const char *sketch_dir,
@@ -1006,6 +1144,8 @@ static long double ani_threshold_density(uint64_t threshold, uint32_t hash_bits)
 
 static uint32_t ani_hash_bits_from_stat(const minco_sketch_stat_t *stat)
 {
+	if (minco_stat_needs_ctxobj96(stat) || minco_stat_needs_ctxgidobj128(stat))
+		return 64u;
 	const int ctx_bits = stat->coden_len > 0 ? 4 * stat->coden_len : 4 * stat->hclen;
 	const int obj_bits = 2 * stat->klen - ctx_bits;
 	if (obj_bits < 0 || obj_bits > 64)
@@ -1265,11 +1405,7 @@ static minco_sketch_stat_t default_auto_ani_sketch_stat(const ani_opt_t *opt)
 	if (opt->sketch_coden_ctxobj_pattern)
 	{
 		stat.coden_len = NUM_CODENS;
-#if NUM_CODENS < 11
-		stat.klen = 3 * NUM_CODENS + 1;
-#else
-		stat.klen = 32;
-#endif
+		stat.klen = minco_compiled_coden_klen();
 		stat.hclen = 0;
 		stat.holen = 0;
 	}
@@ -1297,7 +1433,9 @@ static void validate_supported_auto_sketch_stat(const minco_sketch_stat_t *stat)
 {
 	if (stat->compat_filter_shift < 0 || stat->compat_filter_shift > 32)
 		errx(EXIT_FAILURE, "unsupported sketch compat_filter_shift %d in first auto ANI sketch", stat->compat_filter_shift);
-	if (stat->klen > 32)
+	const bool needs_extended_payload =
+		minco_stat_needs_ctxobj96(stat) || minco_stat_needs_ctxgidobj128(stat);
+	if (stat->klen > 32 && !needs_extended_payload)
 		errx(EXIT_FAILURE, "first auto ANI sketch has unsupported klen=%d; expected at most 32", stat->klen);
 	if (stat->coden_len > 0)
 	{
@@ -1305,15 +1443,21 @@ static void validate_supported_auto_sketch_stat(const minco_sketch_stat_t *stat)
 			errx(EXIT_FAILURE,
 				 "first auto ANI sketch uses coden_len=%d, but this binary was built with NUM_CODENS=%d",
 				 stat->coden_len, NUM_CODENS);
-#if NUM_CODENS < 11
-		const int expected_klen = 3 * NUM_CODENS + 1;
-#else
-		const int expected_klen = 32;
-#endif
+		const int expected_klen = minco_compiled_coden_klen();
 		if (stat->klen != expected_klen)
 			errx(EXIT_FAILURE,
 				 "first auto ANI sketch klen=%d is not compatible with coden_len=%d in this binary",
 				 stat->klen, stat->coden_len);
+#if NUM_CODENS > 11 && !MINCO_ENABLE_CTXOBJ96
+		if (needs_extended_payload)
+			errx(EXIT_FAILURE,
+				 "first auto ANI sketch needs ctxobj96 payloads, but this binary was built without MINCO_ENABLE_CTXOBJ96");
+#endif
+	}
+	else if (needs_extended_payload)
+	{
+		minco_reject_extended_ctxobj_if_needed(__func__, stat,
+											   "manual auto ANI sketch writer");
 	}
 	else if (stat_inner_object_len(stat) < 0)
 	{
@@ -1687,6 +1831,13 @@ static int run_sketch_ani(ani_opt_t *opt)
 	}
 	if (opt->fmt == 2)
 		errx(EXIT_FAILURE, "ANI triangle output requires one sketch or identical -r/-q sketches");
+	if (file_exists_in_folder(opt->qrydir, combined_sketch96_suffix) ||
+		file_exists_in_folder(opt->refdir, combined_sketch96_suffix))
+	{
+		free_read_from_file(qry_stat_mem, file_size);
+		comb_sortedsketch64Xcomb_sortedsketch64(opt);
+		return 1;
+	}
 	const int ref_infile_num = sketch_infile_num(opt->refdir);
 	const bool use_small_query_stream =
 		!force_ref_index && opt->fmt == 0 && ref_infile_num > 0 &&

@@ -293,6 +293,76 @@ uint32_t pairwise_count_ctx_runs_sorted_ctxobj64(const uint64_t *a, size_t n)
 	return count;
 }
 
+static uint32_t pairwise_count_ctx_runs_sorted_ctxobj96(const ctxobj96_t *a, size_t n)
+{
+	uint32_t count = 0;
+	size_t i = 0;
+	while (i < n) {
+		const uint64_t ctx = a[i].ctx;
+		do {
+			++i;
+		} while (i < n && a[i].ctx == ctx);
+		++count;
+	}
+	return count;
+}
+
+static pairwise_eval_t pairwise_eval_ctxobj96_arrays(pairwise_metric_t metric,
+													 const minco_sketch_stat_t *stat,
+													 const ctxobj96_t *qry, size_t qry_n,
+													 const ctxobj96_t *ref, size_t ref_n,
+													 uint32_t qry_ctx_count,
+													 uint32_t ref_ctx_count)
+{
+	pairwise_eval_t eval = {
+		.distance = 1.0,
+		.similarity = 0.0,
+		.xny_ctx = 0,
+		.n_diff_obj = 0,
+		.n_diff_obj_section = 0,
+		.n_mut2_ctx = 0,
+		.af_qry = 0.0,
+		.af_ref = 0.0,
+		.max_af = 0.0,
+		.valid = false,
+	};
+	if (!stat || !qry || !ref || qry_n == 0 || ref_n == 0)
+		return eval;
+
+	ani_features_t features;
+	get_ani_features_from_two_sorted_ctxobj96(qry, qry_n, ref, ref_n, &features);
+	eval.xny_ctx = features.XnY_ctx;
+	eval.n_diff_obj = features.N_diff_obj;
+	eval.n_diff_obj_section = features.N_diff_obj_section;
+	eval.n_mut2_ctx = features.N_mut2_ctx;
+	eval.af_qry = qry_ctx_count > 0
+					  ? (double)features.XnY_ctx / (double)qry_ctx_count
+					  : 0.0;
+	eval.af_ref = ref_ctx_count > 0
+					  ? (double)features.XnY_ctx / (double)ref_ctx_count
+					  : 0.0;
+	eval.max_af = eval.af_qry > eval.af_ref ? eval.af_qry : eval.af_ref;
+	if (features.XnY_ctx == 0)
+		return eval;
+
+	if (metric == PAIRWISE_METRIC_MASH || metric == PAIRWISE_METRIC_AAF) {
+		const int ctx_k = Bitslen.ctx > 0 ? Bitslen.ctx / 2 : stat->klen;
+		if (metric == PAIRWISE_METRIC_MASH)
+			eval.distance = pairwise_mash_distance(ctx_k, qry_ctx_count,
+												   ref_ctx_count, features.XnY_ctx);
+		else
+			eval.distance = pairwise_aaf_distance(ctx_k, qry_ctx_count,
+												  ref_ctx_count, features.XnY_ctx);
+	} else if (metric == PAIRWISE_METRIC_CTX_NAIVE) {
+		eval.distance = pairwise_clean_distance(get_naive_dist(&features));
+	} else {
+		eval.distance = pairwise_clean_distance(lm3ways_dist_from_features(&features));
+	}
+	eval.similarity = 1.0 - eval.distance;
+	eval.valid = true;
+	return eval;
+}
+
 pairwise_eval_t pairwise_eval_arrays(pairwise_metric_t metric,
 									 const minco_sketch_stat_t *stat,
 									 const uint64_t *qry, size_t qry_n,
@@ -360,6 +430,29 @@ pairwise_eval_t pairwise_eval_samples(pairwise_metric_t metric,
 	pairwise_check_compatible(ref, qry);
 	if (qn >= (uint32_t)qry->infile_num || rn >= (uint32_t)ref->infile_num)
 		errx(EINVAL, "%s(): sample index out of range", __func__);
+
+	if (qry->stat_type == 2 &&
+		(qry->payload_layout == MINCO_PAYLOAD_CTXOBJ96 ||
+		 ref->payload_layout == MINCO_PAYLOAD_CTXOBJ96)) {
+		if (qry->payload_layout != MINCO_PAYLOAD_CTXOBJ96 ||
+			ref->payload_layout != MINCO_PAYLOAD_CTXOBJ96)
+			errx(EINVAL, "%s(): cannot mix ctxobj64 and ctxobj96 payload sketches",
+				 __func__);
+		pairwise_prepare_minco_model(ref);
+		const ctxobj96_t *qry_arr = qry->comb_sketch96 + qry->sketch_index[qn];
+		const size_t qry_len = (size_t)(qry->sketch_index[qn + 1] -
+									   qry->sketch_index[qn]);
+		const ctxobj96_t *ref_arr = ref->comb_sketch96 + ref->sketch_index[rn];
+		const size_t ref_len = (size_t)(ref->sketch_index[rn + 1] -
+									   ref->sketch_index[rn]);
+		const uint32_t qry_ctx_count =
+			pairwise_count_ctx_runs_sorted_ctxobj96(qry_arr, qry_len);
+		const uint32_t ref_ctx_count =
+			pairwise_count_ctx_runs_sorted_ctxobj96(ref_arr, ref_len);
+		return pairwise_eval_ctxobj96_arrays(metric, &ref->stats.minco_stat,
+											 qry_arr, qry_len, ref_arr, ref_len,
+											 qry_ctx_count, ref_ctx_count);
+	}
 
 	const uint64_t *qry_arr = qry->comb_sketch + qry->sketch_index[qn];
 	const size_t qry_len = (size_t)(qry->sketch_index[qn + 1] -
@@ -476,6 +569,35 @@ pairwise_eval_t pairwise_eval_expr_samples(const pairwise_metric_expr_t *expr,
 	pairwise_check_compatible(ref, qry);
 	if (qn >= (uint32_t)qry->infile_num || rn >= (uint32_t)ref->infile_num)
 		errx(EINVAL, "%s(): sample index out of range", __func__);
+
+	if (qry->stat_type == 2 &&
+		(qry->payload_layout == MINCO_PAYLOAD_CTXOBJ96 ||
+		 ref->payload_layout == MINCO_PAYLOAD_CTXOBJ96)) {
+		if (qry->payload_layout != MINCO_PAYLOAD_CTXOBJ96 ||
+			ref->payload_layout != MINCO_PAYLOAD_CTXOBJ96)
+			errx(EINVAL, "%s(): cannot mix ctxobj64 and ctxobj96 payload sketches",
+				 __func__);
+		pairwise_prepare_minco_model(ref);
+		const ctxobj96_t *qry_arr = qry->comb_sketch96 + qry->sketch_index[qn];
+		const size_t qry_len = (size_t)(qry->sketch_index[qn + 1] -
+									   qry->sketch_index[qn]);
+		const ctxobj96_t *ref_arr = ref->comb_sketch96 + ref->sketch_index[rn];
+		const size_t ref_len = (size_t)(ref->sketch_index[rn + 1] -
+									   ref->sketch_index[rn]);
+		const uint32_t qry_ctx_count =
+			pairwise_count_ctx_runs_sorted_ctxobj96(qry_arr, qry_len);
+		const uint32_t ref_ctx_count =
+			pairwise_count_ctx_runs_sorted_ctxobj96(ref_arr, ref_len);
+		pairwise_eval_t evals[PAIRWISE_METRIC_EXPR_MAX];
+		for (size_t i = 0; i < expr->count; ++i)
+			evals[i] = pairwise_eval_ctxobj96_arrays(expr->metrics[i],
+													 &ref->stats.minco_stat,
+													 qry_arr, qry_len,
+													 ref_arr, ref_len,
+													 qry_ctx_count,
+													 ref_ctx_count);
+		return pairwise_eval_expr_merge(expr, evals, expr->count);
+	}
 
 	const uint64_t *qry_arr = qry->comb_sketch + qry->sketch_index[qn];
 	const size_t qry_len = (size_t)(qry->sketch_index[qn + 1] -

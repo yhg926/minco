@@ -249,6 +249,17 @@ typedef struct minco_sketch_info
   uint32_t density_flags;
 } minco_sketch_info_t;
 
+#define MINCO_PAYLOAD_CTXOBJ64 1u
+#define MINCO_PAYLOAD_CTXOBJ96 2u
+
+#ifndef MINCO_CTXOBJ_EXT_TYPES
+#define MINCO_CTXOBJ_EXT_TYPES
+typedef struct __attribute__((packed)) { uint64_t ctx; uint32_t obj; } ctxobj96_t;
+typedef struct { uint64_t ctx; uint32_t gid; uint32_t obj; } ctxgidobj128_t;
+_Static_assert(sizeof(ctxobj96_t) == 12, "ctxobj96_t must be a 12-byte record");
+_Static_assert(sizeof(ctxgidobj128_t) == 16, "ctxgidobj128_t must be a 16-byte record");
+#endif
+
 typedef struct minco_ctxmeta_record
 {
   uint8_t mode;
@@ -544,8 +555,11 @@ extern const char minco_ctxmeta_bin_stat[];
 extern const char minco_ctxsetmeta_legacy_tsv_stat[];
 extern const char sketch_position_suffix[];
 extern const char combined_sketch_suffix[];
+extern const char combined_sketch96_suffix[];
 extern const char combined_ab_suffix[];
 extern const char idx_sketch_suffix[];
+extern const char idx_sketch96_suffix[];
+extern const char sorted_comb_ctx64gid32obj32[];
 extern const char minco_pan_prefix[];
 extern const char minco_uniq_pan_prefix[];
 // legency uint32_t sketch
@@ -628,6 +642,7 @@ typedef struct
   void *mem_stat;         // Pointer to memory-mapped or read data
   char (*gname)[PATHLEN]; // Query names
   uint64_t *comb_sketch;  // Combined k-mer counts
+  ctxobj96_t *comb_sketch96;
   uint64_t *positions;    // Optional positions aligned with comb_sketch
   uint64_t *sketch_index; // Combined k-mer index
   uint32_t *abundance;
@@ -637,6 +652,8 @@ typedef struct
   int infile_num;   // Number of input files
   int kmerlen;      // K-mer length
   uint32_t hash_id; // hash_id or shuf_id
+  uint32_t payload_layout;
+  size_t payload_item_size;
   bool conflict; //if keep conflict obj
   minco_sketch_info_t minco_info;
   union

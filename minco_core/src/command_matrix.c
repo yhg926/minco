@@ -440,6 +440,8 @@ static bool matrix_write_indexed_self_matrix(const matrix_opt_t *opt,
 {
 	if (!matrix_metric_can_use_context_index(opt) || sketch->stat_type != 2)
 		return false;
+	if (sketch->payload_layout == MINCO_PAYLOAD_CTXOBJ96)
+		return false;
 	if (format != MATRIX_FORMAT_FULL && format != MATRIX_FORMAT_TRIANGLE)
 		return false;
 
@@ -786,6 +788,8 @@ static bool matrix_write_keep_matrix_indexed(const matrix_opt_t *opt,
 {
 	if (!matrix_metric_can_use_context_index(opt) || sketch->stat_type != 2)
 		return false;
+	if (sketch->payload_layout == MINCO_PAYLOAD_CTXOBJ96)
+		return false;
 
 	const int n = sketch->infile_num;
 	int *rank_by_gid = n > 0 ? calloc((size_t)n, sizeof(rank_by_gid[0])) : NULL;
@@ -1043,8 +1047,268 @@ static bool matrix_can_use_sorted_index(const matrix_opt_t *opt,
 {
 	(void)opt;
 	return sketch->stat_type == 2 &&
+		   sketch->payload_layout != MINCO_PAYLOAD_CTXOBJ96 &&
 		   !sketch->conflict &&
 		   file_exists_in_folder((char *)sketch_dir, (char *)sorted_comb_ctxgid64obj32);
+}
+
+static void matrix_predict_group_finish(uint64_t *predicted,
+										const bool *keep,
+										uint32_t *first_gid,
+										uint32_t *prev_gid,
+										uint32_t *distinct_gids)
+{
+	if (*distinct_gids == 1 && keep[*first_gid])
+		predicted[*first_gid]++;
+	*first_gid = UINT32_MAX;
+	*prev_gid = UINT32_MAX;
+	*distinct_gids = 0;
+}
+
+static void matrix_predict_context_markerdb_stream_index(const matrix_opt_t *opt,
+														 const unify_sketch_t *sketch,
+														 const bool *keep,
+														 uint64_t *predicted,
+														 const char *index_path)
+{
+	FILE *fp = fopen(index_path, "rb");
+	if (!fp)
+		err(EXIT_FAILURE, "%s(): %s", __func__, index_path);
+	if (fseek(fp, 0, SEEK_END) != 0)
+		err(EXIT_FAILURE, "%s(): seek %s", __func__, index_path);
+	const long index_bytes_long = ftell(fp);
+	if (index_bytes_long < 0)
+		err(EXIT_FAILURE, "%s(): tell %s", __func__, index_path);
+	rewind(fp);
+	const size_t index_bytes = (size_t)index_bytes_long;
+	const uint64_t expected_entries = sketch->sketch_index[sketch->infile_num];
+	if (index_bytes != (size_t)expected_entries * sizeof(ctxgidobj_t))
+		errx(EINVAL, "%s(): sorted index size mismatch", __func__);
+
+	const size_t batch_n = 1u << 20;
+	ctxgidobj_t *batch = malloc(batch_n * sizeof(batch[0]));
+	if (!batch)
+		err(EXIT_FAILURE, "%s(): OOM index stream buffer", __func__);
+
+	const uint64_t gidmask = (1ULL << GID_NBITS) - 1ULL;
+	bool have_ctx = false;
+	uint64_t current_ctx = 0;
+	uint32_t first_gid = UINT32_MAX;
+	uint32_t prev_gid = UINT32_MAX;
+	uint32_t distinct_gids = 0;
+	uint64_t entries_read = 0;
+
+	minco_progress_t progress =
+		matrix_progress_start(opt, "predict markerdb sizes", "entries",
+							  expected_entries);
+	for (;;) {
+		const size_t got = fread(batch, sizeof(batch[0]), batch_n, fp);
+		if (got == 0) {
+			if (ferror(fp))
+				err(EXIT_FAILURE, "%s(): read %s", __func__, index_path);
+			break;
+		}
+		for (size_t i = 0; i < got; ++i) {
+			const uint64_t ctx = batch[i].ctxgid >> GID_NBITS;
+			const uint32_t gid = (uint32_t)(batch[i].ctxgid & gidmask);
+			if (!have_ctx) {
+				have_ctx = true;
+				current_ctx = ctx;
+			} else if (ctx != current_ctx) {
+				matrix_predict_group_finish(predicted, keep, &first_gid, &prev_gid,
+											&distinct_gids);
+				current_ctx = ctx;
+			}
+			if (gid < (uint32_t)sketch->infile_num && keep[gid] &&
+				gid != prev_gid) {
+				if (distinct_gids == 0)
+					first_gid = gid;
+				distinct_gids++;
+				prev_gid = gid;
+			}
+		}
+		entries_read += (uint64_t)got;
+		minco_progress_update(&progress, entries_read, false);
+	}
+	if (have_ctx)
+		matrix_predict_group_finish(predicted, keep, &first_gid, &prev_gid,
+									&distinct_gids);
+	minco_progress_done(&progress);
+
+	free(batch);
+	fclose(fp);
+}
+
+static void matrix_predict_context_markerdb_from_index_array(const unify_sketch_t *sketch,
+															 const bool *keep,
+															 uint64_t *predicted,
+															 const ctxgidobj_t *index,
+															 size_t index_n)
+{
+	const uint64_t gidmask = (1ULL << GID_NBITS) - 1ULL;
+	for (size_t i = 0; i < index_n;) {
+		const uint64_t ctx = index[i].ctxgid >> GID_NBITS;
+		uint32_t first_gid = UINT32_MAX;
+		uint32_t prev_gid = UINT32_MAX;
+		uint32_t distinct_gids = 0;
+		while (i < index_n && (index[i].ctxgid >> GID_NBITS) == ctx) {
+			const uint32_t gid = (uint32_t)(index[i].ctxgid & gidmask);
+			if (gid < (uint32_t)sketch->infile_num && keep[gid] &&
+				gid != prev_gid) {
+				if (distinct_gids == 0)
+					first_gid = gid;
+				distinct_gids++;
+				prev_gid = gid;
+			}
+			++i;
+		}
+		if (distinct_gids == 1 && keep[first_gid])
+			predicted[first_gid]++;
+	}
+}
+
+static void matrix_predict_context_markerdb_ctxobj96(const matrix_opt_t *opt,
+													 const unify_sketch_t *sketch,
+													 const bool *keep,
+													 uint64_t *predicted)
+{
+	const size_t total_entries = (size_t)sketch->sketch_index[sketch->infile_num];
+	ctxgidobj128_t *index =
+		total_entries > 0 ? malloc(total_entries * sizeof(index[0])) : NULL;
+	if (total_entries > 0 && !index)
+		err(EXIT_FAILURE, "%s(): OOM ctxobj96 markerdb prediction index", __func__);
+
+	size_t out = 0;
+	for (int gid = 0; gid < sketch->infile_num; ++gid) {
+		const uint64_t begin = sketch->sketch_index[gid];
+		const uint64_t end = sketch->sketch_index[gid + 1];
+		for (uint64_t p = begin; p < end; ++p)
+			index[out++] = ctxgidobj128_make(sketch->comb_sketch96[p].ctx,
+											 (uint32_t)gid,
+											 sketch->comb_sketch96[p].obj);
+	}
+	ctxgidobj128_sort_array(index, total_entries);
+
+	minco_progress_t progress =
+		matrix_progress_start(opt, "predict coden15 markerdb sizes", "entries",
+							  (uint64_t)total_entries);
+	uint64_t processed = 0;
+	for (size_t i = 0; i < total_entries;) {
+		const uint64_t ctx = index[i].ctx;
+		uint32_t first_gid = UINT32_MAX;
+		uint32_t prev_gid = UINT32_MAX;
+		uint32_t distinct_gids = 0;
+		while (i < total_entries && index[i].ctx == ctx) {
+			const uint32_t gid = index[i].gid;
+			if (gid < (uint32_t)sketch->infile_num && keep[gid] &&
+				gid != prev_gid) {
+				if (distinct_gids == 0)
+					first_gid = gid;
+				distinct_gids++;
+				prev_gid = gid;
+			}
+			++i;
+			++processed;
+		}
+		if (distinct_gids == 1 && keep[first_gid])
+			predicted[first_gid]++;
+		minco_progress_update(&progress, processed, false);
+	}
+	minco_progress_done(&progress);
+	free(index);
+}
+
+static void matrix_predict_context_markerdb_after_dedup(const matrix_opt_t *opt,
+														const unify_sketch_t *sketch,
+														const pairwise_component_result_t *comp,
+														const char *sketch_dir)
+{
+	if (sketch->stat_type != 2 || sketch->infile_num <= 0)
+		return;
+
+	const int n = sketch->infile_num;
+	bool *keep = calloc((size_t)n, sizeof(keep[0]));
+	uint64_t *predicted = calloc((size_t)n, sizeof(predicted[0]));
+	if (!keep || !predicted)
+		err(EXIT_FAILURE, "%s(): OOM markerdb prediction arrays", __func__);
+
+	int kept_n = 0;
+	for (int i = 0; i < n; ++i) {
+		const int root = pairwise_component_find(comp, i);
+		const int rep = comp->representative[root];
+		if (i == rep) {
+			keep[i] = true;
+			kept_n++;
+		}
+	}
+
+	if (kept_n > 0 && sketch->payload_layout == MINCO_PAYLOAD_CTXOBJ96) {
+		matrix_predict_context_markerdb_ctxobj96(opt, sketch, keep, predicted);
+	} else if (kept_n > 0 && sketch_dir && sketch_dir[0] != '\0' &&
+		file_exists_in_folder((char *)sketch_dir, (char *)sorted_comb_ctxgid64obj32)) {
+		char *index_path = test_get_fullpath(sketch_dir, sorted_comb_ctxgid64obj32);
+		matrix_predict_context_markerdb_stream_index(opt, sketch, keep, predicted,
+													 index_path);
+		free(index_path);
+	} else if (kept_n > 0) {
+		size_t index_bytes = 0;
+		bool index_from_file = false;
+		ctxgidobj_t *index =
+			matrix_load_sorted_index(sketch, sketch_dir, &index_bytes,
+									 &index_from_file);
+		matrix_predict_context_markerdb_from_index_array(
+			sketch, keep, predicted, index, index_bytes / sizeof(index[0]));
+		matrix_free_sorted_index(index, index_bytes, index_from_file);
+	}
+
+	uint64_t min_size = UINT64_MAX;
+	uint64_t max_size = 0;
+	uint64_t total = 0;
+	uint32_t below_ct = 0;
+	uint32_t zero_ct = 0;
+	const uint64_t threshold = opt->markerdb_warn_threshold;
+	for (int i = 0; i < n; ++i) {
+		if (!keep[i])
+			continue;
+		const uint64_t size = predicted[i];
+		if (size < min_size)
+			min_size = size;
+		if (size > max_size)
+			max_size = size;
+		total += size;
+		if (size == 0)
+			zero_ct++;
+		if (threshold > 0 && size < threshold)
+			below_ct++;
+	}
+	if (kept_n == 0)
+		min_size = 0;
+
+	fprintf(stderr,
+			"minco matrix: predicted context markerdb after dedup-plan: "
+			"kept_refs=%d removed_refs=%d total_entries=%" PRIu64
+			" min=%" PRIu64 " max=%" PRIu64 " mean=%.2f zero=%u\n",
+			kept_n, n - kept_n, total, min_size, max_size,
+			kept_n > 0 ? (double)total / (double)kept_n : 0.0, zero_ct);
+
+	if (threshold > 0 && below_ct > 0) {
+		fprintf(stderr,
+				"minco matrix: WARNING: %u/%d kept refs have predicted "
+				"context-markerdb sketch size below %" PRIu64
+				" after dedup-plan\n",
+				below_ct, kept_n, threshold);
+		fprintf(stderr,
+				"minco matrix: low-marker-ref\tsample_id\tpredicted_entries\tsample\n");
+		for (int i = 0; i < n; ++i) {
+			if (keep[i] && predicted[i] < threshold)
+				fprintf(stderr,
+						"minco matrix: low-marker-ref\t%d\t%" PRIu64 "\t%s\n",
+						i, predicted[i], sketch->gname[i]);
+		}
+	}
+
+	free(predicted);
+	free(keep);
 }
 
 static void matrix_write_component_report(const matrix_opt_t *opt,
@@ -1109,6 +1373,8 @@ static void matrix_write_component_report(const matrix_opt_t *opt,
 		fclose(keep_out);
 	if (remove_out && remove_out != stdout)
 		fclose(remove_out);
+	if (dedup_plan)
+		matrix_predict_context_markerdb_after_dedup(opt, sketch, comp, sketch_dir);
 	matrix_write_keep_matrix(opt, sketch, comp, sketch_dir);
 	free(cluster_id);
 }

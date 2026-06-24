@@ -1,0 +1,5 @@
+code_repo	/home/ubuntu/yihuiguang/tools/KSSD3mini
+commit	NA
+ref	NA
+status
+NA

@@ -823,9 +823,12 @@ static void sketch_free_infile_tab(infile_tab_t *infile_stat)
 
 static bool sketch_valid_minco_dir(const char *path)
 {
-  return file_exists_in_folder(path, sketch_stat) &&
-         file_exists_in_folder(path, idx_sketch_suffix) &&
-         file_exists_in_folder(path, combined_sketch_suffix);
+  if (!file_exists_in_folder(path, sketch_stat))
+    return false;
+  return (file_exists_in_folder(path, idx_sketch_suffix) &&
+          file_exists_in_folder(path, combined_sketch_suffix)) ||
+         (file_exists_in_folder(path, idx_sketch96_suffix) &&
+          file_exists_in_folder(path, combined_sketch96_suffix));
 }
 
 static bool sketch_dir_is_empty(const char *path)
@@ -964,11 +967,18 @@ static void sketch_prepare_output_stat(sketch_opt_t *opt, infile_tab_t *infile_s
                                   : UINT64_MAX;
   if (opt->coden_ctxobj_pattern)
   {
-#if NUM_CODENS < 11
-    klen = 3 * NUM_CODENS + 1;
-#else
-    klen = 32;
+    if (NUM_CODENS > MINCO_MAX_EXTENDED_CODENS)
+      errx(EINVAL,
+           "%s(): NUM_CODENS=%d exceeds the extended ctxobj96 design limit %d "
+           "(ctx<=64 bits, obj<=32 bits)",
+           __func__, NUM_CODENS, MINCO_MAX_EXTENDED_CODENS);
+#if NUM_CODENS > 11 && !MINCO_ENABLE_CTXOBJ96
+    errx(EINVAL,
+         "%s(): NUM_CODENS=%d needs extended ctxobj96/ctxgidobj128 records; "
+         "rebuild with -DMINCO_ENABLE_CTXOBJ96=1",
+         __func__, NUM_CODENS);
 #endif
+    klen = minco_compiled_coden_klen();
     minco_stat_one.coden_len = NUM_CODENS;
     minco_stat_one.hclen = 0;
     minco_stat_one.holen = 0;
@@ -980,13 +990,19 @@ static void sketch_prepare_output_stat(sketch_opt_t *opt, infile_tab_t *infile_s
     minco_stat_one.hclen = opt->hclen;
     minco_stat_one.holen = opt->holen;
   }
-  if (NUM_CODENS > 11 || klen > 32)
-    err(EINVAL, "%s(): NUM_CODENS(%d) or klen (%d) is out of range (NUM_CODENS <=11 and klen <=32)",
-        __func__, NUM_CODENS, klen);
+  minco_stat_one.klen = klen;
+  const bool needs_extended_payload =
+      minco_stat_needs_ctxobj96(&minco_stat_one) ||
+      minco_stat_needs_ctxgidobj128(&minco_stat_one);
+  if (needs_extended_payload && !opt->coden_ctxobj_pattern)
+    minco_reject_extended_ctxobj_if_needed(__func__, &minco_stat_one,
+                                           "manual sketch writer");
+  if (klen > 32 && !needs_extended_payload)
+    err(EINVAL, "%s(): klen (%d) is out of range for packed uint64_t k-mer rolling",
+        __func__, klen);
 
   minco_stat_one.koc = opt->abundance;
   minco_stat_one.conflict = opt->conflict;
-  minco_stat_one.klen = klen;
   minco_stat_one.compat_filter_shift = 0;
   minco_stat_one.infile_num = opt->asone
                                     ? (infile_stat->infile_num < 1 ? 0 : 1)
