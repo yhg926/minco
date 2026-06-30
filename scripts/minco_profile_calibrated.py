@@ -560,6 +560,40 @@ def called_accession_species(
     return out
 
 
+def called_taxid_species(
+    features: pd.DataFrame,
+    call_mask: np.ndarray,
+    names: Mapping[str, str],
+) -> set[str]:
+    called = np.asarray(call_mask, dtype=bool)
+    out: set[str] = set()
+    if not len(features) or "taxid" not in features.columns:
+        return out
+    for taxid in features.loc[called, "taxid"].astype(str):
+        species = names.get(str(taxid), "")
+        if species:
+            out.add(species)
+    return out
+
+
+def candidate_surface_has_numeric_candidates(
+    unique_rows: pd.DataFrame,
+    split_rows: pd.DataFrame,
+    mode: str,
+) -> bool:
+    if mode == CANDIDATE_SURFACE_SWITCH_OFF:
+        return False
+    for rows in [unique_rows, split_rows]:
+        if rows.empty:
+            continue
+        work = pd.DataFrame(index=rows.index)
+        for col in ["ANI", "XnY_ctx", "Ref_breadth", "Real_min_align_fraction"]:
+            work[col] = numeric(rows, col)
+        if bool(candidate_surface_mask(work, mode).any()):
+            return True
+    return False
+
+
 def build_accession_candidate_surface(
     unique_rows: pd.DataFrame,
     split_rows: pd.DataFrame,
@@ -634,6 +668,44 @@ def build_accession_candidate_surface(
             raw[col] = ""
     for col in ["ANI", "XnY_ctx", "Ref_breadth", "Real_min_align_fraction"]:
         raw[col] = numeric(raw, col)
+    called_species = called_taxid_species(features, call_mask, names)
+    called_species_n = len(called_species)
+    if max_called_species > 0 and called_species_n > max_called_species:
+        details.update(
+            {
+                "candidate_surface_rule": (
+                    f"{rule_text}; skipped when called species count > {int(max_called_species)}"
+                ),
+                "candidate_surface_ani_min": ani_min,
+                "candidate_surface_xny_min": xny_min,
+                "candidate_surface_breadth_min": breadth_min,
+                "candidate_surface_real_af_min": real_af_min,
+                "candidate_surface_source_rule": "raw unique/split accession rows",
+                "candidate_surface_called_species_n": called_species_n,
+                "candidate_surface_max_called_species": int(max_called_species),
+                "candidate_surface_guard_blocked": True,
+            }
+        )
+        return pd.DataFrame(), details
+
+    numeric_mask = candidate_surface_mask(raw, mode)
+    if not bool(numeric_mask.any()):
+        details.update(
+            {
+                "candidate_surface_rule": rule_text,
+                "candidate_surface_ani_min": ani_min,
+                "candidate_surface_xny_min": xny_min,
+                "candidate_surface_breadth_min": breadth_min,
+                "candidate_surface_real_af_min": real_af_min,
+                "candidate_surface_source_rule": "raw unique/split accession rows",
+                "candidate_surface_called_species_n": called_species_n,
+                "candidate_surface_max_called_species": int(max_called_species),
+                "candidate_surface_guard_blocked": False,
+            }
+        )
+        return pd.DataFrame(), details
+
+    raw = raw.loc[numeric_mask].copy()
     raw["candidate_surface_species_name"] = raw.apply(
         lambda row: species_for_accession(
             row.get("accession", ""),
@@ -666,7 +738,6 @@ def build_accession_candidate_surface(
     mask = (
         raw["candidate_surface_species_name"].astype(str).astype(bool)
         & ~raw["candidate_surface_species_name"].astype(str).isin(called_species)
-        & candidate_surface_mask(raw, mode)
     )
     candidates = raw.loc[mask].copy()
     if not candidates.empty:
@@ -2040,9 +2111,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     names = taxid_name_map(taxmap)
     candidate_surface_switch = args.candidate_surface_switch
     candidate_surface_taxmap_path = str(args.candidate_surface_taxmap or "")
+    lazy_candidate_surface_taxmap: Optional[Path] = None
     if args.candidate_surface_taxmap:
-        candidate_surface_taxmap = parse_species_taxmap(args.candidate_surface_taxmap)
-        candidate_surface_names = taxid_name_map(candidate_surface_taxmap)
+        lazy_candidate_surface_taxmap = args.candidate_surface_taxmap
+        candidate_surface_taxmap = {}
+        candidate_surface_names = names
     elif taxmap_has_gtdb_species_labels(taxmap):
         candidate_surface_taxmap = taxmap
         candidate_surface_names = names
@@ -2165,6 +2238,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         args.candidate_abundance_policy,
     )
     strategy_details.update(candidate_rescue_details)
+    if (
+        lazy_candidate_surface_taxmap is not None
+        and candidate_surface_switch != CANDIDATE_SURFACE_SWITCH_OFF
+        and candidate_surface_has_numeric_candidates(unique_rows, split_rows, candidate_surface_switch)
+    ):
+        candidate_surface_taxmap = parse_species_taxmap(lazy_candidate_surface_taxmap)
+        candidate_surface_names = taxid_name_map(candidate_surface_taxmap)
     candidate_surface_rows, candidate_surface_details = build_accession_candidate_surface(
         unique_rows,
         split_rows,

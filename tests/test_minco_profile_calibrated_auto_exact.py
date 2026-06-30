@@ -1434,6 +1434,54 @@ def test_default_launcher_candidate_preset_runs_table_mode(work: Path) -> None:
     }
 
 
+def test_candidate_surface_taxmap_is_lazy_when_no_numeric_surface_candidates(
+    work: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work.mkdir(parents=True, exist_ok=True)
+    taxmap = work / "taxmap.tsv"
+    surface_taxmap = work / "candidate_surface_taxmap.tsv"
+    unique = work / "unique.tsv"
+    split = work / "split.tsv"
+    out = work / "candidate.tsv"
+    write_taxmap(taxmap)
+    write_taxmap(surface_taxmap)
+    write_minco_tables(unique, split, extra_mass=1.0)
+
+    real_parse = wrapper.parse_species_taxmap
+
+    def guarded_parse(path):
+        if Path(path) == surface_taxmap:
+            raise AssertionError("surface taxmap should not be parsed without numeric candidates")
+        return real_parse(path)
+
+    monkeypatch.setattr(wrapper, "parse_species_taxmap", guarded_parse)
+    rc = wrapper.main(
+        [
+            "--unique-table",
+            str(unique),
+            "--split-table",
+            str(split),
+            "--taxmap",
+            str(taxmap),
+            "--candidate-surface-taxmap",
+            str(surface_taxmap),
+            "--candidate-surface-switch",
+            wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70,
+            "--train-table",
+            str(work / "unused.tsv"),
+            "--report-all",
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    df = read_output(out)
+    assert set(df["candidate_surface_applied"]) == {False}
+    assert set(df["candidate_surface_added_n"]) == {0}
+    assert set(df["candidate_surface_taxmap"]) == {str(surface_taxmap)}
+
+
 def test_candidate_surface_disables_without_gtdb_label_taxmap(work: Path) -> None:
     work.mkdir(parents=True, exist_ok=True)
     taxmap = work / "ncbi_taxmap.tsv"
