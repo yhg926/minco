@@ -2214,3 +2214,7 @@ env PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/minco_profile --check-ref -r /m
 grep -E 'Elapsed \(wall clock\)|Maximum resident set size|Exit status|User time|System time' /tmp/minco_packaged_default_smoke_20260630/toymouse50k.default.v2.time.log
 wc -l /tmp/minco_packaged_default_smoke_20260630/toymouse50k.default.v2.tsv
 python3 -c 'import csv; p="/tmp/minco_packaged_default_smoke_20260630/toymouse50k.default.v2.tsv"; rows=list(csv.DictReader(open(p, newline=""), delimiter="\t")); print("rows", len(rows)); print("called", sum(r.get("calibrated_call","")=="True" for r in rows)); print("candidate_surface_added", sum(r.get("candidate_surface_added","")=="True" for r in rows)); print("calibrated_abundance_sum", sum(float(r.get("calibrated_abundance") or 0) for r in rows)); print("scope_values", sorted(set(r.get("scope","") for r in rows))); print("strategy_values", sorted(set(r.get("profile_strategy","") for r in rows)))'
+
+# 2026-06-30 achievable release-readiness goal gate.
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_achievable_release_goal.py
+sed -n '1,40p' research/experiments/2026-06-27_universal_strategy_decision/results/achievable_release_goal.tsv

@@ -2291,6 +2291,25 @@ evidence is mixed and does not support a broad Sylph-beating claim.
 - The repository is dirty, so this note records a stage decision before a clean
   release commit.
 
+## Achievable Release Goal
+
+The original research goal, a stable universal MinCO strategy that broadly
+beats Sylph and closes the abundance-release gap, is still incomplete and
+should remain a research target. The achievable release goal is narrower:
+make the current MinCO profiler easy for a non-expert user to run, with one
+default command, reference preflight, packaged sidecar defaults, documented
+claim boundaries, and cached cross-panel evidence supporting the chosen MinCO
+default against previous MinCO defaults.
+
+`validate_achievable_release_goal.py` records this scope explicitly. On
+2026-06-30 it passed 9/9 checks and wrote
+`results/achievable_release_goal.tsv` plus `ACHIEVABLE_RELEASE_GOAL.md`.
+The decision is `achievable_release_goal_supported`. The same gate also records
+that the original broad goal remains separate:
+`do_not_mark_broad_goal_complete`, because the release-grade holdout and broad
+abundance claims remain expected gaps in
+`results/universal_strategy_release_gate.tsv`.
+
 ## Next Experiment
 
 Before calling the goal complete, expand the clean release-grade holdout bundle

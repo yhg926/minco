@@ -2751,6 +2751,11 @@
 - `/tmp/minco_calibrated_2we6nl7w`:
   temporary generated unique/split/exact tables from the packaged-default
   smoke; 7.6M at verification time.
+- `research/experiments/2026-06-27_universal_strategy_decision/ACHIEVABLE_RELEASE_GOAL.md`
+  and `research/experiments/2026-06-27_universal_strategy_decision/results/achievable_release_goal.tsv`:
+  repo-local release-readiness goal gate. It passed 9/9 checks and records the
+  supported narrowed goal plus the boundary that the original broad
+  universal/Sylph-beating goal remains incomplete.
 - `/tmp/cami2_hmp_gastrooral_sample1_20260630/run/sylph_sample1/gastrooral_sample1.nonzero.fastq.gz.sylsp`
   and `/tmp/cami2_hmp_gastrooral_sample1_20260630/run_sylph_r232/sylph_sample1/profile.chunked.tsv`:
   temporary Sylph sketch and chunked r232 profile for sample1; sketch wall

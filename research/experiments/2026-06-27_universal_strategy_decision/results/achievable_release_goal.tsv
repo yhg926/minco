@@ -1,0 +1,11 @@
+check_id	requirement	observed	status	decision	evidence
+goal_scope	release goal is scoped to a stable user default, not universal external superiority	default-ready goal; broad Sylph-beating claim stays rejected	pass	achievable_goal_defined	ACHIEVABLE_RELEASE_GOAL.md
+simple_entrypoint	recommended command is a short no-manual-strategy entrypoint	scripts/minco_profile -r ref.minco --reads reads.fq.gz -p16 -o calibrated.profile.tsv	pass	user_can_run_scripts_minco_profile	scripts/minco_profile;results/current_default_strategy_manifest.tsv
+preflight	reference packages can be checked before profiling	scripts/minco_profile --check-ref -r ref.minco --reads reads.fq.gz	pass	preflight_documented_and_manifested	README.md;docs/USER_MANUAL.md;results/current_default_strategy_manifest.tsv
+packaged_defaults	domain-specific packaged defaults can avoid expert flag selection	optional minco_profile_defaults.tsv sidecar supports whitelisted domain defaults such as scope=bacteria	pass	sidecar_defaults_supported	scripts/minco_profile_default.py;results/current_default_strategy_manifest.tsv
+selected_default	selected default remains candidate preset with universal-auto-exact	preset=candidate;strategy=universal-auto-exact	pass	candidate_preset_is_release_default	results/current_default_strategy_manifest.tsv
+current_minco_support	selected default is supported versus previous MinCO cached default	F1_regressions=0;L1_regressions=0;Pearson_regressions=0	pass	selected_default_supported_vs_previous_minco	results/universal_strategy_release_gate.tsv
+external_claim_boundary	evidence boundary rejects broad Sylph-beating or universal superiority claim	F1_wins=1/4;L1_wins=0/4;Pearson_wins=0/4	pass	claim_boundary_is_explicit	results/universal_strategy_release_gate.tsv
+expected_gaps_accounted	known broad-release gaps are recorded without failing the release-ready default	fail=0;expected_gap=2	pass	expected_gaps_are_scope_boundaries	results/universal_strategy_release_gate.tsv
+original_goal_boundary	original universal research objective remains distinct from this release-ready goal	goal_not_complete_expected_gaps_remain	pass	do_not_mark_broad_goal_complete	results/universal_strategy_goal_completion_audit.tsv
+summary	achievable release-readiness goal summary	pass=9;fail=0	pass	achievable_release_goal_supported	results/achievable_release_goal.tsv

@@ -430,3 +430,6 @@ packaged_default_model_cache	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_
 packaged_default_profile_defaults	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_defaults.tsv; option/value TSV; scope=bacteria.
 packaged_default_preflight	scripts/minco_profile --check-ref -r REF --reads /tmp/toymouse_sample0_50000_reads.fq.gz; status pass; model_cache_metadata pass; delegated scope bacteria.
 packaged_default_smoke	scripts/minco_profile -r REF --reads /tmp/toymouse_sample0_50000_reads.fq.gz -p16 -o /tmp/minco_packaged_default_smoke_20260630/toymouse50k.default.v2.tsv; no explicit taxmap/model/scope/strategy flags.
+achievable_release_goal_scope	Release-ready user default, not universal Sylph-beating or final abundance-superiority claim.
+achievable_release_goal_checks	goal_scope,simple_entrypoint,preflight,packaged_defaults,selected_default,current_minco_support,external_claim_boundary,expected_gaps_accounted,original_goal_boundary.
+achievable_release_goal_decision	achievable_release_goal_supported; original broad research goal remains distinct and incomplete.
