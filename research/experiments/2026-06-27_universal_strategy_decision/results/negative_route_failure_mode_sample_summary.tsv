@@ -1,0 +1,7 @@
+route	sample	truth_species	called_species	TP	FP	FN	FN_truth_mass_pct	FN_raw_visible	FN_raw_absent	FN_raw_visible_truth_mass_pct	high_truth_FN	high_truth_FN_raw_visible	high_truth_threshold_pct	FN_raw_default_major	raw_species_available	profile_path
+marine_setup_truth_profile_rescore	3	367	348	279	69	88	19.177701578501445	87	1	19.034201416696025	3	3	1.0	11	155043	/mnt/new3T/minco_marine_selected_default_20260630/minco_sample3_current_default.tsv
+marine_setup_truth_profile_rescore	4	265	263	209	54	56	17.904818338581823	55	1	17.776986224757984	3	3	1.0	9	150980	/mnt/new3T/minco_marine_selected_default_20260630/minco_sample4_current_default.tsv
+marine_setup_truth_profile_rescore	5	318	296	237	59	81	16.692255507551298	81	0	16.692255507551298	4	4	1.0	9	150400	/mnt/new3T/minco_marine_selected_default_20260630/minco_sample5_current_default.tsv
+cami3_source_readmap_extension_after_recovery	3	107	80	68	12	39	0.13446702811148287	39	0	0.13446702811148287	0	0	1.0	0	64105	/tmp/minco_candidate_preset_replay_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample3.candidate_preset.tsv
+cami3_source_readmap_extension_after_recovery	4	86	65	47	18	39	13.324551676668994	39	0	13.324551676668994	2	2	1.0	0	71530	/tmp/minco_candidate_preset_replay_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample4.candidate_preset.tsv
+cami3_source_readmap_extension_after_recovery	5	99	75	64	11	35	2.37442983973359	35	0	2.37442983973359	1	1	1.0	0	62855	/tmp/minco_candidate_preset_replay_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample5.candidate_preset.tsv

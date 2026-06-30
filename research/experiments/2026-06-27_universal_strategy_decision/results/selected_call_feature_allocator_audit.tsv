@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+variants_tested	264	selected_call_feature_allocator_overall.tsv;top_saved_score_methods=32	cached_selected_candidate_callset
+baseline_validation_max_abs_delta	1.14930287509e-12	current_selected_abundance vs cached selected score TSV	pass
+sample_safe_variants	0	none	none
+panel_safe_variants	46	worsened_panels=0 and improved_panels>0	panel_mean_only
+best_ranked_variant	genus_raw_hit_breadth_a0.02;mean_sample_delta=-0.318875;worsened_samples=1;max_worse=0.040714	ranked by worsened_samples then mean sample L1 delta	informational
+promotion_decision	do_not_promote_feature_allocator	feature-derived selected-call allocator sweep	do_not_promote_feature_allocator

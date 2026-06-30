@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+profiles_replayed	26	/tmp/minco_raw_side_candidate_surface_hmp_20260629	all_cached_hmp_replay
+added_rows	14	raw_side_rescue_added rows	candidate_surface_behavior
+zero_mass_violations	0	calibrated_abundance and calibrated_abundance_raw on added rows	pass
+max_delta_vs_offline_raw_cache_rule	counts=0;F1=1.11e-16	raw_side_candidate_surface_hmp_vs_offline.tsv	matches_offline_rule
+mean_delta_F1_vs_current	0.007757	raw_side_candidate_surface_hmp_vs_offline.tsv	candidate_surface_effect
+promotion_decision	experimental_not_default	postprocessed cached HMP profiles only; needs integrated raw-side candidate surface and nonzero abundance policy	do_not_change_current_default

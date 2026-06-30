@@ -1,0 +1,2 @@
+sample	kind	gtdb_species	in_gold	calibrated_probability	calibrated_abundance	s_XnY_ctx_max	s_ANI_max	s_Ref_breadth_max	s_Ref_mean_depth_max	s_Ref_zip_af_max	u_XnY_ctx_max	u_Real_min_align_fraction_max
+5	exact_only	s__Lachnoanaerobaculum orale	True	0.3870645439703603	0.0004828912759164	76	0.936947	0.048555	0.053991	0.249782	34.0	0.034

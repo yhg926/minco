@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+scope	samples=43;panels=7;policies=zero,normalized-depth-alpha2	cached table-mode wrapper replay	diagnostic_scope
+completed_profiles	86	wrapper timing table	complete
+strict_pass_methods	0	requires no sample or panel F1 regression versus current default	no_safe_wrapper_method
+best_method	wrapper_accession-current-or-ani93-xny650-br20_normalized-depth-alpha2	mean_delta_F1=0.006464010590173822;min_delta_F1=-0.0037535833258541818;sample_worsen_n=3;panel_worsen_n=1;mean_delta_L1=-0.44471750929499554	diagnostic_only
+candidate_added_rows	88	sum over wrapper metadata rows	metadata
+promotion_decision	diagnostic_only_not_default	same cached-panel replay; no independent same-namespace holdout added here	keep_opt_in_until_independent_validation

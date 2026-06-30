@@ -1,0 +1,4 @@
+sample	delta_refined_minus_base_F1	delta_refined_minus_base_L1_union_pp	delta_refined_minus_base_Pearson_union	allocator_applied	allocator_guard_passed	allocator_adjusted_rows_n	allocator_base_mass_multi_genus_frac	allocator_s_xny_median
+3	0.0	-1.9895196601282805e-13	3.3306690738754696e-16	False	False	0	0.31602817891028745	381.0
+4	0.0	5.684341886080802e-14	-3.3306690738754696e-16	False	False	0	0.3155935897274732	461.0
+5	0.0	-1.1368683772161603e-13	1.6653345369377348e-16	False	False	0	0.35673744724414885	443.0

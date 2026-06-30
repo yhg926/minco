@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+variants_tested	14	selected_call_mass_transform_overall.tsv	cached_selected_candidate_callset
+baseline_validation_max_abs_delta	1.14930287509e-12	current_selected_abundance vs cached selected score TSV	pass
+sample_safe_variants	0	none	none
+panel_safe_variants	5	worsened_panels=0 and improved_panels>0	panel_mean_only
+best_ranked_variant	base_genus_xny_a0.10;mean_sample_delta=-0.382481;worsened_samples=4;max_worse=0.161705	ranked by worsened_samples then mean sample L1 delta	informational
+promotion_decision	do_not_promote_selected_mass_transform	small implementable base-row transform sweep	do_not_promote_selected_mass_transform

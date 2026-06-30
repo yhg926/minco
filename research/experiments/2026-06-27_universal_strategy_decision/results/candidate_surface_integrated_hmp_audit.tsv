@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+profiles_replayed	26	/tmp/minco_candidate_surface_integrated_hmp_20260629	all_cached_hmp_integrated_replay
+added_rows	14	candidate_surface_added rows	candidate_surface_behavior
+zero_mass_violations	0	calibrated_abundance and calibrated_abundance_raw on added rows	pass
+max_delta_vs_postprocessor	counts=0;F1=1.11e-16	candidate_surface_integrated_hmp_vs_postprocessor.tsv	matches
+max_delta_vs_offline_raw_cache_rule	counts=0;F1=1.11e-16	candidate_surface_integrated_hmp_vs_offline.tsv	matches
+promotion_decision	experimental_not_default	zero-mass F1-only surface; nonzero abundance policy not validated	do_not_change_current_default

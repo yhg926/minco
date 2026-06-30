@@ -1,0 +1,2 @@
+panel	method	samples	mean_F1	pooled_F1	pooled_TP	pooled_FP	pooled_FN	mean_L1_union_pp	mean_Pearson_union	added_rows	zero_mass_violations
+hmp_gastrooral_gtdb_source_abundance	raw_side_candidate_surface_gastrooral	0,6	0.9328063241106719	0.9285714285714286	78	9	3	48.98699110632455	0.8822766995655476	2	0

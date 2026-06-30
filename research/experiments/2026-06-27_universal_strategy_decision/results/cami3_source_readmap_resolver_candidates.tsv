@@ -1,0 +1,61 @@
+sample	source_genome_id	taxid	species_label	unmapped_rows	taxid_gtdb_species_count	ncbi_name_gtdb_species_count	gtdb_binomial_species_count	unique_taxid_species	unique_ncbi_name_species	unique_gtdb_binomial_species	recommended_cached_resolution	recommended_resolution_rule	ambiguity_note
+0	ASV579.0	626940	Phascolarctobacterium succinatutens	763090	17	17	0						taxid_candidates=17;ncbi_name_candidates=17
+0	ASV783.5	562	Escherichia coli	137208	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+0	ASV134.7	817	Bacteroides fragilis	104128	22	22	1			s__Bacteroides fragilis	s__Bacteroides fragilis	unique_gtdb_binomial	taxid_candidates=22;ncbi_name_candidates=22
+0	ASV476.8	1496	Clostridioides difficile	84300	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+0	ASV607.0	29466	Veillonella parvula	29434	28	28	1			s__Veillonella parvula	s__Veillonella parvula	unique_gtdb_binomial	taxid_candidates=28;ncbi_name_candidates=28
+0	ASV444.5	33038	Mediterraneibacter gnavus	28894	4	4	1			s__Mediterraneibacter gnavus	s__Mediterraneibacter gnavus	unique_gtdb_binomial	taxid_candidates=4;ncbi_name_candidates=4
+0	ASV71.10	1681	Bifidobacterium bifidum	6846	3	3	1			s__Bifidobacterium bifidum	s__Bifidobacterium bifidum	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+0	ASV74.2	28901	Salmonella enterica	1516	11	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=11;ncbi_name_candidates=11
+0	ASV670.1	225992	Comamonas kerstersii	1136	2	2	1			s__Comamonas kerstersii	s__Comamonas kerstersii	unique_gtdb_binomial	taxid_candidates=2;ncbi_name_candidates=2
+0	ASV156.5	329854	Bacteroides intestinalis	1094	7	7	1			s__Bacteroides intestinalis	s__Bacteroides intestinalis	unique_gtdb_binomial	taxid_candidates=7;ncbi_name_candidates=7
+0	ASV577.0	187327	Acidaminococcus intestini	708	5	5	1			s__Acidaminococcus intestini	s__Acidaminococcus intestini	unique_gtdb_binomial	taxid_candidates=5;ncbi_name_candidates=5
+0	ASV364.1	1776384	Emergencia timonensis	654	2	2	0						taxid_candidates=2;ncbi_name_candidates=2
+0	ASV627.1	76857	Fusobacterium polymorphum	546	3	3	1			s__Fusobacterium polymorphum	s__Fusobacterium polymorphum	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+0	ASV676.10	28901	Salmonella enterica	512	11	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=11;ncbi_name_candidates=11
+0	ASV790.3	287	Pseudomonas aeruginosa	502	5	5	1			s__Pseudomonas aeruginosa	s__Pseudomonas aeruginosa	unique_gtdb_binomial	taxid_candidates=5;ncbi_name_candidates=5
+0	ASV368.3	1496	Clostridioides difficile	328	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+0	ASV709.10	562	Escherichia coli	194	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+0	ASV737.3	562	Escherichia coli	194	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+0	ASV592.0	907	Megasphaera elsdenii	188	5	5	1			s__Megasphaera elsdenii	s__Megasphaera elsdenii	unique_gtdb_binomial	taxid_candidates=5;ncbi_name_candidates=5
+0	ASV348.5	562	Escherichia coli	184	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV579.0	626940	Phascolarctobacterium succinatutens	734058	17	17	0						taxid_candidates=17;ncbi_name_candidates=17
+1	ASV134.7	817	Bacteroides fragilis	280814	22	22	1			s__Bacteroides fragilis	s__Bacteroides fragilis	unique_gtdb_binomial	taxid_candidates=22;ncbi_name_candidates=22
+1	ASV476.8	1496	Clostridioides difficile	158700	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+1	ASV444.5	33038	Mediterraneibacter gnavus	24668	4	4	1			s__Mediterraneibacter gnavus	s__Mediterraneibacter gnavus	unique_gtdb_binomial	taxid_candidates=4;ncbi_name_candidates=4
+1	ASV71.10	1681	Bifidobacterium bifidum	22762	3	3	1			s__Bifidobacterium bifidum	s__Bifidobacterium bifidum	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+1	ASV815.4	1496	Clostridioides difficile	8132	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+1	ASV670.1	225992	Comamonas kerstersii	7870	2	2	1			s__Comamonas kerstersii	s__Comamonas kerstersii	unique_gtdb_binomial	taxid_candidates=2;ncbi_name_candidates=2
+1	ASV364.1	1776384	Emergencia timonensis	5764	2	2	0						taxid_candidates=2;ncbi_name_candidates=2
+1	ASV709.10	562	Escherichia coli	4324	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV783.5	562	Escherichia coli	4308	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV368.3	1496	Clostridioides difficile	3176	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+1	ASV577.0	187327	Acidaminococcus intestini	2808	5	5	1			s__Acidaminococcus intestini	s__Acidaminococcus intestini	unique_gtdb_binomial	taxid_candidates=5;ncbi_name_candidates=5
+1	ASV676.10	28901	Salmonella enterica	818	11	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=11;ncbi_name_candidates=11
+1	ASV675.7	562	Escherichia coli	704	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV671.4	562	Escherichia coli	648	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV689.9	562	Escherichia coli	646	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+1	ASV74.2	28901	Salmonella enterica	506	11	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=11;ncbi_name_candidates=11
+1	ASV395.17	28901	Salmonella enterica	312	11	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=11;ncbi_name_candidates=11
+1	ASV357.0	154046	Hungatella hathewayi	254	6	6	1			s__Hungatella hathewayi	s__Hungatella hathewayi	unique_gtdb_binomial	taxid_candidates=6;ncbi_name_candidates=6
+1	ASV627.1	76857	Fusobacterium polymorphum	246	3	3	1			s__Fusobacterium polymorphum	s__Fusobacterium polymorphum	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+2	ASV466.9	33038	Mediterraneibacter gnavus	402874	4	4	1			s__Mediterraneibacter gnavus	s__Mediterraneibacter gnavus	unique_gtdb_binomial	taxid_candidates=4;ncbi_name_candidates=4
+2	ASV577.0	187327	Acidaminococcus intestini	371112	5	5	1			s__Acidaminococcus intestini	s__Acidaminococcus intestini	unique_gtdb_binomial	taxid_candidates=5;ncbi_name_candidates=5
+2	ASV627.8	76857	Fusobacterium polymorphum	18528	3	3	1			s__Fusobacterium polymorphum	s__Fusobacterium polymorphum	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+2	ASV245.5	1353	Enterococcus gallinarum	14192	3	3	0						taxid_candidates=3;ncbi_name_candidates=3
+2	ASV579.0	626940	Phascolarctobacterium succinatutens	7136	17	17	0						taxid_candidates=17;ncbi_name_candidates=17
+2	ASV783.4	573	Klebsiella pneumoniae	5370	63	63	1			s__Klebsiella pneumoniae	s__Klebsiella pneumoniae	unique_gtdb_binomial	taxid_candidates=63;ncbi_name_candidates=63
+2	ASV670.1	225992	Comamonas kerstersii	5276	2	2	1			s__Comamonas kerstersii	s__Comamonas kerstersii	unique_gtdb_binomial	taxid_candidates=2;ncbi_name_candidates=2
+2	ASV440.7	59201	Salmonella enterica	2852	3	11	1			s__Salmonella enterica	s__Salmonella enterica	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=11
+2	ASV297.5	1496	Clostridioides difficile	1392	9	9	1			s__Clostridioides difficile	s__Clostridioides difficile	unique_gtdb_binomial	taxid_candidates=9;ncbi_name_candidates=9
+2	ASV709.17	1685	Bifidobacterium breve	990	134	134	1			s__Bifidobacterium breve	s__Bifidobacterium breve	unique_gtdb_binomial	taxid_candidates=134;ncbi_name_candidates=134
+2	ASV149.5	165179	Segatella copri	946	58	58	0						taxid_candidates=58;ncbi_name_candidates=58
+2	ASV226.3	492670	Bacillus velezensis	780	3	3	1			s__Bacillus velezensis	s__Bacillus velezensis	unique_gtdb_binomial	taxid_candidates=3;ncbi_name_candidates=3
+2	ASV607.0	29466	Veillonella parvula	774	28	28	1			s__Veillonella parvula	s__Veillonella parvula	unique_gtdb_binomial	taxid_candidates=28;ncbi_name_candidates=28
+2	ASV357.0	154046	Hungatella hathewayi	746	6	6	1			s__Hungatella hathewayi	s__Hungatella hathewayi	unique_gtdb_binomial	taxid_candidates=6;ncbi_name_candidates=6
+2	ASV677.8	562	Escherichia coli	542	51	51	1			s__Escherichia coli	s__Escherichia coli	unique_gtdb_binomial	taxid_candidates=51;ncbi_name_candidates=51
+2	ASV374.2	1352	Enterococcus faecium	478	7	7	0						taxid_candidates=7;ncbi_name_candidates=7
+2	ASV790.9	303	Pseudomonas putida	466	61	61	0						taxid_candidates=61;ncbi_name_candidates=61
+2	ASV827.8	239935	Akkermansia muciniphila	422	110	110	1			s__Akkermansia muciniphila	s__Akkermansia muciniphila	unique_gtdb_binomial	taxid_candidates=110;ncbi_name_candidates=110
+2	ASV451.7	33038	Mediterraneibacter gnavus	406	4	4	1			s__Mediterraneibacter gnavus	s__Mediterraneibacter gnavus	unique_gtdb_binomial	taxid_candidates=4;ncbi_name_candidates=4
+2	ASV444.7	33038	Mediterraneibacter gnavus	348	4	4	1			s__Mediterraneibacter gnavus	s__Mediterraneibacter gnavus	unique_gtdb_binomial	taxid_candidates=4;ncbi_name_candidates=4

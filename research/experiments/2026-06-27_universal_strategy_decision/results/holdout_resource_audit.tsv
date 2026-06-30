@@ -1,0 +1,21 @@
+group	name	path	exists	required_for	note
+tool	sylph_binary	/home/ubuntu/yihuiguang/bin/sylph	true	rerun_sylph_same_release	
+database	sylph_gtdb_r226_syldb	/mnt/new3T/sylph_db/gtdb-r226-c200-dbv1.syldb	true	cached_diagnostic_baseline	
+database	sylph_gtdb_r232_candidate	/mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.syldb	false	release_grade_hmp_airskin	
+database	sylph_gtdb_r232_candidate	/mnt/new3T/sylph_db/gtdb-r232-c200.syldb	false	release_grade_hmp_airskin	
+database	sylph_gtdb_r232_candidate	/mnt/new3T/gtdbr220/gtdb232/gtdb-r232-c200-dbv1.syldb	false	release_grade_hmp_airskin	
+database	sylph_gtdb_r232_candidate	/mnt/new3T/gtdbr220/sylph/gtdb-r232-c200-dbv1.syldb	false	release_grade_hmp_airskin	
+database	sylph_gtdb_r232_candidate	/mnt/new3T/sylph_db/gtdb-r232-c200-dbv1_chunks/gtdb-r232-c200-dbv1.chunk_syldb.list	true	release_grade_hmp_airskin	
+hmp_airskin	sample6_minco_default	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample6_universal_strategy.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample6_minco_unique	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample6_unique_zip_unfiltered.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample6_minco_split	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample6_split_zip_unfiltered.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample6_sylph_r226_profile	/tmp/cami2_hmp_unseen_transfer_20260626/run/sylph_sample6/profile.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample11_minco_default	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample11_universal_strategy.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample11_minco_unique	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample11_unique_zip_unfiltered.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample11_minco_split	/tmp/cami2_hmp_unseen_transfer_20260626/run/minco_sample11_split_zip_unfiltered.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	sample11_sylph_r226_profile	/tmp/cami2_hmp_unseen_transfer_20260626/run/sylph_sample11/profile.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	truth_genome_to_id	/tmp/cami2_hmp_airskin_20260625/truth/genome_to_id.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	truth_abundance6	/tmp/cami2_hmp_airskin_20260625/truth/abundance6.tsv	true	release_grade_hmp_airskin	
+hmp_airskin	truth_abundance11	/tmp/cami2_hmp_airskin_20260625/truth/abundance11.tsv	true	release_grade_hmp_airskin	
+hmp_airskin_r232	sample6_sylph_r232_profile	/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample6/profile.tsv	true	release_grade_hmp_airskin	
+hmp_airskin_r232	sample11_sylph_r232_profile	/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample11/profile.tsv	true	release_grade_hmp_airskin	

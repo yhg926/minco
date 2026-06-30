@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+evaluated_panels	4	cami2_toy_mouse_gut,cami3_toy_human_gut_gtdb_source_readmap,hmp_airskin_gtdb_source_abundance,hmp_gastrooral_gtdb_source_abundance	diagnostic_scope
+high_truth_fn_threshold_pct	1.0	truth species with abundance >= this threshold are high-abundance missed calls	diagnostic_parameter
+high_truth_fn_candidate_visibility	9/19	absent=10; visible=9	many_high_abundance_misses_not_visible_in_emitted_profile_surface
+samples_with_uncalled_candidate_rows	9	profiles with candidate_rows > called_rows; emitted-only profiles need raw-table follow-up	candidate_visibility_is_profile_surface_limited
+promotion_decision	diagnostic_only_not_default	truth-aware missed-call audit over emitted profile rows; does not define an output-only rescue rule	use_to_design_next_call_recovery_strategy

@@ -1,0 +1,301 @@
+sample	genome_id	taxid	truth_name	transfer_method	source_sequence_id	source_sequence_id_class	sampled_read_rows	taxid_gtdb_species_count	truth_abundance_pct_all
+3	Otu24.0	467094	Ilumatobacter coccineus	ambiguous_taxid	AP012057.1	other	15478	2	0.2049
+3	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001087.1	other	14710	2	0.1659
+3	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006903.1	other	11816	13	0.1952
+3	Otu47.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP006745.1	other	9130	2	0.5825
+3	Otu219.0	73141	Thiocystis violascens	ambiguous_taxid	CP003154.1	other	6992	2	0.0878
+3	Otu185.0	28229	Colwellia psychrerythraea	ambiguous_taxid	CP000083.1	other	6872	4	0.0829
+3	Otu40.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP003539.1	other	4606	2	0.5825
+3	Otu1000	324767	Bacillus infantis	ambiguous_taxid	CP006643.1	other	3632	5	0.0488
+3	Otu238.0	1250153	Maribacter sp. MAR_2009_60	unmapped	LT629754.1	other	3146	0	0.0439
+3	Otu203	316	Pseudomonas stutzeri	ambiguous_taxid	CP007511.1	other	3084	51	0.0586
+3	Otu457.0	111501	Muricauda ruestringensis	ambiguous_taxid	CP002999.1	other	2874	2	0.0488
+3	Otu1200.0	400668	Marinomonas sp. MWYL1	unmapped	CP000749.1	other	2812	0	0.0342
+3	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000031.2	other	2498	2	0.039
+3	Otu252	316279	Synechococcus sp. CC9902	ambiguous_taxid	CP000097.1	other	2342	2	0.0683
+3	Otu987	1155739	Moorea producens	ambiguous_taxid	NZ_CP017708.1	other	2106	2	0.0146
+3	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000514.1	other	1674	4	0.0298
+3	Otu909	543877	Altererythrobacter marensis	ambiguous_taxid	NZ_CP011805.1	other	1562	3	0.0342
+3	Otu465	713887	Candidatus Atelocyanobacterium thalassa	ambiguous_taxid	CP001842.1	other	1560	3	0.0683
+3	Otu583	1219	Prochlorococcus marinus	ambiguous_taxid	CP000552.1	other	1520	55	0.2732
+3	Otu169.1	1336795	Formosa sp. Hel3_A1_48	ambiguous_taxid	NZ_CP017259.1	other	1512	2	0.0486
+3	Otu492	1219	Prochlorococcus marinus	ambiguous_taxid	CP000576.1	other	1134	55	0.2732
+3	Otu174	1219	Prochlorococcus marinus	ambiguous_taxid	NZ_GL947595.1	other	1062	55	0.2732
+3	Otu1191	1462	Geobacillus kaustophilus	ambiguous_taxid	BA000043.1	other	998	2	0.0195
+3	Otu1704	1219	Prochlorococcus marinus	ambiguous_taxid	CP000878.1	other	940	55	0.2732
+3	Otu293.0	154	Spirochaeta thermophila	ambiguous_taxid	CP002903.1	other	922	2	0.0244
+3	Otu2019	1219	Prochlorococcus marinus	ambiguous_taxid	CP000554.1	other	840	55	0.2732
+3	Otu1082	1219	Prochlorococcus marinus	ambiguous_taxid	CP000825.1	other	812	55	0.2732
+3	Otu966	744985	alpha proteobacterium HIMB59	ambiguous_taxid	CP003801.1	other	804	2	0.0342
+3	Otu1242	349106	Psychrobacter sp. PRwf-1	unmapped	CP000713.1	other	728	0	0.0146
+3	Otu1673	316	Pseudomonas stutzeri	ambiguous_taxid	NZ_CP007509.1	other	710	51	0.0586
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015210.1	other	630	6	0.0129
+3	Otu767	1427364	Candidatus Thioglobus singularis	ambiguous_taxid	NZ_CP006911.1	other	564	3	0.0244
+3	Otu997	582419	Thermococcus paralvinellae	ambiguous_taxid	CP006965.1	other	550	2	0.0195
+3	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008957.1	other	492	5	0.0049
+3	Otu2016.0	1885919	Brucella sp. 141012304	unmapped	NZ_LT605585.1	other	468	0	0.0146
+3	Otu1501	316	Pseudomonas stutzeri	ambiguous_taxid	NZ_CP015641.1	other	382	51	0.0586
+3	Otu660	1219	Prochlorococcus marinus	ambiguous_taxid	BX548175.1	other	364	55	0.2732
+3	Otu2016.0	1885919	Brucella sp. 141012304	unmapped	NZ_LT605586.1	other	314	0	0.0146
+3	Otu1536	1219	Prochlorococcus marinus	ambiguous_taxid	CP000553.1	other	294	55	0.2732
+3	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000032.1	other	286	2	0.039
+3	Otu2156	1219	Prochlorococcus marinus	ambiguous_taxid	BX548174.1	other	280	55	0.2732
+3	Otu1139	1547445	Francisella sp. FSC1006	unmapped	CP009574.1	other	272	0	0.0098
+3	Otu801.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	FO203363.1	other	244	4	0.0298
+3	Otu862.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NZ_CP013671.1	other	220	2	0.0315
+3	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001088.1	other	186	2	0.1659
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015211.1	other	182	6	0.0129
+3	Otu1634	1219	Prochlorococcus marinus	ambiguous_taxid	CP000095.2	other	156	55	0.2732
+3	Otu511	1219	Prochlorococcus marinus	ambiguous_taxid	AE017126.1	other	150	55	0.2732
+3	Otu1374	1427364	Candidatus Thioglobus singularis	ambiguous_taxid	NZ_CP008725.1	other	136	3	0.0244
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_1_length_962030_cov_73.229633	assembly_contig_label	120	124	0.0098
+3	Otu1682	1219	Prochlorococcus marinus	ambiguous_taxid	CP000551.1	other	108	55	0.2732
+3	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006904.1	other	106	13	0.1952
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_2_length_581975_cov_71.138082	assembly_contig_label	100	124	0.0098
+3	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000515.1	other	98	4	0.0298
+3	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000516.1	other	92	4	0.0298
+3	Otu1108.1	198252	Candidatus Pelagibacter ubique	ambiguous_taxid	CP000084.1	other	80	21	0.0047
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_4_length_365366_cov_71.959109	assembly_contig_label	70	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_3_length_461570_cov_68.345945	assembly_contig_label	68	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_6_length_304206_cov_65.441356	assembly_contig_label	62	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_5_length_338678_cov_70.874087	assembly_contig_label	56	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_8_length_259034_cov_71.734136	assembly_contig_label	40	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_7_length_294693_cov_70.516024	assembly_contig_label	36	124	0.0098
+3	Otu447.0	1336794	Formosa sp. Hel1_33_131	ambiguous_taxid	NZ_CP017260.1	other	36	2	0.001
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_1_length_161859_cov_107.833898	assembly_contig_label	36	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_9_length_77130_cov_96.796307	assembly_contig_label	34	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_1_length_171587_cov_117.312621	assembly_contig_label	32	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_2_length_131799_cov_101.930350	assembly_contig_label	30	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_2_length_170203_cov_135.356893	assembly_contig_label	30	2	0.0315
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015215.1	other	30	6	0.0129
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_9_length_188306_cov_77.732276	assembly_contig_label	30	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_15_length_135119_cov_66.639134	assembly_contig_label	28	124	0.0098
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_5_length_105786_cov_95.966884	assembly_contig_label	28	2	0.0315
+3	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008931.1	other	28	5	0.0049
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_5_length_92643_cov_113.590990	assembly_contig_label	26	2	0.0315
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_12_length_160876_cov_73.138620	assembly_contig_label	26	124	0.0098
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_14_length_143843_cov_71.384369	assembly_contig_label	24	124	0.0098
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_6_length_99144_cov_120.235507	assembly_contig_label	24	2	0.0315
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_11_length_178318_cov_75.658653	assembly_contig_label	24	124	0.0098
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015213.1	other	24	6	0.0129
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_13_length_144826_cov_70.991811	assembly_contig_label	24	124	0.0098
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_4_length_110084_cov_122.382340	assembly_contig_label	22	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_3_length_136262_cov_118.861101	assembly_contig_label	22	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_9_length_79324_cov_106.609000	assembly_contig_label	22	2	0.0315
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_10_length_182315_cov_64.735713	assembly_contig_label	22	124	0.0098
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015212.1	other	22	6	0.0129
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_14_length_63258_cov_100.806339	assembly_contig_label	20	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_7_length_90646_cov_104.969984	assembly_contig_label	20	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_7_length_83220_cov_130.211907	assembly_contig_label	20	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_3_length_127036_cov_110.607900	assembly_contig_label	20	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_8_length_81896_cov_141.644706	assembly_contig_label	20	2	0.0315
+3	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015214.1	other	18	6	0.0129
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_10_length_71629_cov_115.236430	assembly_contig_label	18	2	0.0315
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_16_length_130037_cov_76.283758	assembly_contig_label	18	124	0.0098
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_12_length_66528_cov_100.804747	assembly_contig_label	18	2	0.0315
+3	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_23_length_75463_cov_62.072807	assembly_contig_label	16	124	0.0098
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_15_length_50324_cov_121.311035	assembly_contig_label	16	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_21_length_46553_cov_110.454594	assembly_contig_label	16	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_4_length_108889_cov_104.695859	assembly_contig_label	16	2	0.0315
+3	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_26_length_35674_cov_107.271331	assembly_contig_label	16	2	0.0315
+3	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_15_length_57551_cov_135.987375	assembly_contig_label	14	2	0.0315
+4	Otu24.0	467094	Ilumatobacter coccineus	ambiguous_taxid	AP012057.1	other	29366	2	0.4123
+4	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006903.1	other	9266	13	0.163
+4	Otu47.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP006745.1	other	6476	2	0.4995
+4	Otu40.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP003539.1	other	4492	2	0.4995
+4	Otu219.0	73141	Thiocystis violascens	ambiguous_taxid	CP003154.1	other	3570	2	0.0479
+4	Otu238.0	1250153	Maribacter sp. MAR_2009_60	unmapped	LT629754.1	other	3414	0	0.0479
+4	Otu987	1155739	Moorea producens	ambiguous_taxid	NZ_CP017708.1	other	2648	2	0.0192
+4	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001087.1	other	2388	2	0.0288
+4	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000031.2	other	2296	2	0.0384
+4	Otu457.0	111501	Muricauda ruestringensis	ambiguous_taxid	CP002999.1	other	2168	2	0.0384
+4	Otu1000	324767	Bacillus infantis	ambiguous_taxid	CP006643.1	other	2066	5	0.0288
+4	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000514.1	other	1980	4	0.0357
+4	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008957.1	other	1722	5	0.0192
+4	Otu1236	1219	Prochlorococcus marinus	ambiguous_taxid	CP000111.1	other	1262	55	0.2205
+4	Otu174	1219	Prochlorococcus marinus	ambiguous_taxid	NZ_GL947595.1	other	1048	55	0.2205
+4	Otu465	713887	Candidatus Atelocyanobacterium thalassa	ambiguous_taxid	CP001842.1	other	1042	3	0.0479
+4	Otu252	316279	Synechococcus sp. CC9902	ambiguous_taxid	CP000097.1	other	1008	2	0.0288
+4	Otu492	1219	Prochlorococcus marinus	ambiguous_taxid	CP000576.1	other	938	55	0.2205
+4	Otu169.1	1336795	Formosa sp. Hel3_A1_48	ambiguous_taxid	NZ_CP017259.1	other	872	2	0.0273
+4	Otu1242	349106	Psychrobacter sp. PRwf-1	unmapped	CP000713.1	other	824	0	0.0192
+4	Otu1082	1219	Prochlorococcus marinus	ambiguous_taxid	CP000825.1	other	798	55	0.2205
+4	Otu185.0	28229	Colwellia psychrerythraea	ambiguous_taxid	CP000083.1	other	722	4	0.0096
+4	Otu1200.0	400668	Marinomonas sp. MWYL1	unmapped	CP000749.1	other	708	0	0.0096
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015210.1	other	644	6	0.0126
+4	Otu203	316	Pseudomonas stutzeri	ambiguous_taxid	CP007511.1	other	602	51	0.0096
+4	Otu583	1219	Prochlorococcus marinus	ambiguous_taxid	CP000552.1	other	482	55	0.2205
+4	Otu511	1219	Prochlorococcus marinus	ambiguous_taxid	AE017126.1	other	474	55	0.2205
+4	Otu909	543877	Altererythrobacter marensis	ambiguous_taxid	NZ_CP011805.1	other	468	3	0.0096
+4	Otu997	582419	Thermococcus paralvinellae	ambiguous_taxid	CP006965.1	other	324	2	0.0096
+4	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000032.1	other	302	2	0.0384
+4	Otu447.0	1336794	Formosa sp. Hel1_33_131	ambiguous_taxid	NZ_CP017260.1	other	302	2	0.0063
+4	Otu801.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	FO203363.1	other	278	4	0.0357
+4	Otu1682	1219	Prochlorococcus marinus	ambiguous_taxid	CP000551.1	other	266	55	0.2205
+4	Otu767	1427364	Candidatus Thioglobus singularis	ambiguous_taxid	NZ_CP006911.1	other	246	3	0.0096
+4	Otu2156	1219	Prochlorococcus marinus	ambiguous_taxid	BX548174.1	other	244	55	0.2205
+4	Otu966	744985	alpha proteobacterium HIMB59	ambiguous_taxid	CP003801.1	other	188	2	0.0096
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015211.1	other	178	6	0.0126
+4	Otu975	410330	Calyptogena okutanii thioautotrophic gill symbiont	unmapped	AP009247.1	other	142	0	0.0096
+4	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000516.1	other	122	4	0.0357
+4	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000515.1	other	120	4	0.0357
+4	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008931.1	other	98	5	0.0192
+4	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006904.1	other	94	13	0.163
+4	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001088.1	other	30	2	0.0288
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015214.1	other	28	6	0.0126
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_4_length_110084_cov_122.382340	assembly_contig_label	26	2	0.0078
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015212.1	other	26	6	0.0126
+4	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008932.1	other	20	5	0.0192
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_1_length_171587_cov_117.312621	assembly_contig_label	20	2	0.0078
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015213.1	other	20	6	0.0126
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_5_length_92643_cov_113.590990	assembly_contig_label	16	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_12_length_63549_cov_103.594557	assembly_contig_label	16	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_8_length_81896_cov_141.644706	assembly_contig_label	14	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_2_length_170203_cov_135.356893	assembly_contig_label	14	2	0.0078
+4	Otu1242	349106	Psychrobacter sp. PRwf-1	unmapped	CP000714.1	other	12	0	0.0192
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_7_length_83220_cov_130.211907	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_9_length_79324_cov_106.609000	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_22_length_39644_cov_102.039375	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_3_length_136262_cov_118.861101	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_14_length_54764_cov_145.416897	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_13_length_59571_cov_111.185233	assembly_contig_label	10	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_6_length_85447_cov_126.900574	assembly_contig_label	10	2	0.0078
+4	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015215.1	other	10	6	0.0126
+4	Otu1242	349106	Psychrobacter sp. PRwf-1	unmapped	CP000715.1	other	8	0	0.0192
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_26_length_35674_cov_107.271331	assembly_contig_label	8	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_10_length_71629_cov_115.236430	assembly_contig_label	8	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_17_length_48777_cov_121.816835	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_27_length_32540_cov_92.804831	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_16_length_49901_cov_122.656286	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_30_length_29742_cov_133.572784	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_19_length_44227_cov_97.793855	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_20_length_40742_cov_76.410710	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_23_length_38199_cov_114.534041	assembly_contig_label	6	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_24_length_35894_cov_98.760589	assembly_contig_label	4	2	0.0078
+4	Otu987	1155739	Moorea producens	ambiguous_taxid	NZ_CP017709.1	other	4	2	0.0192
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_33_length_26163_cov_171.913543	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_11_length_68039_cov_114.520011	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_90_length_1927_cov_30.356111	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_40_length_21368_cov_166.258886	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_45_length_16133_cov_109.973198	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_18_length_46197_cov_113.181572	assembly_contig_label	4	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_21_length_40309_cov_100.043403	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_61_length_8973_cov_27.990617	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_32_length_27684_cov_95.945023	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_31_length_29269_cov_107.515785	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_75_length_3183_cov_104.624018	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_41_length_20976_cov_122.908677	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_50_length_14552_cov_37.937335	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_35_length_25006_cov_153.335263	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_39_length_22735_cov_92.939977	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_47_length_16000_cov_87.282807	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_82_length_2514_cov_32.832426	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_36_length_24298_cov_90.231641	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_42_length_20400_cov_117.748187	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_49_length_14975_cov_125.926522	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_53_length_12846_cov_91.084598	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_28_length_32132_cov_112.107889	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_86_length_2189_cov_123.976237	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_52_length_13794_cov_69.280091	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_94_length_1745_cov_58.040173	assembly_contig_label	2	2	0.0078
+4	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_70_length_4400_cov_12.961619	assembly_contig_label	2	2	0.0078
+5	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001087.1	other	30022	2	0.4175
+5	Otu24.0	467094	Ilumatobacter coccineus	ambiguous_taxid	AP012057.1	other	17410	2	0.2812
+5	Otu987	1155739	Moorea producens	ambiguous_taxid	NZ_CP017708.1	other	8212	2	0.0767
+5	Otu47.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP006745.1	other	4922	2	0.3445
+5	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000514.1	other	4366	4	0.0792
+5	Otu238.0	1250153	Maribacter sp. MAR_2009_60	unmapped	LT629754.1	other	3948	0	0.0682
+5	Otu219.0	73141	Thiocystis violascens	ambiguous_taxid	CP003154.1	other	3828	2	0.0596
+5	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006903.1	other	3796	13	0.0767
+5	Otu1200.0	400668	Marinomonas sp. MWYL1	unmapped	CP000749.1	other	3332	0	0.0511
+5	Otu1000	324767	Bacillus infantis	ambiguous_taxid	CP006643.1	other	2696	5	0.0426
+5	Otu203	316	Pseudomonas stutzeri	ambiguous_taxid	CP007511.1	other	1966	51	0.0426
+5	Otu40.0	1263979	Candidatus Endolissoclinum faulkneri	ambiguous_taxid	CP003539.1	other	1886	2	0.3445
+5	Otu457.0	111501	Muricauda ruestringensis	ambiguous_taxid	CP002999.1	other	1788	2	0.0341
+5	Otu174	1219	Prochlorococcus marinus	ambiguous_taxid	NZ_GL947595.1	other	1454	55	0.2215
+5	Otu169.1	1336795	Formosa sp. Hel3_A1_48	ambiguous_taxid	NZ_CP017259.1	other	1394	2	0.0546
+5	Otu293.0	154	Spirochaeta thermophila	ambiguous_taxid	CP002903.1	other	1352	2	0.0426
+5	Otu252	316279	Synechococcus sp. CC9902	ambiguous_taxid	CP000097.1	other	1272	2	0.0426
+5	Otu185.0	28229	Colwellia psychrerythraea	ambiguous_taxid	CP000083.1	other	1170	4	0.017
+5	Otu1767	1155739	Moorea producens	ambiguous_taxid	NZ_CP017599.1	other	1042	2	0.0767
+5	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000031.2	other	906	2	0.017
+5	Otu492	1219	Prochlorococcus marinus	ambiguous_taxid	CP000576.1	other	876	55	0.2215
+5	Otu1082	1219	Prochlorococcus marinus	ambiguous_taxid	CP000825.1	other	822	55	0.2215
+5	Otu1191	1462	Geobacillus kaustophilus	ambiguous_taxid	BA000043.1	other	810	2	0.017
+5	Otu1108.1	198252	Candidatus Pelagibacter ubique	ambiguous_taxid	CP000084.1	other	706	21	0.0412
+5	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008957.1	other	704	5	0.0085
+5	Otu2019	1219	Prochlorococcus marinus	ambiguous_taxid	CP000554.1	other	578	55	0.2215
+5	Otu1673	316	Pseudomonas stutzeri	ambiguous_taxid	NZ_CP007509.1	other	508	51	0.0426
+5	Otu64.0	2296	Desulfobacterium autotrophicum	ambiguous_taxid	CP001088.1	other	384	2	0.4175
+5	Otu511	1219	Prochlorococcus marinus	ambiguous_taxid	AE017126.1	other	376	55	0.2215
+5	Otu583	1219	Prochlorococcus marinus	ambiguous_taxid	CP000552.1	other	372	55	0.2215
+5	Otu2073	155863	Methanothermococcus okinawensis	ambiguous_taxid	CP002792.1	other	348	6	0.017
+5	Otu2042	1705394	Candidatus Thioglobus autotrophicus	ambiguous_taxid	NZ_CP010552.1	other	288	3	0.017
+5	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000515.1	other	280	4	0.0792
+5	Otu183.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	CP000516.1	other	216	4	0.0792
+5	Otu767	1427364	Candidatus Thioglobus singularis	ambiguous_taxid	NZ_CP006911.1	other	208	3	0.017
+5	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015210.1	other	200	6	0.0056
+5	Otu975	410330	Calyptogena okutanii thioautotrophic gill symbiont	unmapped	AP009247.1	other	190	0	0.017
+5	Otu1682	1219	Prochlorococcus marinus	ambiguous_taxid	CP000551.1	other	184	55	0.2215
+5	Otu1236	1219	Prochlorococcus marinus	ambiguous_taxid	CP000111.1	other	178	55	0.2215
+5	Otu465	713887	Candidatus Atelocyanobacterium thalassa	ambiguous_taxid	CP001842.1	other	176	3	0.0085
+5	Otu966	744985	alpha proteobacterium HIMB59	ambiguous_taxid	CP003801.1	other	144	2	0.0085
+5	Otu1374	1427364	Candidatus Thioglobus singularis	ambiguous_taxid	NZ_CP008725.1	other	136	3	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_1_length_171587_cov_117.312621	assembly_contig_label	124	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_2_length_170203_cov_135.356893	assembly_contig_label	116	2	0.0573
+5	Otu801.1	2743	Marinobacter hydrocarbonoclasticus	ambiguous_taxid	FO203363.1	other	114	4	0.0792
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_1_length_962030_cov_73.229633	assembly_contig_label	92	124	0.017
+5	Otu212.0	89184	Ruegeria pomeroyi	ambiguous_taxid	CP000032.1	other	84	2	0.017
+5	Otu447.0	1336794	Formosa sp. Hel1_33_131	ambiguous_taxid	NZ_CP017260.1	other	80	2	0.0022
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_4_length_110084_cov_122.382340	assembly_contig_label	76	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_3_length_136262_cov_118.861101	assembly_contig_label	72	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_3_length_461570_cov_68.345945	assembly_contig_label	68	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_7_length_83220_cov_130.211907	assembly_contig_label	64	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_2_length_458795_cov_40.599556	assembly_contig_label	64	124	0.017
+5	Otu1548.1	1063	Rhodobacter sphaeroides	ambiguous_taxid	NZ_CP015211.1	other	60	6	0.0056
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_8_length_81896_cov_141.644706	assembly_contig_label	60	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_2_length_581975_cov_71.138082	assembly_contig_label	60	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_5_length_92643_cov_113.590990	assembly_contig_label	56	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_10_length_71629_cov_115.236430	assembly_contig_label	56	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_9_length_79324_cov_106.609000	assembly_contig_label	56	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_6_length_335371_cov_36.585833	assembly_contig_label	54	124	0.017
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_8_length_259034_cov_71.734136	assembly_contig_label	54	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_11_length_68039_cov_114.520011	assembly_contig_label	52	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_5_length_338678_cov_70.874087	assembly_contig_label	48	124	0.017
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_1_length_529272_cov_49.563655	assembly_contig_label	48	124	0.017
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_4_length_379621_cov_41.734404	assembly_contig_label	48	124	0.017
+5	Otu1337	1491	Clostridium botulinum	ambiguous_taxid	CP006904.1	other	44	13	0.0767
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_6_length_85447_cov_126.900574	assembly_contig_label	44	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_3_length_425187_cov_49.355317	assembly_contig_label	42	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_13_length_59571_cov_111.185233	assembly_contig_label	40	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_14_length_54764_cov_145.416897	assembly_contig_label	38	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_6_length_304206_cov_65.441356	assembly_contig_label	38	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_15_length_50324_cov_121.311035	assembly_contig_label	36	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_19_length_44227_cov_97.793855	assembly_contig_label	32	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_22_length_39644_cov_102.039375	assembly_contig_label	32	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_16_length_49901_cov_122.656286	assembly_contig_label	32	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_7_length_282449_cov_48.113452	assembly_contig_label	32	124	0.017
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_5_length_363749_cov_40.664902	assembly_contig_label	32	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_18_length_46197_cov_113.181572	assembly_contig_label	32	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_4_length_365366_cov_71.959109	assembly_contig_label	30	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_12_length_63549_cov_103.594557	assembly_contig_label	30	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_38_length_23011_cov_142.004064	assembly_contig_label	30	2	0.0573
+5	Otu1389.0	1833	Rhodococcus erythropolis	ambiguous_taxid	AP008931.1	other	28	5	0.0085
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_31_length_29269_cov_107.515785	assembly_contig_label	28	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_21_length_40309_cov_100.043403	assembly_contig_label	28	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_26_length_35674_cov_107.271331	assembly_contig_label	26	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_20_length_40742_cov_76.410710	assembly_contig_label	26	2	0.0573
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_7_length_294693_cov_70.516024	assembly_contig_label	26	124	0.017
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_10_length_182315_cov_64.735713	assembly_contig_label	24	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_23_length_38199_cov_114.534041	assembly_contig_label	24	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_15_length_140361_cov_38.342727	assembly_contig_label	24	124	0.017
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_17_length_116898_cov_77.929769	assembly_contig_label	24	124	0.017
+5	Otu805	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_9_length_188306_cov_77.732276	assembly_contig_label	22	124	0.017
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_8_length_211777_cov_50.085689	assembly_contig_label	22	124	0.017
+5	Otu1062.0	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_1_length_161859_cov_107.833898	assembly_contig_label	22	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_9_length_202899_cov_36.479105	assembly_contig_label	22	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_17_length_48777_cov_121.816835	assembly_contig_label	22	2	0.0573
+5	Otu1876	294	Pseudomonas fluorescens	ambiguous_taxid	NODE_10_length_195738_cov_39.908456	assembly_contig_label	22	124	0.017
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_25_length_35882_cov_130.356286	assembly_contig_label	20	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_30_length_29742_cov_133.572784	assembly_contig_label	20	2	0.0573
+5	Otu370.1	669041	Tenacibaculum dicentrarchi	ambiguous_taxid	NODE_35_length_25006_cov_153.335263	assembly_contig_label	20	2	0.0573

@@ -1,0 +1,3 @@
+sample	F1_delta_raw_vs_calibrated	L1_delta_raw_vs_calibrated	Pearson_delta_raw_vs_calibrated	pred_rows_mapped	pred_rows_unmapped	truth_mass_mapped_pct_bacteria_archaea
+0	0.0	6.63358257213531e-15	-5.551115123125783e-16	177	106	75.16028123916388
+2	0.0	6.439293542825908e-15	2.220446049250313e-16	195	108	74.12067027142771

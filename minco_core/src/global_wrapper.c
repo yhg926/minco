@@ -5,6 +5,7 @@
 #include "command_composite.h"
 #include "command_matrix.h"
 #include "command_ani.h"
+#include "command_profile_wrapper.h"
 #include "command_set_wrapper.h"
 #include <assert.h>
 #include <stdarg.h>
@@ -63,19 +64,23 @@ static char doc_global[] =
       "\n"
       "Public subcommands:\n"
 "\n"
-      "  sketch   \tCreate, inspect, index, filter, append, and deduplicate sketches.\n"
+      "  sketch    Create, inspect, index, filter, append, and deduplicate sketches.\n"
 "\n"
-      "  ani      \tEstimate ANI from sketches or direct FASTA/FASTQ inputs.\n"
+      "  ani       Estimate ANI from sketches or direct FASTA/FASTQ inputs.\n"
 "\n"
-      "  matrix   \tReport context-distance matrices, sparse edges, clusters, and dedup plans.\n"
+      "  profile   Direct raw-read profiling with conservative readwise depth\n"
+      "            defaults for species, AMR, virus, gene, or mixed refs.\n"
 "\n"
-      "  set      \tCombine, subset, and downsample existing sketches.\n"
+      "  matrix    Report context-distance matrices, sparse edges, clusters, and\n"
+      "            dedup plans.\n"
+"\n"
+      "  set       Combine, subset, and downsample existing sketches.\n"
 
 "\n"
-      "  examples\tPrint common command workflows.\n"
+      "  examples  Print common command workflows.\n"
 
 "\n"
-      "  doctor  \tCheck build/runtime environment basics.\n"
+      "  doctor    Check build/runtime environment basics.\n"
 
 "\n"
 ;
@@ -113,6 +118,14 @@ static void print_global_examples(const char *prog)
   printf("  %s sketch -i ref_sketches\n", prog);
   printf("  %s ani -r ref_sketches --qraw read_sketches -m0 -p8 -o read_vs_ref.tsv\n\n", prog);
   printf("  %s ani -r ref_sketches --qraw reads.fastq.gz --readsQC -m0 -p8 -o one_read_file.tsv\n\n", prog);
+
+  printf("Metagenome/gene-panel profiling from raw reads:\n");
+  printf("  %s profile -p16 -r ref_sketches reads.fastq.gz -o profile.tsv\n", prog);
+  printf("  %s profile -p16 -r ref_sketches reads.fastq.gz \\\n", prog);
+  printf("    --cami-taxmap ref.taxmap.tsv --cami-profile sample.profile -o profile.tsv\n\n");
+  printf("Calibrated species default wrapper:\n");
+  printf("  scripts/minco_profile_default.py -r ref_sketches --reads reads.fastq.gz \\\n");
+  printf("    -p16 -o calibrated.profile.tsv\n\n");
 
   printf("Reads-to-reads ANI:\n");
   printf("  %s sketch --conflict --readsQC -p8 -o ref_read_sketches ref_reads/*.fastq.gz\n", prog);
@@ -255,6 +268,8 @@ static error_t parse_global(int key, char* arg, struct argp_state* state)
 				cmd_matrix(state);
 	    else if(strcmp(arg, "ani") == 0)
         cmd_ani(state);
+	    else if(strcmp(arg, "profile") == 0)
+        cmd_profile(state);
 			else if(strcmp(arg, "set") == 0)
 				cmd_set(state);
 			else if(strcmp(arg, "primer") == 0)

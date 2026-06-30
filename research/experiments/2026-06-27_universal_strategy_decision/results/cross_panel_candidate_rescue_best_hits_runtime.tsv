@@ -1,0 +1,6 @@
+metric	value	unit	evidence
+wall_time	98.50	seconds	/usr/bin/time -v cross-panel rescued-species detail audit; elapsed 1:38.50
+max_rss	5219808	kB	/usr/bin/time -v cross-panel rescued-species detail audit
+user_time	93.94	seconds	/usr/bin/time -v cross-panel rescued-species detail audit
+system_time	6.05	seconds	/usr/bin/time -v cross-panel rescued-species detail audit
+exit_status	0	status	/usr/bin/time -v cross-panel rescued-species detail audit

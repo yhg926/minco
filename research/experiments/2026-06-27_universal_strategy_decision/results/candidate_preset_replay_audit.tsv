@@ -1,0 +1,8 @@
+metric	value	evidence	decision
+preset_profiles_scored	32	/tmp/minco_candidate_preset_replay_20260629	cross_panel_cached_default_preset_replay
+preset_switch_values	strategy=universal-auto-exact;rescue=emitted-ani90-xny100-br01-af70;surface=accession-ani90-xny100-br01-af70	profile output metadata	candidate_preset_wired
+candidate_added_rows	20	candidate_rescue_added or candidate_surface_added	candidate_behavior
+nonzero_candidate_rows	20	normalized-depth-alpha2	candidate_abundance_behavior
+max_candidate_raw_mass_delta	3.552713678800501e-15	candidate_abundance_norm_mass*base_called_raw_mass	pass
+max_delta_vs_prior_wrapper_candidate	counts=0;F1=1.11e-16;L1=0.14;Pearson=6.88e-05	candidate_preset_replay_vs_wrapper.tsv	calls_match_small_autoexact_abundance_delta
+promotion_decision	preset_validated_selected_default	candidate preset reproduces prior wrapper candidate if max_delta_vs_prior_wrapper_candidate matches; previous default is available with --profile-preset current	promote_to_selected_default_without_broad_release_claim

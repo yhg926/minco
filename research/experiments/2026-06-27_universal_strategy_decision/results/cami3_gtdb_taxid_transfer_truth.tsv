@@ -1,0 +1,190 @@
+gtdb_species	sample	abundance_pct_all	source_taxids	truth_names	truth_abundance
+s__Actinomyces urogenitalis	0	0.0054	103621	Actinomyces urogenitalis	0.00021645976053136863
+s__Aeromonas sp023093515	0	0.0007	3086176	Aeromonas genomosp. paramedia	2.805959858739964e-05
+s__Agathobaculum butyriciproducens	0	0.2235	2292004	Butyricicoccus sp. AM05-1	0.008959028977548312
+s__Bacteroides uniformis	0	0.0002	585543	Bacteroides sp. D20	8.017028167828468e-06
+s__Bifidobacterium bifidum	0	0.0002	2922858	Bifidobacterium sp. TKU	8.017028167828468e-06
+s__Blautia_A faecis	0	2.7667	2787121,2986996	Ruminococcus sp. 1001136B_160425_D2;Ruminococcus sp. 1001136sp1	0.11090355915965512
+s__Christensenella minuta	0	0.086	626937	Christensenella minuta	0.0034473221121662408
+s__Coprococcus ammoniilyticus	0	0.0108	2293000,2293045	Clostridium sp. AF17-2;Clostridium sp. OM05-9	0.00043291952106273726
+s__Cutibacterium avidum	0	0.0005	33010	Cutibacterium avidum	2.004257041957117e-05
+s__Desulfovibrio fairfieldensis	0	0.1837	665942	Desulfovibrio sp. 6_1_46AFAA	0.007363640372150448
+s__Eggerthella lenta	0	0.0157	2584638	Eggerthella sp. BIOML-A1	0.0006293367111745347
+s__Eisenbergiella porci	0	0.0345	2652274	Eisenbergiella porci	0.0013829373589504107
+s__Eubacterium maltosivorans	0	0.0616	2041044	Eubacterium maltosivorans	0.002469244675691168
+s__Eubacterium_G sp000435815	0	0.0002	2293107	Eubacterium sp. AF34-35BH	8.017028167828468e-06
+s__Faecalibacterium taiwanense	0	3.9798999999999998	2302955,2817018	Faecalibacterium sp. AF10-46;Faecalibacterium sp. Marseille-Q4896	0.15953485202570258
+s__Kingella kingae	0	0.0002	504	Kingella kingae	8.017028167828468e-06
+s__Lachnoanaerobaculum sp000296385	0	0.0005	936595	Lachnoanaerobaculum sp. OBRC5-5	2.004257041957117e-05
+s__Lacticaseibacillus rhamnosus	0	0.0063	47715	Lacticaseibacillus rhamnosus	0.00025253638728659676
+s__Lactobacillus paragasseri	0	2.3304	3143214	Lactobacillus sp. RTP31084st1_D4_RTP31084_210423	0.0934144122115373
+s__Lactococcus petauri	0	0.0042	1940789	Lactococcus petauri	0.00016835759152439782
+s__Laedolimicola ammoniilytica	0	0.0094	2981771	Laedolimicola ammoniilytica	0.000376800323887938
+s__Ligaoa zhengdingensis	0	0.0005	2763658	Ligaoa zhengdingensis	2.004257041957117e-05
+s__Longicatena caecimuris	0	0.0333	1796635	Longicatena caecimuris	0.00133483518994344
+s__Megamonas funiformis	0	0.0009	437897	Megamonas funiformis	3.6076626755228105e-05
+s__Oscillibacter welbionis	0	0.3067	2109687	Oscillibacter sp. PEA192	0.012294112695364954
+s__Parabacteroides distasonis	0	0.0002	2293124	Parabacteroides sp. OF04-13BH	8.017028167828468e-06
+s__Paraprevotella xylaniphila	0	14.4335	454155	Paraprevotella xylaniphila	0.578568880301761
+s__Parolsenella catena	0	0.0002	2003188	Parolsenella catena	8.017028167828468e-06
+s__Romboutsia_C hominis	0	0.2788	2986997	Romboutsia sp. 1001216sp1	0.011175737265952885
+s__Salmonella enterica	0	0.172	2819760	Salmonella sp. 32020509201800068SM	0.0068946442243324815
+s__Slackia exigua	0	0.0002	84109	Slackia exigua	8.017028167828468e-06
+s__Actinomyces urogenitalis	1	0.0069	103621	Actinomyces urogenitalis	0.000437353819239765
+s__Aeromonas sp023093515	1	0.0004	3086176	Aeromonas genomosp. paramedia	2.5353844593609564e-05
+s__Agathobaculum butyriciproducens	1	0.2214	2292004	Butyricicoccus sp. AM05-1	0.014033352982562895
+s__Akkermansia sp004167605	1	0.0002	2584599	Akkermansia sp. BIOML-A43	1.2676922296804782e-05
+s__Bacteroides uniformis	1	0.0007	585543	Bacteroides sp. D20	4.4369228038816733e-05
+s__Bifidobacterium bifidum	1	0.0012	2922858	Bifidobacterium sp. TKU	7.606153378082869e-05
+s__Blautia_A faecis	1	4.9122	2787121	Ruminococcus sp. 1001136B_160425_D2	0.3113578885318223
+s__Christensenella minuta	1	0.2099	626937	Christensenella minuta	0.013304429950496618
+s__Coprobacter secundus	1	0.0004	1501392	Coprobacter secundus	2.5353844593609564e-05
+s__Coprococcus ammoniilyticus	1	0.0037	2293000,2293045	Clostridium sp. AF17-2;Clostridium sp. OM05-9	0.00023452306249088849
+s__Desulfovibrio fairfieldensis	1	0.3121	665942	Desulfovibrio sp. 6_1_46AFAA	0.01978233724416386
+s__Eggerthella lenta	1	0.0192	2584638	Eggerthella sp. BIOML-A1	0.001216984540493259
+s__Eisenbergiella porci	1	0.0046	2652274	Eisenbergiella porci	0.00029156921282651
+s__Eubacterium maltosivorans	1	0.0118	2041044	Eubacterium maltosivorans	0.0007479384155114821
+s__Eubacterium_G sp000435815	1	0.0009	2293107	Eubacterium sp. AF34-35BH	5.704615033562152e-05
+s__Faecalibacterium taiwanense	1	1.8626999999999998	2302955,2817018	Faecalibacterium sp. AF10-46;Faecalibacterium sp. Marseille-Q4896	0.11806651581129132
+s__Faecalispora jeddahensis	1	0.0002	1414721	Faecalispora jeddahensis	1.2676922296804782e-05
+s__Faecalitalea cylindroides	1	0.0012	39483	Faecalitalea cylindroides	7.606153378082869e-05
+s__Fusobacterium animalis	1	0.0919	76859	Fusobacterium animalis	0.005825045795381797
+s__Kingella kingae	1	0.0028	504	Kingella kingae	0.00017747691215526693
+s__Lachnoanaerobaculum sp000296385	1	0.2253	936595	Lachnoanaerobaculum sp. OBRC5-5	0.014280552967350587
+s__Lacticaseibacillus paracasei	1	0.0127	1597	Lacticaseibacillus paracasei	0.0008049845658471036
+s__Lacticaseibacillus rhamnosus	1	0.0367	47715	Lacticaseibacillus rhamnosus	0.0023262152414636776
+s__Lactobacillus paragasseri	1	0.0021	3143214	Lactobacillus sp. RTP31084st1_D4_RTP31084_210423	0.0001331076841164502
+s__Laedolimicola ammoniilytica	1	0.0118	2981771	Laedolimicola ammoniilytica	0.0007479384155114821
+s__Lawsonibacter sp003478995	1	0.0004	2292244	Pseudoflavonifractor sp. AF19-9AC	2.5353844593609564e-05
+s__Ligaoa zhengdingensis	1	0.0004	2763658	Ligaoa zhengdingensis	2.5353844593609564e-05
+s__Longicatena caecimuris	1	0.142	1796635	Longicatena caecimuris	0.009000614830731394
+s__Megamonas funiformis	1	0.0002	437897	Megamonas funiformis	1.2676922296804782e-05
+s__Microbacterium algeriense	1	0.0002	2615184	Microbacterium algeriense	1.2676922296804782e-05
+s__Oscillibacter welbionis	1	0.2666	2109687	Oscillibacter sp. PEA192	0.016898337421640774
+s__Paraprevotella xylaniphila	1	7.2454	454155	Paraprevotella xylaniphila	0.45924686404634685
+s__Parolsenella catena	1	0.0014	2003188	Parolsenella catena	8.873845607763347e-05
+s__Peptostreptococcus anaerobius	1	0.0007	1261	Peptostreptococcus anaerobius	4.4369228038816733e-05
+s__Romboutsia_C hominis	1	0.1438	2986997	Romboutsia sp. 1001216sp1	0.009114707131402638
+s__Salmonella enterica	1	0.0201	2819760	Salmonella sp. 32020509201800068SM	0.0012740306908288806
+s__Slackia exigua	1	0.0025	84109	Slackia exigua	0.00015846152871005977
+s__Actinomyces urogenitalis	2	0.0099	103621	Actinomyces urogenitalis	0.0008601814200813263
+s__Agathobaculum butyriciproducens	2	0.1174	2292004	Butyricicoccus sp. AM05-1	0.010200535223994717
+s__Akkermansia sp004167605	2	0.0033	2584590	Akkermansia sp. BIOML-A34	0.00028672714002710874
+s__Anaerostipes caccae	2	1.9238	105841	Anaerostipes caccae	0.16715323393459144
+s__Bacteroides uniformis	2	0.0008	2292952	Bacteroides sp. AM41-16	6.950960970354152e-05
+s__Blautia celeris	2	4.195	2877527,2949654	Blautia parvula;Blautia sp. C3-R-101	0.36449101588294586
+s__Blautia_A fusiformis	2	1.3487	2293151	Ruminococcus sp. AF17-12	0.11718451325895805
+s__Blautia_A intestinalis	2	1.0097	2763028	Blautia intestinalis	0.08772981614708233
+s__Bovifimicola ammoniilytica	2	0.0019	2981720	Bovifimicola ammoniilytica	0.0001650853230459111
+s__Bulleidia moorei	2	0.6589	102148	Solobacterium moorei	0.057249852292079385
+s__Christensenella minuta	2	0.0066	626937	Christensenella minuta	0.0005734542800542175
+s__Corynebacterium hesseae	2	0.0008	2943492	Corynebacterium intestinale	6.950960970354152e-05
+s__Eggerthella lenta	2	0.0726	84112	Eggerthella lenta	0.0063079970805963925
+s__Eisenbergiella porci	2	0.0003	2652274	Eisenbergiella porci	2.6066103638828067e-05
+s__Faecalitalea cylindroides	2	0.5883	39483	Faecalitalea cylindroides	0.051115629235741845
+s__Fontibacillus vini	2	0.0003	1871032	Paenibacillus sp. Marseille-P2973	2.6066103638828067e-05
+s__Fusicatenibacter saccharivorans	2	0.0066	2292967	Blautia sp. AF32-4BH	0.0005734542800542175
+s__Fusobacterium simiae	2	0.0003	2787123	Fusobacterium sp. 1001295B_180824_G3	2.6066103638828067e-05
+s__Kallipyga massiliensis	2	0.0006	1472764	Kallipyga massiliensis	5.2132207277656134e-05
+s__Kingella kingae	2	0.0003	504	Kingella kingae	2.6066103638828067e-05
+s__Klebsiella grimontii	2	0.0003	2058152	Klebsiella grimontii	2.6066103638828067e-05
+s__Lacticaseibacillus rhamnosus	2	0.0019	47715	Lacticaseibacillus rhamnosus	0.0001650853230459111
+s__Lactococcus petauri	2	0.0052	1940789	Lactococcus petauri	0.0004518124630730198
+s__Oscillibacter welbionis	2	0.1171	2109687	Oscillibacter sp. PEA192	0.010174469120355889
+s__Otoolea fessa	2	0.0066	2293043	Clostridium sp. OM05-5BH	0.0005734542800542175
+s__Parabacteroides goldsteinii	2	1.4185	2293113	Parabacteroides sp. AF17-3	0.12324922670559206
+s__Parolsenella catena	2	0.0008	2003188	Parolsenella catena	6.950960970354152e-05
+s__Peptostreptococcus anaerobius	2	0.0003	1261	Peptostreptococcus anaerobius	2.6066103638828067e-05
+s__Romboutsia_C hominis	2	0.0096	2986997	Romboutsia sp. 1001216sp1	0.0008341153164424981
+s__Salmonella enterica	2	0.0014	2819736	Salmonella sp. 32040203201700040FB01SM01	0.00012164181698119766
+s__Staphylococcus capitis	2	0.0014	29388	Staphylococcus capitis	0.00012164181698119766
+s__Actinomyces urogenitalis	3	0.0154	103621	Actinomyces urogenitalis	0.0026289284555898874
+s__Agathobaculum butyriciproducens	3	0.0954	2292004	Butyricicoccus sp. AM05-1	0.01628569965345943
+s__Akkermansia sp004167605	3	0.0009	3115151	Akkermansia sp. AE01SA01	0.00015363867597603236
+s__Anaeromassilibacillus stercoravium	3	0.0006	2787078	Anaeromassilibacillus sp. D41t1_190614_C2	0.00010242578398402156
+s__Blautia_A ammoniilytica	3	1.3267	3144490	Blautia sp. 1033sp1_1033st1_G9_1033SCRN_220408	0.22648047935266905
+s__Blautia_A hydrogenotrophica	3	0.378	53443	Blautia hydrogenotrophica	0.0645282439099336
+s__Blautia_A sp005848555	3	1.0698	2293160	Ruminococcus sp. AF20-12LB	0.18262517284351049
+s__Christensenella minuta	3	0.3399	626937	Christensenella minuta	0.058024206626948224
+s__Corynebacterium hesseae	3	0.0012	2943492	Corynebacterium intestinale	0.00020485156796804313
+s__Desulfovibrio fairfieldensis	3	0.0003	665942	Desulfovibrio sp. 6_1_46AFAA	5.121289199201078e-05
+s__Eggerthella lenta	3	0.1265	84112	Eggerthella lenta	0.021594769456631215
+s__Enterococcus_B durans	3	0.0003	53345	Enterococcus durans	5.121289199201078e-05
+s__Eubacterium_G segne	3	0.0003	2293103	Eubacterium sp. AF15-50	5.121289199201078e-05
+s__Faecalibacillus faecis	3	0.0207	1982628	Faecalibacillus faecis	0.0035336895474487443
+s__Faecalitalea cylindroides	3	0.0198	39483	Faecalitalea cylindroides	0.0033800508714727125
+s__Fusicatenibacter saccharivorans	3	0.8608	2292960	Blautia sp. AF19-1	0.1469468580890763
+s__Fusobacterium_A hominis	3	0.0015	2764326	Fusobacterium hominis	0.00025606445996005395
+s__Kallipyga massiliensis	3	0.0015	1472764	Kallipyga massiliensis	0.00025606445996005395
+s__Lacticaseibacillus paracasei	3	0.0003	1597	Lacticaseibacillus paracasei	5.121289199201078e-05
+s__Lacticaseibacillus rhamnosus	3	0.023	47715	Lacticaseibacillus rhamnosus	0.003926321719387494
+s__Lactobacillus panisapium	3	0.0058	2012495	Lactobacillus panisapium	0.000990115911845542
+s__Lactobacillus paragasseri	3	0.0047	2107999	Lactobacillus paragasseri	0.0008023353078748357
+s__Mediterraneibacter massiliensis	3	0.4795	1720300	Mediterraneibacter massiliensis	0.08185527236723057
+s__Megamonas funiformis	3	0.3792	437897	Megamonas funiformis	0.06473309547790164
+s__Oscillibacter welbionis	3	0.0654	2109687	Oscillibacter sp. PEA192	0.011164410454258353
+s__Parolsenella catena	3	0.1774	2003188	Parolsenella catena	0.030283890131275713
+s__Peptoniphilus_E obesi	3	0.0038	1472765	Peptoniphilus obesi	0.0006486966318988033
+s__Peptostreptococcus anaerobius	3	0.0006	1261	Peptostreptococcus anaerobius	0.00010242578398402156
+s__Romboutsia_C sp015668195	3	0.4571	2787108	Romboutsia sp. 1001713B170131_170501_G6	0.0780313764318271
+s__Salmonella enterica	3	0.0003	2819695	Salmonella sp. 32058101201500184GS-01-SM-01	5.121289199201078e-05
+s__Staphylococcus hominis	3	0.0012	1290	Staphylococcus hominis	0.00020485156796804313
+s__Actinomyces urogenitalis	4	0.0116	103621	Actinomyces urogenitalis	0.0011504740746618003
+s__Agathobaculum ammoniilyticum	4	0.0097	3014267	Agathobaculum massiliense	0.0009620343555361607
+s__Agathobaculum butyriciproducens	4	0.0678	2292004	Butyricicoccus sp. AM05-1	0.0067243226087991435
+s__Akkermansia massiliensis	4	0.0049	2927224	Akkermansia massiliensis	0.00048597611774507085
+s__Akkermansia sp004167605	4	2.5253	2584568,2584587	Akkermansia sp. BIOML-A12;Akkermansia sp. BIOML-A31	0.2504562224778832
+s__Anaerostipes caccae	4	3.4768	105841	Anaerostipes caccae	0.34482485024001275
+s__Blautia_A hydrogenotrophica	4	0.0015	53443	Blautia hydrogenotrophica	0.00014876819930971556
+s__Christensenella minuta	4	2.3988	626937	Christensenella minuta	0.23791010433609713
+s__Citrobacter portucalensis	4	0.0019	1639133	Citrobacter portucalensis	0.00018843971912563972
+s__Desulfovibrio fairfieldensis	4	0.0419	665942	Desulfovibrio sp. 6_1_46AFAA	0.004155591700718055
+s__Eggerthella lenta	4	0.0239	84112	Eggerthella lenta	0.0023703733090014683
+s__Eisenbergiella porci	4	0.0011	2652274	Eisenbergiella porci	0.00010909667949379142
+s__Enterococcus_B faecium	4	0.0008	2755567	Enterococcus sp. BSD2780120874b_170522_B6	7.93430396318483e-05
+s__Enterococcus_L caccae	4	0.0037	317735	Enterococcus caccae	0.00036696155829729843
+s__Eubacterium callanderi	4	0.0004	53442	Eubacterium callanderi	3.967151981592415e-05
+s__Faecalitalea cylindroides	4	0.8417	39483	Faecalitalea cylindroides	0.0834787955726584
+s__Lactococcus petauri	4	0.0011	2816910	Lactococcus sp. LG1267	0.00010909667949379142
+s__Lientehia dongpingensis	4	0.0464	2763669	Qiania dongpingensis	0.004601896298647201
+s__Megamonas funiformis	4	0.0026	437897	Megamonas funiformis	0.00025786487880350697
+s__Oscillibacter welbionis	4	0.0457	2109687	Oscillibacter sp. PEA192	0.004532471138969334
+s__Otoolea fessa	4	0.0543	2293051	Clostridium sp. TF06-15AC	0.0053854088150117035
+s__Parolsenella catena	4	0.1153	2003188	Parolsenella catena	0.011435315586940137
+s__Pluralibacter gergoviae	4	0.0004	61647	Pluralibacter gergoviae	3.967151981592415e-05
+s__Romboutsia_C hominis	4	0.1094	2986997	Romboutsia sp. 1001216sp1	0.010850160669655256
+s__Ruminococcoides intestinale_A	4	0.1958	2878202	Ruminococcus sp. FMB-CY1	0.01941920894989487
+s__Salmonella enterica	4	0.0816	2933296	Salmonella sp. L-S1409	0.008092990042448527
+s__Veillonella parvula_E	4	0.0176	2293250	Veillonella sp. AF13-2	0.0017455468719006627
+s__Weizmannia faecalis	4	0.0008	2824910	Heyndrickxia faecalis	7.93430396318483e-05
+s__Actinomyces urogenitalis	5	0.0212	103621	Actinomyces urogenitalis	0.0016553318081376734
+s__Agathobaculum butyriciproducens	5	0.0008	2292004	Butyricicoccus sp. AM05-1	6.246535125047824e-05
+s__Akkermansia sp004167605	5	0.0004	3115151	Akkermansia sp. AE01SA01	3.123267562523912e-05
+s__Blautia_A ammoniilytica	5	1.2243	3144490	Blautia sp. 1033sp1_1033st1_G9_1033SCRN_220408	0.09559541191995063
+s__Blautia_A hydrogenotrophica	5	0.0217	53443	Blautia hydrogenotrophica	0.0016943726526692222
+s__Blautia_A sp005848555	5	0.7615	2293160	Ruminococcus sp. AF20-12LB	0.059459206221548974
+s__Christensenella minuta	5	0.6217	626937	Christensenella minuta	0.048543386090527905
+s__Corynebacterium hesseae	5	0.0004	2943492	Corynebacterium intestinale	3.123267562523912e-05
+s__Eggerthella lenta	5	0.1645	84112	Eggerthella lenta	0.01284443785087959
+s__Enterobacter quasiroggenkampii	5	0.0017	2497436	Enterobacter quasiroggenkampii	0.00013273887140726625
+s__Eubacterium maltosivorans	5	0.0004	2041044	Eubacterium maltosivorans	3.123267562523912e-05
+s__Eubacterium_G segne	5	0.0004	2293103	Eubacterium sp. AF15-50	3.123267562523912e-05
+s__Faecalibacillus faecis	5	0.0123	1982628	Faecalibacillus faecis	0.0009604047754761029
+s__Faecalitalea cylindroides	5	0.0042	39483	Faecalitalea cylindroides	0.00032794309406501075
+s__Fusicatenibacter saccharivorans	5	0.7944	2292960	Blautia sp. AF19-1	0.06202809379172489
+s__Kallipyga massiliensis	5	0.0004	1472764	Kallipyga massiliensis	3.123267562523912e-05
+s__Kingella kingae	5	0.0004	504	Kingella kingae	3.123267562523912e-05
+s__Lacticaseibacillus paracasei	5	0.028	1597	Lacticaseibacillus paracasei	0.0021862872937667387
+s__Lacticaseibacillus rhamnosus	5	0.0009	47715	Lacticaseibacillus rhamnosus	7.027352015678801e-05
+s__Lactobacillus helveticus	5	0.0013	1587	Lactobacillus helveticus	0.00010150619578202713
+s__Lactobacillus panisapium	5	4.3912	2012495	Lactobacillus panisapium	0.3428723130138751
+s__Lactobacillus paragasseri	5	3.5567	2107999	Lactobacillus paragasseri	0.27771314349071996
+s__Ligilactobacillus agilis	5	0.0004	1601	Ligilactobacillus agilis	3.123267562523912e-05
+s__Mediterraneibacter massiliensis	5	0.348	1720300	Mediterraneibacter massiliensis	0.027172427793958034
+s__Megamonas funiformis	5	0.3914	437897	Megamonas funiformis	0.03056117309929648
+s__Oscillibacter welbionis	5	0.0013	2109687	Oscillibacter sp. PEA192	0.00010150619578202713
+s__Parolsenella catena	5	0.3485	2003188	Parolsenella catena	0.027211468638489583
+s__Peptostreptococcus anaerobius	5	0.0004	1261	Peptostreptococcus anaerobius	3.123267562523912e-05
+s__Romboutsia_C sp015668195	5	0.1003	2787108	Romboutsia sp. 1001713B170131_170501_G6	0.00783159341302871
+s__Salmonella enterica	5	0.0008	2819737	Salmonella sp. 32082101-2017-00322-FB-01-SM-01	6.246535125047824e-05
+s__Staphylococcus hominis	5	0.0072	1290	Staphylococcus hominis	0.0005621881612543041

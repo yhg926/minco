@@ -1,0 +1,46 @@
+sample	fn_species	truth_pct	candidate	calibrated_call	prob	u_xny	u_ani	u_af	s_xny	s_ani	s_af	s_breadth	s_mean	taxid	species_name
+0	s__Blautia_A faecis	7.00652090583281	present	False	0.3065130357598778	388.0	0.956966	0.388	602.0	0.964208	0.602	0.45502	21.840216	871665.0	Blautia faecis
+0	s__Faecalibacterium taiwanense	7.00110627216403	present	False	0.2422328186121928	193.0	0.925224	0.193	731.0	0.951724	0.731	0.34574	19.585433	3030638.0	Faecalibacterium taiwanense
+0	s__Bacteroides sp947646015	5.39536992340439	present	False	0.031777948666301	184.0	1.0	0.184	759.0	1.0	0.759	0.372802	7.440281	162156.0	uncultured Bacteroides sp.
+0	s__Faecalibacterium tardum	2.23604790482294	present	False	0.056340911752483	81.0	0.885759	0.081	561.0	0.918206	0.561	0.165388	5.321811	3133156.0	Faecalibacterium tardum
+0	s__Streptococcus salivarius_E	0.88317268916011	present	False	0.0341904046071305	93.0	0.89204	0.093	697.0	0.931264	0.697	0.220422	2.30018	2762571.0	Streptococcus sp. 9.1
+0	s__Agathobaculum butyriciproducens	0.43058763460334	present	False	0.2721497237668255	290.0	0.944479	0.29	456.0	0.951409	0.456	0.338273	1.447011	1628085.0	Agathobaculum butyriciproducens
+0	s__Bifidobacterium pseudocatenulatum	0.0034490990546606893	present	False	0.3474286058246037	8.0	0.850682	0.008	49.0	0.857519	0.049	0.021797	0.03024	28026.0	Bifidobacterium pseudocatenulatum
+0	s__Aeromonas sp023093515	0.0019730653980810056	present	False	0.0951361617081767	1.0	1.0	0.001	6.0	1.0	0.006	0.002416	0.002416	651.0	Aeromonas media
+0	s__Enterobacter hormaechei_C	0.0007078936924412769	absent												
+0	s__Enterococcus_D innesii	0.000527154877349887	present	False	5.0028213337841726e-05	0.0	0.0	0.0	4.0	0.665133	0.004	0.000602	0.001922	2839759.0	Enterococcus innesii
+0	s__Enterococcus_B pernyi	0.0004819701735770396	present	False	0.3206212257831524	4.0	1.0	0.004	16.0	0.77564	0.016	0.00498	0.011113	53346.0	Enterococcus mundtii
+0	s__Eubacterium_G sp000435815	0.0003991315499934859	present	False	0.0778967324056693	7.0	1.0	0.007	22.0	0.783522	0.022	0.008544	0.094201	2293108.0	Eubacterium sp. AF36-5BH
+0	s__Streptococcus salivarius_F	0.0003313544943342147	absent												
+0	s__Kingella kingae	0.00030876214244779094	present	False	0.0488088148434176	2.0	1.0	0.002	2.0	1.0	0.002	0.002	0.002	504.0	Kingella kingae
+0	s__Bifidobacterium angulatum	0.00028616979056136726	absent												
+1	s__Bacteroides sp947646015	15.92462462921472	present	False	0.0454671462075862	210.0	1.0	0.21	797.0	1.0	0.797	0.391942	18.143636	162156.0	uncultured Bacteroides sp.
+1	s__Blautia_A faecis	11.70866662849214	present	False	0.2916310572268733	394.0	0.957663	0.394	613.0	0.964895	0.613	0.461941	36.132186	871665.0	Blautia faecis
+1	s__Faecalibacterium taiwanense	3.08431147948259	present	False	0.3153957382662384	192.0	0.924988	0.192	727.0	0.951523	0.727	0.344217	8.72504	3030638.0	Faecalibacterium taiwanense
+1	s__Faecalibacterium tardum	0.9849787808197501	present	False	0.0178297773368543	84.0	0.887413	0.084	567.0	0.919149	0.567	0.168853	2.419759	3133156.0	Faecalibacterium tardum
+1	s__Agathobaculum butyriciproducens	0.40135721841858	present	False	0.2687874054986449	287.0	0.94456	0.287	452.0	0.951573	0.452	0.33581	1.264563	1628085.0	Agathobaculum butyriciproducens
+1	s__Streptococcus salivarius_E	0.29537348335161	present	False	0.0143065916119548	93.0	0.893346	0.093	675.0	0.931324	0.675	0.214074	0.773228	2762571.0	Streptococcus sp. 9.1
+1	s__Streptococcus vaginalis	0.06918562256147	present	False	0.2132530366122675	161.0	0.936125	0.161	493.0	0.960984	0.493	0.273736	0.439941	2748301.0	Streptococcus vaginalis
+1	s__Coprococcus ammoniilyticus	0.006060776124587656	present	False	0.2667112267883716	21.0	0.934099	0.021	49.0	0.851812	0.049	0.027643	0.048885	2981785.0	Coprococcus ammoniilyticus
+1	s__Bifidobacterium adolescentis	0.003946728743614797	present	False	0.3359699490011447	10.0	0.804828	0.01	51.0	0.858734	0.051	0.022448	0.031182	1680.0	Bifidobacterium adolescentis
+1	s__Eubacterium_G sp000435815	0.0014068300916546003	present	False	0.0892205904290485	10.0	1.0	0.01	27.0	0.799511	0.027	0.012127	0.078379	2293108.0	Eubacterium sp. AF36-5BH
+1	s__Aeromonas sp023093515	0.0012091134301247643	present	False	0.0029233391935302	0.0	0.0	0.0	2.0	1.0	0.002	0.001	0.001	651.0	Aeromonas media
+1	s__Bifidobacterium angulatum	0.0010494192035045125	absent												
+1	s__Coprobacter secundus	0.0010494192035045125	present	False	0.3397059904249204	2.0	1.0	0.002	13.0	0.729501	0.013	0.002597	0.015551	1501392.0	Coprobacter secundus
+1	s__Vibrio cholerae	0.001003792281613012	present	False	0.3145443379088041	2.0	1.0	0.002	4.0	1.0	0.004	0.003	0.003	666.0	Vibrio cholerae
+1	s__ECMA0423 sp047199055	0.0006539858804448412	absent												
+2	s__Blautia_A fusiformis	6.81749893731895	present	False	0.1138787574495514	84.0	0.887412	0.084	757.0	0.94097	0.757	0.272897	12.363842	2881264.0	Blautia fusiformis
+2	s__Streptococcus sp001556435	0.38025007624966	absent												
+2	s__Streptococcus salivarius_F	0.07161238379536	absent												
+2	s__Veillonella parvula_A	0.016800413914619998	absent												
+2	s__Akkermansia sp004167605	0.004849677004431684	present	False	0.1820822130448836	31.0	1.0	0.031	83.0	0.873042	0.083	0.048013	0.093868	3115152.0	Akkermansia sp. RCC_12PD
+2	s__Bacteroides cellulosilyticus	0.0026974115893262365	absent												
+2	s__Escherichia coli	0.0024566976942157585	absent												
+2	s__Streptococcus salivarius_D	0.001812434033773009	absent												
+2	s__Corynebacterium hesseae	0.0010124143235528918	present	False	0.1348466399056078	3.0	1.0	0.003	5.0	1.0	0.005	0.003666	0.003666	2913502.0	Corynebacterium hesseae
+2	s__Akkermansia muciniphila	0.0006725829422204526	absent												
+2	s__Weissella cibaria	0.0006584233013316009	absent												
+2	s__Fontibacillus vini	0.0006513434808871751	present	False	9.833888335813744e-05	2.0	1.0	0.002	4.0	1.0	0.004	0.002501	0.002501	1476024.0	Paenibacillus vini
+2	s__Anaerococcus vaginalis	0.0005097470719986587	absent												
+2	s__Phocaeicola plebeius_A	0.00045310850844325226	absent												
+2	s__Hominimerdicola aceti	0.000346911201776865	present	False	0.0012524334854402	1.0	1.0	0.001	12.0	0.751027	0.012	0.003177	0.005965	2981726.0	Hominimerdicola aceti

@@ -85,6 +85,25 @@ static void copy_minco_sketch_annotations(const char *indir, const char *outdir,
 	free_read_from_file(annotations, anno_file_size);
 }
 
+static void copy_minco_domain_profiles(const char *indir, const char *outdir, int infile_num)
+{
+	if (infile_num <= 0 || !file_exists_in_folder(indir, sketch_domain_stat))
+		return;
+
+	size_t domain_file_size = 0;
+	char *domain_path = test_get_fullpath(indir, sketch_domain_stat);
+	uint8_t *profiles = read_from_file(domain_path, &domain_file_size);
+	free(domain_path);
+
+	const size_t expected_size = (size_t)infile_num * sizeof(profiles[0]);
+	if (domain_file_size != expected_size)
+		err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			__func__, indir, sketch_domain_stat, domain_file_size, expected_size);
+
+	write_to_file(test_create_fullpath(outdir, sketch_domain_stat), profiles, domain_file_size);
+	free_read_from_file(profiles, domain_file_size);
+}
+
 void sketch_inspect_print_samples(const char *sketch_path)
 {
 	void *mem_stat = read_from_file(test_get_fullpath(sketch_path, sketch_stat), &file_size);
@@ -1229,6 +1248,8 @@ static void minco_write_pairwise_context_markerdb96(set_opt_t *set_opt,
 				  mem_stat, stat_file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir,
 								  minco_stat_readin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir,
+							   minco_stat_readin.infile_num);
 
 	fprintf(stderr,
 			"minco set: pairwise coden15 context markerdb kept %" PRIu64
@@ -1437,6 +1458,8 @@ static void minco_write_pairwise_context_markerdb(set_opt_t *set_opt,
 				  mem_stat, stat_file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir,
 								  minco_stat_readin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir,
+							   minco_stat_readin.infile_num);
 
 	fprintf(stderr,
 			"minco set: pairwise context markerdb kept %" PRIu64
@@ -1714,6 +1737,8 @@ static void minco_write_context_markerdb96(set_opt_t *set_opt,
 				  mem_stat, stat_file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir,
 								  minco_stat_readin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir,
+							   minco_stat_readin.infile_num);
 
 	fprintf(stderr,
 			"minco set: coden15 context markerdb kept %zu ref-specific contexts, %" PRIu64
@@ -1865,6 +1890,8 @@ static void minco_write_context_markerdb(set_opt_t *set_opt, const void *mem_sta
 				  mem_stat, stat_file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir,
 								  minco_stat_readin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir,
+							   minco_stat_readin.infile_num);
 
 	fprintf(stderr,
 			"minco set: context markerdb kept %zu ref-specific contexts, %" PRIu64
@@ -1949,6 +1976,7 @@ static void minco_downsample_prepare_outdir(const char *outdir)
 		idx_sketch_suffix,
 		idx_sketch96_suffix,
 		minco_ctxmeta_bin_stat,
+		sketch_domain_stat,
 		combined_ab_suffix,
 		sketch_position_suffix,
 		sorted_comb_ctxgid64obj32,
@@ -2060,6 +2088,9 @@ static int minco_sketch_downsample96(set_opt_t *set_opt,
 	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
 										   sketch_qc_stat,
 										   (size_t)infile_num * sizeof(minco_sketch_qc_stat_t));
+	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
+										   sketch_domain_stat,
+										   (size_t)infile_num * sizeof(uint8_t));
 
 	char *in_comb_path = test_get_fullpath(set_opt->insketchpath,
 										   combined_sketch96_suffix);
@@ -2294,6 +2325,9 @@ int minco_sketch_downsample(set_opt_t *set_opt)
 	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
 										   sketch_qc_stat,
 										   (size_t)infile_num * sizeof(minco_sketch_qc_stat_t));
+	minco_downsample_copy_optional_sidecar(set_opt->insketchpath, set_opt->outdir,
+										   sketch_domain_stat,
+										   (size_t)infile_num * sizeof(uint8_t));
 
 	char *in_comb_path = test_get_fullpath(set_opt->insketchpath, combined_sketch_suffix);
 	FILE *in_comb = fopen(in_comb_path, "rb");
@@ -2663,6 +2697,8 @@ int minco_sketch_union(set_opt_t *set_opt)
 					  mem_stat, stat_file_size);
 		copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir,
 									  minco_stat_readin.infile_num);
+		copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir,
+								   minco_stat_readin.infile_num);
 		free(sorted_kmers);
 		free_all(mem_stat, NULL);
 		return 1;
@@ -2784,6 +2820,7 @@ int minco_sketch_union(set_opt_t *set_opt)
 		err(EINVAL, "operation value %d neither 2 (-u: union) nor 3 (-q :uniq uion )", set_opt->operation);
 	write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), mem_stat, stat_file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir, minco_stat_readin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir, minco_stat_readin.infile_num);
 	free(sorted_kmers);
 	free_all(mem_stat, NULL);
 	return 1;
@@ -2810,6 +2847,7 @@ int minco_sketch_operate(set_opt_t *set_opt)
 	// copy sketch stat file to result sketch
 	write_to_file(test_create_fullpath(set_opt->outdir, sketch_stat), mem_stat_minco, file_size);
 	copy_minco_sketch_annotations(set_opt->insketchpath, set_opt->outdir, minco_stat_origin.infile_num);
+	copy_minco_domain_profiles(set_opt->insketchpath, set_opt->outdir, minco_stat_origin.infile_num);
 
 	if (origin_payload.use_ctxobj96)
 	{

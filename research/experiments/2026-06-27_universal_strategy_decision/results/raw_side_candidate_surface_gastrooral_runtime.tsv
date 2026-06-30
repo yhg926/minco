@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_raw_side_candidate_surface_gastrooral.py	44.07	42.83	2.70	4010936	0	focused HMP gastrooral replay of accession-level zero-mass raw-side candidate profile rows

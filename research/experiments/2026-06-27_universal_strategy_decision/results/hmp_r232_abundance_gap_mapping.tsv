@@ -1,0 +1,3 @@
+sample	profile	called_rows	mapped_called_rows	mapped_called_species	mapping_methods	raw_ref_rows	raw_ref_taxids	raw_ref_taxids_gtdb_mapped
+6	/tmp/minco_current_code_hmp_refresh_20260627/minco_sample6_current_exact.tsv	16	16	16	s_best_accession:exact_accession:16	160802	26168	26168
+11	/tmp/minco_current_code_hmp_refresh_20260627/minco_sample11_current_exact.tsv	32	32	32	s_best_accession:exact_accession:32	198186	36133	36133

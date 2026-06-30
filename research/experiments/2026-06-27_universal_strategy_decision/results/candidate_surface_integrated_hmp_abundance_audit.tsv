@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+profiles_replayed	26	/tmp/minco_candidate_surface_integrated_hmp_abundance_20260629	cached_hmp_integrated_replay
+added_rows	14	candidate_surface_added rows	candidate_surface_behavior
+nonzero_added_rows	14	normalized-depth-alpha2	abundance_policy_behavior
+max_added_raw_mass_delta	8.881784197001252e-16	calibrated_abundance_raw versus 2*max(s,u Normalized_abundance_depth)*base_called_raw_mass	pass
+max_delta_vs_fixed_call_policy_sweep	counts=0;L1=3.38e-14;Pearson=4.44e-16	candidate_surface_integrated_hmp_abundance_vs_policy_sweep.tsv	matches
+promotion_decision	experimental_not_default	HMP wrapper validation only; cross-panel wrapper validation still incomplete	do_not_change_current_default

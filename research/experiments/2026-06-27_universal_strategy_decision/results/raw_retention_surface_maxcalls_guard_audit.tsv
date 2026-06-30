@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+scope	43 samples / 7 panels offline guard replay; marine samples3-5 implementation smoke	raw_retention_surface_maxcalls_guard_sweep.tsv; raw_retention_surface_maxcalls_guard_smoke.tsv	diagnostic_scope
+guard_rule	candidate surface active only when pre-surface called species count <= 250	--candidate-surface-max-called-species 250	opt_in_guard_not_default
+offline_best_thr_250	mean_delta_F1=0.006671403783309038;min_delta_F1=0.0;sample_worsen_n=0;panel_worsen_n=0;mean_delta_L1=-0.48805803498831124;TP_delta=30;FP_delta=5	hybrid replay from current and combined wrapper score tables	strict_pass_diagnostic_candidate
+smoke_profiles	samples=3,4,5;surface_added_sum=0;guard_blocked=True	/tmp/minco_raw_retention_surface_maxcalls_guard_20260630.marine*.tsv	implementation_blocks_regression_samples
+smoke_runtime	median_wall=0:17.40;max_rss_kb_max=3452476;exit_statuses=0	/tmp/minco_raw_retention_surface_maxcalls_guard_20260630.marine*.time.log	runtime_smoke_complete
+promotion_decision	diagnostic_only_not_default	same cached-panel replay plus three implementation smokes; no new independent holdout	keep_opt_in_until_full_wrapper_replay_or_independent_validation

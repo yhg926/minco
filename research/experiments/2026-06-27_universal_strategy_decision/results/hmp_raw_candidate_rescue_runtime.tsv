@@ -1,0 +1,6 @@
+metric	value	unit	evidence
+wall_time	153.55	seconds	/usr/bin/time -v corrected cached sweep run; elapsed 2:33.55
+max_rss	4143500	kB	/usr/bin/time -v corrected cached sweep run
+user_time	150.62	seconds	/usr/bin/time -v corrected cached sweep run
+system_time	4.39	seconds	/usr/bin/time -v corrected cached sweep run
+exit_status	0	status	/usr/bin/time -v corrected cached sweep run

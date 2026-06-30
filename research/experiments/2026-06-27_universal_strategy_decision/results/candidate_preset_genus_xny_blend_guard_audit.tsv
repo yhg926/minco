@@ -1,0 +1,8 @@
+metric	value	evidence	decision
+tested_guard_rules	3722	single-feature plus top-pair output-derived threshold guards	truth_used_only_for_scoring
+sample_safe_guards	394	candidate_preset_genus_xny_blend_guard_rules.tsv	strict_sample_gate
+panel_safe_guards	3509	candidate_preset_genus_xny_blend_guard_rules.tsv	panel_gate
+best_mean_guard	two_feature_and;adjusted_base_row_frac>=0.441796 AND base_mass_multi_genus_frac>=0.375015;mean_delta=-0.814759;worsened_samples=3;max_worse=0.039258;switched=27	candidate_preset_genus_xny_blend_guard_rules.tsv	tradeoff
+best_sample_safe_guard	two_feature_and;s_xny_mean<=783.804 AND blend_perturb_max_frac>=0.00184827;mean_delta=-0.798743;switched=22	candidate_preset_genus_xny_blend_guard_rules.tsv	candidate
+lopo_guard_result	mean_delta=-0.505883;holdouts_with_mean_regression=0;holdouts_with_sample_regression=2;max_sample_worse=0.220479	candidate_preset_genus_xny_blend_guard_lopo.tsv	leave_one_panel_out_validation
+promotion_decision	sample_safe_in_panel_but_fails_lopo	guard rules plus leave-one-panel-out	sample_safe_in_panel_but_fails_lopo

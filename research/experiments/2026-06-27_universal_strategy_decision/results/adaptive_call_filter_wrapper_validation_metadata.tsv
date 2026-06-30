@@ -1,0 +1,11 @@
+profile	adaptive_call_filter_switch	adaptive_call_filter_applied	adaptive_call_filter_removed_n	adaptive_call_filter_input_call_n	adaptive_call_filter_output_call_n	observed_called_n	adaptive_call_filter_max_xny_median	adaptive_call_filter_max_xny_median_threshold	adaptive_call_filter_min_xny_threshold	expected_offline_method	panel	sample	pred_species	pred_abundance_sum
+/tmp/minco_adaptive_call_filter_validation_20260629/toymouse_sample5.tsv	lopo-min-xny25	False	0	162	162	162	249.0	253.0	25.0	current_calls	cami2_toy_mouse_gut	5	162	1.0000000000000002
+/tmp/minco_adaptive_call_filter_validation_20260629/toymouse_sample6.tsv	lopo-min-xny25	True	0	157	157	157	289.0	253.0	25.0	min_xny_ge_25	cami2_toy_mouse_gut	6	157	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/toymouse_sample7.tsv	lopo-min-xny25	True	0	64	64	64	455.5	253.0	25.0	min_xny_ge_25	cami2_toy_mouse_gut	7	64	1.0000000000000002
+/tmp/minco_adaptive_call_filter_validation_20260629/hmp_airskin_sample6.tsv	lopo-min-xny25	True	0	16	16	16	1000.0	253.0	25.0	min_xny_ge_25	hmp_airskin_gtdb_source_abundance	6	16	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/hmp_airskin_sample11.tsv	lopo-min-xny25	True	0	32	32	32	922.5	253.0	25.0	min_xny_ge_25	hmp_airskin_gtdb_source_abundance	11	32	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/hmp_gastrooral_sample0.tsv	lopo-min-xny25	True	0	34	34	34	803.5	253.0	25.0	min_xny_ge_25	hmp_gastrooral_gtdb_source_abundance	0	34	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/hmp_gastrooral_sample6.tsv	lopo-min-xny25	True	1	51	50	50	833.0	253.0	25.0	min_xny_ge_25	hmp_gastrooral_gtdb_source_abundance	6	50	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/cami3_sample0.tsv	lopo-min-xny25	False	0	94	94	94	210.0	253.0	25.0	current_calls	cami3_toy_human_gut_gtdb_source_readmap	0	94	0.9999999999999999
+/tmp/minco_adaptive_call_filter_validation_20260629/cami3_sample1.tsv	lopo-min-xny25	False	0	99	99	99	174.0	253.0	25.0	current_calls	cami3_toy_human_gut_gtdb_source_readmap	1	99	1.0
+/tmp/minco_adaptive_call_filter_validation_20260629/cami3_sample2.tsv	lopo-min-xny25	False	0	115	115	115	109.0	253.0	25.0	current_calls	cami3_toy_human_gut_gtdb_source_readmap	2	115	1.0

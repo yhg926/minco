@@ -1,0 +1,22 @@
+sample	genome	abundance	ncbi_id	novelty_category	map_source	gtdb_species
+0	MIKI-NS23	6.049594440596161	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+0	spades_And10925_S5_L001	5.000809814596953	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+0	MIKI-NS15	2.45330666906504	1235803	new_strain	ncbi_species_taxid	s__Parabacteroides goldsteinii
+0	spades_And11624_S6_L001	1.411300643354456	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+0	MIKI-NS25	0.14503758672050673	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+0	spades_And12875_S7_L001	0.028718646648193694	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+0	MIKI-NS24	0.006207812970712545	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+1	spades_And10925_S5_L001	1.232982769637114	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+1	MIKI-NS24	0.8154605488825191	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+1	MIKI-NS25	0.5445750897619027	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+1	spades_And12875_S7_L001	0.045557692474042205	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+1	MIKI-NS15	0.025174102505771085	1235803	new_strain	ncbi_species_taxid	s__Parabacteroides goldsteinii
+1	MIKI-NS23	0.016814515228029406	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+1	spades_And11624_S6_L001	0.009250663971948923	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+2	spades_And10925_S5_L001	7.3991780826794	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+2	MIKI-NS23	0.5715259312224878	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+2	spades_And12875_S7_L001	0.06585681620931165	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+2	spades_And11624_S6_L001	0.05375059000694505	1639133	new_strain	ncbi_species_taxid	s__Citrobacter portucalensis
+2	MIKI-NS15	0.019839485337297704	1235803	new_strain	ncbi_species_taxid	s__Parabacteroides goldsteinii
+2	MIKI-NS25	0.014576361237601948	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii
+2	MIKI-NS24	0.013646003286971721	671267	new_strain	ncbi_species_taxid	s__Phocaeicola sartorii

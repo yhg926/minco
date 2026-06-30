@@ -1,0 +1,3 @@
+panel	samples	high_truth_emitted_absent	raw_candidate_visible	raw_candidate_absent	raw_candidate_visible_truth_mass_pct	raw_candidate_absent_truth_mass_pct	mean_visible_XnY_ctx	mean_visible_Ref_breadth	mean_visible_ANI
+hmp_airskin_gtdb_source_abundance	4,5,14,15,18,20,23,25	9	9	0	19.711829252444677	0.0	677.2222222222222	0.23294755555555557	0.9330011111111111
+hmp_gastrooral_gtdb_source_abundance	0	1	1	0	8.611111111111212	0.0	958.0	0.751749	0.987029

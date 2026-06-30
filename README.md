@@ -98,6 +98,124 @@ Query ANI against a reference sketch:
 bin/minco ani -p8 -r ref.minco -q query.minco -m0 -o ani.tsv
 ```
 
+Calibrated species profiling uses the default wrapper:
+
+```bash
+scripts/minco_profile \
+  -r ref.minco --reads reads.fq.gz -p16 \
+  -o calibrated.profile.tsv
+```
+
+Before an expensive run, check that a reference bundle is self-contained:
+
+```bash
+scripts/minco_profile --check-ref -r ref.minco --reads reads.fq.gz
+```
+
+This is the recommended no-manual-strategy entry point for the current MinCO
+species default. `scripts/minco_profile` is a short launcher over
+`minco_profile_default.py`, which delegates to
+`minco_profile_calibrated.py`, adds `--strategy universal-auto-exact`, and uses
+the `candidate` preset unless the caller explicitly chooses another preset.
+Existing scripts can continue to call `scripts/minco_profile_default.py`
+directly.
+The candidate preset enables the validated candidate rescue/surface switches
+and `normalized-depth-alpha2` candidate abundance as one default path. Use
+`--profile-preset current` or `MINCO_PROFILE_PRESET=current` to reproduce the
+previous calibrated default without those candidate additions. Packaged species
+databases can ship `species_taxmap.tsv` and `joined_feature_training/` beside
+`ref.minco`, so the command above has no strategy or calibration-path flags.
+For unpackaged layouts, pass `--taxmap` and `--train-features`, or set
+`MINCO_PROFILE_TAXMAP` and `MINCO_PROFILE_TRAIN_FEATURES`. A packaged database
+can also ship a fitted RF/HGB model cache such as
+`minco_profile_rf_hgb.train12.unfiltered.joblib`; pass `--model-cache` or set
+`MINCO_PROFILE_MODEL_CACHE` to skip refitting the calibration models for every
+sample. If the database ships `candidate_surface_taxmap.tsv` or
+`accession_species_taxmap.tsv` beside `ref.minco`, the launcher passes it as
+the candidate-surface label map; the same path can also be supplied with
+`MINCO_PROFILE_CANDIDATE_SURFACE_TAXMAP`. Set `MINCO_PROFILE_MINCO` to choose a
+non-default `minco` binary, or pass `--minco` explicitly.
+`--check-ref` and its alias `--preflight` stop after validating these packaged
+inputs and print the resolved sidecars and delegated strategy.
+Advanced validation runs can override `--candidate-surface-switch
+accession-ani93-xny650-br20` to test the stricter raw-retention surface mode;
+`accession-current-or-ani93-xny650-br20` preserves the current candidate
+surface while adding that stricter validation surface. The default preset does
+not select either mode. `--candidate-surface-max-called-species N` can be used
+in validation runs to disable candidate-surface additions on very large
+pre-surface call sets; the default `0` leaves this guard off.
+
+When raw reads are supplied, the wrapper auto-selects the initial evidence
+scheduler: `-p1` uses same-stream unique sidecar generation, while `-p>=2`
+runs unique and split readwise MinCO passes concurrently and splits the thread
+budget between them. Use `--sequential-readwise-passes`,
+`--same-stream-readwise-passes`, or `--legacy-dual-readwise-passes` only for
+debugging or scheduler benchmarks.
+Advanced speed experiments can also pass `--same-stream-exact-split` to write
+the exact split table during the initial split pass and avoid a later exact
+rerun when the auto-exact gate fires. This is not the default because it adds
+work when the exact gate does not fire.
+
+Direct raw-read profiling against a species, AMR, virus, gene, or mixed
+reference sketch uses the C subcommand:
+
+```bash
+bin/minco profile -p16 -r ref.minco reads.fq.gz -o profile.tsv
+```
+
+`profile` is the conservative C wrapper for direct readwise abundance
+profiling. It uses reference-density extraction, depth abundance, profile-only
+memory bounds, best-diff-split shared-context assignment, naive readwise ANI,
+and product-topfrac-median context defaking by default. Use `--report-all` when
+a benchmark or debugging run needs every reference comparison instead of only
+the default called rows.
+
+In the calibrated wrapper, `train12` includes the strainmadness joined-feature
+tables when present. Use `train9` for locked strainmadness holdout testing.
+`--strategy universal`
+applies the current fixed experimental gate: adaptive+sub95 calls, a
+high-confidence raw-unique fallback, guarded high-extra/low-unique-AF tail
+rescue, guarded low-extra split rescue, and panel zip-corrected depth abundance
+over the final retained species. The default `--strategy universal-auto-exact`
+first runs that block-mode gate, then reruns the split pass with
+`--density-block-ctx 0` when the block-mode probability-rescue mass is low and
+the high-uAF/raw-unique guard passes. By default it skips that exact rerun when
+the block-mode low-extra split rescue already added candidates; pass
+`--exact-split-low-extra-mode allow` to keep the older exact behavior. This is
+the current best documented MinCO F1-priority default, at the cost of variable
+runtime. The default launcher also applies the candidate preset: candidate
+rescue/surface calls plus normalized-depth candidate abundance. This should not
+be read as a general Sylph-beating abundance/default claim; Sylph remains
+stronger on some held-out panels. Use `--profile-preset current` to reproduce
+the previous MinCO default, and use `--strategy probability` only to reproduce
+the legacy RF/HGB threshold-only wrapper output.
+
+For speed-priority calibrated screening, use `--strategy universal` with a
+model cache and leave `--report-all` off. This always skips the exact split
+rerun and writes only called rows. With the default low-extra exact-skip rule,
+CAMI II Toy Mouse sample6 ran in 1:47.90 with 3.43 GiB peak RSS versus Sylph
+sketch+profile at 1:50.98 with 18.81 GiB; the same sample still favored Sylph
+for F1 and abundance accuracy, so this is a runtime win rather than a broad
+accuracy win.
+
+The calibrated wrapper reports `reported_ani` as a diagnostic continuous ANI
+field. It uses split `Ref_zip_aaf_ani` by default, or unique `Ref_zip_aaf_ani`
+when the raw-unique fallback is active. This avoids the saturated raw/emitted
+readwise ANI field in metagenome profiles, but it is not used as a separate
+default call gate.
+
+For retained species, `calibrated_abundance` is normalized from a broad-panel
+depth rule: normal rows use the larger of split and unique
+`Ref_mean_depth / Ref_zip_af`, while tail-rescue-added rows use split
+`Ref_mean_depth` directly. Fixed-call sweeps over Toy Mouse, CAMI3
+source-readmap, HMP airskin, and HMP gastrooral found no all-panel abundance
+replacement, so this remains the default. `--abundance-genus-xny-blend-alpha`
+is available only as an experimental abundance-only diagnostic; its default is
+`0.0`, which leaves the selected default abundance unchanged. The experimental
+`--abundance-feature-allocator-switch guarded-genus-hit-breadth-a002` option
+applies a guarded within-genus abundance reallocation using hit-depth and
+breadth features when the output-derived guard passes; its default is `off`.
+
 All-vs-all ANI lower triangle:
 
 ```bash
@@ -175,11 +293,16 @@ Add `--abundance-est depth` to also append experimental per-reference
 breadth/depth metrics, including `Relative_abundance_depth` and
 `Normalized_abundance_depth`, `Ref_zip_af`, `Ref_zip_aaf_ani`, plus
 post-filter diagnostic `Reliable_Ref_*` columns and `Default_call`.
+For conservative direct readwise profiling, prefer the shorter `minco profile`
+command above; it selects these readwise abundance settings automatically and
+keeps `ani` as the lower-level ANI/debug interface. For the current
+F1-priority calibrated species default candidate, use
+`scripts/minco_profile` as described above.
 With no custom `-f`, `-n`, `-t`, or `--top`, minco applies
 the default readwise abundance report: it uses
 a sketch-size-scaled support cutoff
 `min(S, max(100, ceil(S/100)))`, requires `Ref_breadth >= 0.5` and
-`ANI >= 0.96`, and prints only `major` and `low_abundance` calls. The
+`ANI >= 0.95`, and prints only `major` and `low_abundance` calls. The
 normalized column sums to 1 across printed rows.
 Use explicit filters such as `-f0 -n0 -t0` when every candidate comparison must
 be reported. This abundance option requires the direct readwise FASTQ density
@@ -193,18 +316,43 @@ mode `Unique_query_ctx` is reported as 0, query AF is approximated from
 reference breadth for filtering/reporting, and naive ANI still uses
 unique-best matched context-object differences.
 
+For AMR/gene reference databases, treat the readwise table as a determinant
+screen rather than exact allele truth. A practical clinical-style report should
+group close allele hits to determinant/family names and emit detected rows such
+as `high_confidence` and `screening_positive`; exact allele labels are best
+shown as representative hints. Normal MinCO runs cannot know which genes are
+missing from the installed reference database, so they should not print absent
+determinant names. A `not_in_refdb` status is meaningful only in a benchmark or
+comparator report where an external expected list, such as an NCBI AMR table,
+is supplied.
+
+Tag AMR or gene-panel sketches before distribution or merge so these rules
+travel with the database:
+
+```bash
+bin/minco set --set-domain amr minco-db-amr-s100.minco
+```
+
+`minco.domain` is one byte per reference and is preserved by sketch append,
+merge, downsample, keep/remove, and markerdb operations. Untagged references in
+a mixed merged database remain the default species profile. AMR/gene readwise
+`Default_call` uses domain-specific gates: `major` requires
+`Ref_breadth >= 0.60`, `support >= max(30, ceil(0.03*S))`, and `ANI >= 0.96`;
+`screening` requires `Ref_breadth >= 0.35`,
+`support >= max(20, ceil(0.02*S))`, and `ANI >= 0.95`.
+
 Write Kraken-like read tracking as a sidecar table:
 
 ```bash
-bin/minco ani -p16 -r ref.minco --qraw reads.fq.gz --query-density ref \
-  --readwise-track reads.track.tsv \
-  --readwise-taxonomy both \
+bin/minco profile -p16 -r ref.minco reads.fq.gz \
+  --track reads.track.tsv \
+  --taxonomy both \
   --gtdb-taxmap ref.gtdb_taxmap.tsv \
   --ncbi-taxmap ref.ncbi_taxmap.tsv \
-  -m0 -o reads_vs_ref.tsv
+  -o profile.tsv
 ```
 
-`--readwise-track` writes one row for each read with at least one selected
+`--track` writes one row for each read with at least one selected
 reference hit. It records the read id, read length, retained density-context
 count, matched/selected context counts, selected context offsets from the
 0-based read start, target reference count, target reference list, and optional
@@ -213,7 +361,7 @@ to the closest common ancestry over the selected best-diff target references.
 Tracking forces exact per-read density units (`--density-block-ctx 0`), because
 block mode intentionally loses read identity and context offsets. A summary TSV
 is written to `<reads.track.tsv>.summary.tsv` unless
-`--readwise-track-summary` is set; it includes tracked-read percentage,
+`--track-summary` is set; it includes tracked-read percentage,
 density-positive no-hit read percentage, and context-level reference-hit
 fractions. When `minco.ctxmeta` is available, the summary reports
 `estimated_unknown_reads_pct`, a Horvitz-Thompson estimate of the percentage of
@@ -224,14 +372,34 @@ candidate references. This is the efficient S2000-style estimate for
 full-context unknown read percentage, but it is a whole-genome estimate only
 for full density-sampled reference sketches, not markerdbs.
 
+For abundance-method debugging, `profile` can also dump context-level
+ambiguity edges:
+
+```bash
+bin/minco profile -p16 -r ref.minco reads.fq.gz \
+  --edge-out reads.edges.tsv \
+  --edge-max 10000000 \
+  -o profile.tsv
+```
+
+`--edge-out` writes one row per candidate reference edge in each retained
+read/context ambiguity group. Columns include `read_id`, `unit_id`, `qctx`,
+candidate `gid`, `diff`, `best_diff`, `candidate_refs`, `selected_refs`,
+`selected_by_mode`, and `cov_inc`. By default only ambiguous groups are
+written and groups with more than 64 candidate refs are skipped; use
+`--edge-all`, `--edge-selected-only`, `--edge-max`, and
+`--edge-max-candidates` to change this. Edge output forces
+`--density-block-ctx 0` so the context groups are exact per-read events. It is
+an experimental diagnostic/EM substrate and is not part of the calibrated
+species default.
+
 Write a CAMI taxonomic profile from the printed readwise abundance rows:
 
 ```bash
-bin/minco ani -p16 -r ref.minco --qraw reads.fq.gz --query-density ref \
-  --abundance-est depth --readwise-profile-only \
+bin/minco profile -p16 -r ref.minco reads.fq.gz \
   --cami-taxmap ref.cami_taxmap.tsv \
   --cami-profile sample.profile --cami-sample-id sample_1 \
-  -m0 -o reads_vs_ref.tsv
+  -o profile.tsv
 ```
 
 For sensitive CAMI-style species discovery on a large reference set, the

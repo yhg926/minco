@@ -1,0 +1,9 @@
+metric	value	evidence	decision
+profiles_scored	32	cami2_toy_mouse_gut,hmp_airskin_gtdb_source_abundance,hmp_gastrooral_gtdb_source_abundance,cami3_toy_human_gut_gtdb_source_readmap	cached_cross_panel_candidate_abundance_sweep
+selected_call_rule	ANI>=0.90;XnY>=100;breadth>=0.01;real_af>=0.70	same rule as cross_panel_candidate_rescue best sample-safe zero-mass rule	fixed_call_set
+tested_nonzero_policies	114	normalized-depth, raw-abundance-scaled, and XnY-share candidate-only mass with alpha/cap grid	diagnostic_scope
+best_mean_L1_policy	raw_abundance_scaled_alpha2_cap0.05	mean_delta_L1=-1.0795731979116212;worsened_samples=1.0;worsened_panels=1.0;mean_added_mass=0.0326118125	best_cross_panel_diagnostic_policy
+sample_safe_nonzero_policies	66	nonzero policies with no per-sample official-L1 increase versus zero-mass selected call set	safety_screen
+panel_safe_nonzero_policies	76	nonzero policies with no panel-mean official-L1 increase versus zero-mass selected call set	safety_screen
+best_sample_safe_policy	normalized_depth_alpha2	mean_delta_L1=-0.7433201881437104;mean_added_mass=0.01902722916666667	candidate_requires_wrapper_validation
+promotion_decision	diagnostic_only_not_default	cached fixed-call abundance sweep only; no wrapper default change	do_not_promote

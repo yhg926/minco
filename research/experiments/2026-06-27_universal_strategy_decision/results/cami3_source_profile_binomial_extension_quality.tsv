@@ -1,0 +1,4 @@
+sample	source_profile_rows	profile_scope_rows	profile_scope_abundance_pct_all	mapped_profile_scope_abundance_pct_all	unresolved_profile_scope_abundance_pct_all	mapped_profile_scope_pct	truth_gtdb_species	unique_species_taxid_rows	unique_ncbi_species_name_rows	unique_gtdb_binomial_rows	unresolved_rows	out_of_scope_rows	release_threshold_pct	profile_scope_release_ready
+3	319	160	38.428900000000034	24.10599999999999	14.322899999999999	62.728831686569144	91	32	0	111	17	159	95.0	false
+4	288	127	43.307199999999995	33.34860000000001	9.958599999999999	77.00474747847936	75	29	0	85	13	161	95.0	false
+5	294	134	40.43949999999993	27.257799999999985	13.181700000000001	67.40389965256749	87	32	0	86	16	160	95.0	false

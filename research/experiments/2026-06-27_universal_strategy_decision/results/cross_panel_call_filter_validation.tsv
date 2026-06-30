@@ -1,0 +1,5 @@
+panel	F1_delta	L1_delta_pp	Pearson_delta	source
+cami2_toy_mouse_gut	0.0	-4.796163466380676e-14	0.0	abundance_error_decomposition_summary.tsv
+cami3_toy_human_gut_gtdb_source_readmap	0.0	-5.684341886080802e-14	3.3306690738754696e-16	abundance_error_decomposition_summary.tsv
+hmp_airskin_gtdb_source_abundance	0.0	-9.947598300641403e-14	-1.1102230246251565e-16	abundance_error_decomposition_summary.tsv
+hmp_gastrooral_gtdb_source_abundance	-1.1102230246251565e-16	-5.684341886080802e-14	0.0	abundance_error_decomposition_summary.tsv

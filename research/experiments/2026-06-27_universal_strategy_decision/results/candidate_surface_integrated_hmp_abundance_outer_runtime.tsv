@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_integrated_candidate_surface_hmp_abundance_policy.py	432.55	434.22	90.78	3801932	0	cached all-HMP integrated candidate-surface wrapper replay with --candidate-abundance-policy normalized-depth-alpha2

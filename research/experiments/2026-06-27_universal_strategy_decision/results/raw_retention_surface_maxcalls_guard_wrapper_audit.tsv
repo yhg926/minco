@@ -1,0 +1,8 @@
+metric	value	evidence	decision
+scope	samples=43;panels=7;policies=zero,normalized-depth-alpha2;max_called_species=250	cached table-mode guarded wrapper replay	diagnostic_scope
+completed_profiles	86	wrapper timing table	complete
+strict_pass_methods	2	requires no sample or panel F1 regression versus current default	candidate_found
+best_method	wrapper_accession-current-or-ani93-xny650-br20_maxcalls250_normalized-depth-alpha2	mean_delta_F1=0.0066714037833090455;min_delta_F1=0.0;sample_worsen_n=0;panel_worsen_n=0;mean_delta_L1=-0.4880580349883114	review_candidate
+candidate_added_rows	74	sum over wrapper metadata rows	metadata
+guard_blocked_profiles	6	profiles with candidate_surface_guard_blocked=True	metadata
+promotion_decision	diagnostic_only_not_default	same cached-panel replay; no independent same-namespace holdout added here	keep_opt_in_until_independent_validation

@@ -1,0 +1,22 @@
+sample	gtdb_species	truth_raw_abundance	truth_abundance
+22	s__Aerococcus urinae_A	1.0	0.006896551724137911
+22	s__Amylolactobacillus amylophilus	8.0	0.05517241379310329
+22	s__Bacteroides cellulosilyticus	1.0	0.006896551724137911
+22	s__Fructilactobacillus sanfranciscensis	0.00799627634251	5.514673339662052e-05
+22	s__Lacticaseibacillus paracasei	1.0	0.006896551724137911
+22	s__Lactiplantibacillus plantarum	9.057165024578499	0.06246320706605843
+22	s__Lactobacillus delbrueckii	21.0	0.14482758620689612
+22	s__Lactobacillus helveticus	0.00361136283761	2.4905950604206824e-05
+22	s__Lactococcus lactis	7.0	0.04827586206896538
+22	s__Lentilactobacillus buchneri	11.0	0.07586206896551702
+22	s__Ligilactobacillus ruminis	1.0	0.006896551724137911
+22	s__Ligilactobacillus salivarius	63.0	0.43448275862068836
+22	s__Limosilactobacillus mucosae	1.0	0.006896551724137911
+22	s__Limosilactobacillus reuteri_L	4.0	0.027586206896551644
+22	s__Mycobacterium avium	11.0	0.07586206896551702
+22	s__Pseudomonas aeruginosa	1.0	0.006896551724137911
+22	s__Secundilactobacillus paracollinoides	0.931227336242	0.006422257491324119
+22	s__Streptococcus agalactiae	0.0463721228958	0.00031980774410896457
+22	s__Streptococcus gallolyticus	0.953627877104	0.006576743980027566
+22	s__Streptococcus hominis	2.0	0.013793103448275822
+22	s__Streptococcus thermophilus	1.0	0.006896551724137911

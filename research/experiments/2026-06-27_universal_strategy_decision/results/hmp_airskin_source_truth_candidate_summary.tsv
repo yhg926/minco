@@ -1,0 +1,7 @@
+metric	value
+samples_total	29
+release_truth_quality_samples	27
+same_release_outputs_available	29
+current_minco_inputs_available	29
+can_profile_without_download	2
+can_restore_from_bam_archive	29

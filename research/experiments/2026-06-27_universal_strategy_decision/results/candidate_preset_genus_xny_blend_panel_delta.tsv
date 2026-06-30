@@ -1,0 +1,5 @@
+panel	method	sample_count	mean_L1_delta_pp	max_worse_L1_delta_pp	improved_samples	worsened_samples	mean_Pearson_delta	max_count_delta	max_F1_delta
+cami2_toy_mouse_gut	default_candidate_preset_genus_xny_blend_a0.25	3	-0.1562833539324243	0.019184822225343012	2	1	-0.00014931813688475368	0	1.1102230246251565e-16
+cami3_toy_human_gut_gtdb_source_readmap	default_candidate_preset_genus_xny_blend_a0.25	3	-0.5991221733266627	-0.17829831225331816	3	0	0.0006465627869829035	0	0.0
+hmp_airskin_gtdb_source_abundance	default_candidate_preset_genus_xny_blend_a0.25	24	-0.9321019613222387	0.9934199183847312	20	4	0.0014273753549451328	0	1.1102230246251565e-16
+hmp_gastrooral_gtdb_source_abundance	default_candidate_preset_genus_xny_blend_a0.25	2	-0.17619340545503093	0.26154376061127493	1	1	0.001979054633162891	0	1.1102230246251565e-16

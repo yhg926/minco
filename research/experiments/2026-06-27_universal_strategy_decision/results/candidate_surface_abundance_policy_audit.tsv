@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+profiles_scored	26	/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-27_universal_strategy_decision/results/candidate_surface_integrated_hmp_apply.tsv	cached_integrated_surface_abundance_sweep
+tested_nonzero_policies	114	normalized-depth, XnY-share, and depth-share candidate-only mass with alpha/cap grid	diagnostic_scope
+best_mean_L1_policy	normalized_depth_alpha2	mean_delta_L1=-0.3101725650321516;worsened_samples=0.0;mean_added_mass=0.0185675	best_hmp_diagnostic_policy
+sample_safe_nonzero_policies	62	nonzero policies with no per-sample L1 increase versus zero-mass surface	safety_screen
+best_sample_safe_policy	normalized_depth_alpha2	mean_delta_L1=-0.3101725650321516;mean_added_mass=0.0185675	candidate_requires_cross_panel_validation
+promotion_decision	diagnostic_only_not_default	HMP-only fixed-call abundance sweep; no default change	do_not_promote

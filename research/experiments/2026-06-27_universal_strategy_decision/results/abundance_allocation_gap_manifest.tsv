@@ -1,0 +1,10 @@
+record_type	panel	main_gap_component	selected_default_minus_sylph_L1_pp	legacy_minco_minus_sylph_L1_pp	legacy_matched_abs_error_gap_pp	legacy_missing_truth_mass_gap_pp	legacy_extra_pred_mass_gap_pp	selected_default_minus_sylph_F1	selected_default_minus_sylph_Pearson	cached_allocator	cached_allocator_mean_delta_current_L1_pp	cached_allocator_max_worse_current_L1_pp	cached_allocator_improved_panel_count	decision
+panel_gap	cami2_toy_mouse_gut	matched_abs_error	6.798669	6.888988	5.481572	1.554743	-0.147326	-0.064928	-0.005824					abundance_gap_not_closed
+panel_gap	hmp_airskin_gtdb_source_abundance	matched_abs_error	17.056351	17.181781	11.310500	0.949829	4.921452	-0.112163	-0.016855					abundance_gap_not_closed
+panel_gap	hmp_gastrooral_gtdb_source_abundance	matched_abs_error	41.294813	43.923862	38.274541	4.474012	1.175309	-0.028484	-0.102844					abundance_gap_not_closed
+panel_gap	cami3_toy_human_gut_gtdb_source_readmap	missing_truth_mass	25.114394	30.099188	5.585748	19.641662	4.871778	0.082115	-0.081388					abundance_gap_not_closed
+cached_allocator	all_cached_panels									blend_current_genus_realloc_xny_a0.25	-0.399949	-0.151769	4	cached_signal_not_promoted_without_raw_validation
+selected_default_blend_audit	all_cached_profile_samples									default_candidate_preset_genus_xny_blend_a0.25	-0.780908	0.993420	improved=26;worsened=6	do_not_promote_abundance_blend
+selected_default_blend_guard_audit	all_cached_profile_samples									adaptive_default_candidate_preset_genus_xny_blend_guard			mean_delta=-0.505883;holdouts_with_mean_regression=0;holdouts_with_sample_regression=2;max_sample_worse=0.220479	sample_safe_in_panel_but_fails_lopo
+selected_default_blend_alpha_sweep	all_cached_profile_samples									selected_default_genus_xny_alpha_cap_sweep			genus_xny_a0.15;mean_panel_delta=-0.309376;worsened_samples=4;max_worse=0.580806	do_not_promote_alpha_sweep
+default_decision	matched_four_panel_summary	matched_allocation_primary_except_cami3	22.566056								-1.994230			selected_default_is_best_minco_candidate_not_abundance_release_claim

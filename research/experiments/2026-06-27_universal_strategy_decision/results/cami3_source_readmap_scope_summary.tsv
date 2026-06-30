@@ -1,0 +1,4 @@
+sample	all_rows_mapped_pct	profile_scope_read_rows	profile_scope_mapped_rows	profile_scope_unmapped_rows	profile_scope_mapped_pct	additional_profile_scope_rows_needed_for_95pct	out_of_scope_unmapped_rows	release_threshold_pct	profile_scope_release_ready_now
+0	79.83178297933816	18818140	17656484	1161656	93.82693507434847	220749	5547710	95.0	false
+1	79.05887212069254	23172236	21910348	1261888	94.55431059825214	103277	5704530	95.0	false
+2	84.91446663142955	26734336	25897434	836902	96.86956130124197	0	4181746	95.0	true

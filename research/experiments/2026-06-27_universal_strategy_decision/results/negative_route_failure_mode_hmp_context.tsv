@@ -1,0 +1,3 @@
+route	samples	high_truth_FN	high_truth_FN_raw_visible	high_truth_FN_raw_absent	raw_candidate_visible_truth_mass_pct	mean_visible_XnY_ctx	mean_visible_Ref_breadth	mean_visible_ANI	source
+hmp_airskin_gtdb_source_abundance	4,5,14,15,18,20,23,25	9	9	0	19.71182925244468	677.2222222222222	0.2329475555555555	0.9330011111111112	/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-27_universal_strategy_decision/results/hmp_missed_truth_raw_table_panel_summary.tsv
+hmp_gastrooral_gtdb_source_abundance	0	1	1	0	8.611111111111212	958.0	0.751749	0.987029	/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-27_universal_strategy_decision/results/hmp_missed_truth_raw_table_panel_summary.tsv

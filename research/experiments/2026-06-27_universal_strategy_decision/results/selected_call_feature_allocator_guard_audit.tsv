@@ -1,0 +1,9 @@
+metric	value	evidence	decision
+candidate_methods	genus_raw_hit_breadth_a0.02,genus_raw_hit_breadth_a0.01,genus_raw_hit_breadth_a0.005,genus_raw_mean_breadth_a0.02,genus_raw_norm_depth_a0.02,genus_raw_mean_breadth_a0.01,genus_raw_norm_depth_a0.01,genus_raw_mean_breadth_a0.005	top selected-call feature allocators by cached overall ranking	truth_used_only_for_method_scoring
+tested_guard_rules	5687	method plus output-derived threshold guards;top_saved=1000	truth_used_only_for_scoring
+sample_safe_guards	1990	full in-memory scoring;top_saved=1000	strict_sample_gate
+panel_safe_guards	5601	full in-memory scoring;top_saved=1000	panel_gate
+best_mean_guard	genus_raw_mean_breadth_a0.02;single;max_species_per_genus>=5;mean_delta=-0.323744;worsened_samples=2;max_worse=0.065742;switched=31	selected_call_feature_allocator_guard_rules.tsv;top_saved=1000	tradeoff
+best_sample_safe_guard	genus_raw_hit_breadth_a0.02;single;base_mass_multi_genus_frac>=0.375015;mean_delta=-0.312324;switched=28	selected_call_feature_allocator_guard_rules.tsv;top_saved=1000	candidate
+lopo_guard_result	mean_delta=-0.146115;holdouts_with_mean_regression=0;holdouts_with_sample_regression=0;max_sample_worse=0.000000	selected_call_feature_allocator_guard_lopo.tsv;top_rules=512	leave_one_panel_out_validation
+promotion_decision	candidate_guard_needs_wrapper_and_independent_holdout	feature allocator guard rules plus leave-one-panel-out	candidate_guard_needs_wrapper_and_independent_holdout

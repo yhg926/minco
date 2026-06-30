@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+selected_rule	cross_rescue_ani0.9_xny100_br0.01_af0.7_zero_mass	ANI>=0.90; XnY>=100; breadth>=0.01; real_af>=0.70; zero rescued abundance mass	best_cross_panel_candidate_rule
+rescued_species	20	TP=19;FP=1	detail_counts
+rescued_truth_mass_pct	57.219220395901104	sum of truth abundance over rescued true-positive species across samples	abundance_policy_target
+promotion_decision	diagnostic_only_not_default	detail explains rescued species; no wrapper implementation or abundance assignment policy	use_for_wrapper_design

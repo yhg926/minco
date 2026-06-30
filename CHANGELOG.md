@@ -1,5 +1,73 @@
 # Changelog
 
+## 2026-06-26
+
+### Added
+
+- Added opt-in `--candidate-surface-switch accession-ani93-xny650-br20` to
+  `scripts/minco_profile_calibrated.py`. It implements a stricter raw-retention
+  candidate-surface mode for validation runs and does not change the selected
+  default preset.
+- Added validation-only `--candidate-surface-switch
+  accession-current-or-ani93-xny650-br20`, which preserves the current
+  candidate surface and adds the stricter raw-retention surface for replay
+  audits. It is not selected by the default preset.
+- Added opt-in `--candidate-surface-max-called-species`, an output-derived
+  guard that skips candidate-surface additions when the pre-surface called
+  species count exceeds a supplied threshold. The default `0` disables it.
+- Added `--strategy {probability,adaptive-sub95,universal,universal-auto-exact}` to
+  `scripts/minco_profile_calibrated.py`. The experimental `universal` strategy
+  uses adaptive+sub95 calls, a high-confidence raw-unique fallback, and panel
+  zip-corrected depth abundance over the final retained species.
+- Added experimental `universal-auto-exact` wrapper mode. It evaluates the
+  normal block-mode universal gate first, then reruns the split pass with
+  `--density-block-ctx 0` when `probability_extra_mass_ratio <= 0.10` by
+  default.
+- Added `--abundance-genus-xny-blend-alpha` as an experimental abundance-only
+  diagnostic for calibrated universal strategies. The default is `0.0`, so the
+  selected calibrated abundance rule is unchanged; alpha 0.25 was rejected as
+  the default after four-panel fixed-call validation.
+- Added `--abundance-feature-allocator-switch guarded-genus-hit-breadth-a002`
+  as an experimental abundance-only candidate. It is off by default, preserves
+  candidate-added row mass, and requires independent holdout validation before
+  any default promotion.
+
+### Changed
+
+- Clarified the public profiling entrypoints: `scripts/minco_profile_default.py`
+  is the recommended no-manual-strategy launcher for calibrated species
+  profiling with `universal-auto-exact`, while `minco profile` remains the
+  conservative direct path for species/AMR/virus/gene/mixed-domain profiling
+  and read tracking.
+- Promoted `scripts/minco_profile_calibrated.py` default `--strategy` from
+  legacy `probability` to guarded `universal-auto-exact`. Use
+  `--strategy probability` to reproduce the legacy RF/HGB threshold-only gate.
+- Fixed calibrated-profile output so `profile_strategy` reports the actual
+  selected/default strategy (`universal-auto-exact`) instead of the internal
+  block-mode sub-strategy (`universal`) after auto-exact evaluation.
+
+### Validation
+
+- Added a regression check that the implicit no-`--strategy` calibrated wrapper
+  output matches explicit `--strategy universal-auto-exact`.
+
+## 2026-06-25
+
+### Added
+
+- Added `minco profile`, a simplified read-profiling subcommand over the
+  direct readwise engine. It sets reference-density extraction, depth
+  abundance, profile-only mode, `best-diff-split` assignment, naive readwise
+  ANI, and `product-topfrac-median` context defaking by default.
+- `minco profile` supports CAMI profile output, read tracking, GTDB/NCBI
+  tracking taxmaps, `--report-all` for benchmark/debug tables, and
+  `--dual-evidence` for optional Marker_* columns from full-index references.
+
+### Validation
+
+- `make minco`, `bash tests/smoke.sh`, and `bash tests/full_cli.sh` passed
+  after adding `profile`.
+
 ## 2026-06-24
 
 ### Added
@@ -8,6 +76,12 @@
   for direct `--qraw --query-density ref` readwise mode. It writes per-read
   selected reference hits, selected context offsets from the read start, target
   reference counts/lists, and optional GTDB/NCBI LCA labels.
+- Added `minco set --set-domain species|amr|virus|gene|default`, which writes
+  a `minco.domain` sidecar so domain-specific readwise reporting rules survive
+  downsample, append/merge, keep/remove, and markerdb operations.
+- Documented AMR/gene-panel reporting semantics: normal MinCO AMR runs should
+  report detected determinants from the installed refdb, while `not_in_refdb`
+  rows are benchmark/comparator-only and require an external truth list.
 - Added `--readwise-taxonomy none|gtdb|ncbi|both`, `--gtdb-taxmap`,
   `--ncbi-taxmap`, and `--readwise-track-summary`. Taxonomy maps reuse the
   existing CAMI taxmap schema.
@@ -26,10 +100,18 @@
   because block mode cannot preserve exact read ids or context offsets.
 - Renamed the previous read-level no-hit diagnostic in the tracking summary so
   it is not confused with whole-genome non-reference context absence.
+- Direct readwise FASTQ density mode now keeps completed output when all
+  records are parsed but `gzclose` fails during the final gzip integrity check;
+  MinCO emits a warning instead of discarding the finished result. Malformed
+  FASTQ records still fail with the underlying `kseq_read` error.
+- Direct readwise `Default_call` now uses AMR/gene-specific `major` and
+  `screening` gates for references tagged in `minco.domain`; untagged,
+  species, and virus references retain the existing species-style rules.
 
 ### Validation
 
-- `make` and `bash tests/smoke.sh` passed after adding read tracking.
+- `make`, `bash tests/smoke.sh`, and `bash tests/full_cli.sh` passed after
+  adding read tracking and domain-specific reporting profiles.
 
 ## 2026-06-21
 
@@ -97,14 +179,26 @@
   difference in one packed per-reference-entry array. Coverage/depth keeps the
   occurrence count, while ANI mutation features are computed once per unique
   reference context entry from the best observed object difference.
+- Changed the default species/prokaryotic readwise abundance report ANI cutoff
+  from `0.96` to `0.95`, matching the standard prokaryotic species boundary.
+  AMR/gene-specific `major` and `screening` thresholds are unchanged.
 - Retuned the automatic readwise abundance report for fixed-size sketches:
   support is now `min(S, max(100, ceil(S/100)))` instead of stale fixed
-  `XnY` thresholds, and the default report uses `ANI >= 0.96` with
+  `XnY` thresholds, and the default report uses `ANI >= 0.95` with
   `Ref_breadth >= 0.5`.
 - `minco sketch --keep` and `minco sketch --remove` now preserve filtered
   `minco.ctxmeta` records and refresh the compact density summary in
   `minco.stat`. Filtered/subset reference sketches therefore remain usable with
   `minco ani --query-density ref`.
+- Added experimental exact-split sidecar generation:
+  `minco ani --readwise-exact-split-out FILE` can write exact per-read
+  best-diff-split evidence while the main split pass uses block mode, and
+  `scripts/minco_profile_calibrated.py --same-stream-exact-split` can reuse
+  that sidecar when `universal-auto-exact` fires.
+- Added `scripts/minco_profile_calibrated.py --exact-split-low-extra-mode`.
+  The default `skip` mode avoids the expensive exact split rerun when the
+  block-mode low-extra split rescue already added candidates; `allow` restores
+  the older exact behavior.
 
 ### Documentation
 

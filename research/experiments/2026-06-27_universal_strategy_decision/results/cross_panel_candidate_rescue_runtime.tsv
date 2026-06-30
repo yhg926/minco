@@ -1,0 +1,6 @@
+metric	value	unit	evidence
+wall_time	207.49	seconds	/usr/bin/time -v cross-panel candidate rescue sweep; elapsed 3:27.49
+max_rss	5250044	kB	/usr/bin/time -v cross-panel candidate rescue sweep
+user_time	202.11	seconds	/usr/bin/time -v cross-panel candidate rescue sweep
+system_time	6.87	seconds	/usr/bin/time -v cross-panel candidate rescue sweep
+exit_status	0	status	/usr/bin/time -v cross-panel candidate rescue sweep

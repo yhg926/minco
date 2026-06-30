@@ -1,0 +1,13 @@
+sample	gtdb_species	truth_raw_abundance	truth_abundance
+28	s__Acinetobacter albensis	1.0	0.040059094715537105
+28	s__Micrococcus luteus	1.0	0.040059094715537105
+28	s__Nocardioides simplex	1.0	0.040059094715537105
+28	s__Phocaeicola dorei	1.0	0.040059094715537105
+28	s__Propionibacterium freudenreichii	1.0	0.040059094715537105
+28	s__Staphylococcus aureus	12.0808254004831	0.483946928959819
+28	s__Staphylococcus coagulans	1.91917459952	0.07688039705782468
+28	s__Staphylococcus epidermidis	1.0	0.040059094715537105
+28	s__Staphylococcus warneri	1.0	0.040059094715537105
+28	s__Streptococcus dysgalactiae	2.0	0.08011818943107421
+28	s__Streptococcus pneumoniae	0.9999999999999	0.0400590947155331
+28	s__Streptococcus suis	0.963120287689	0.038581726826989

@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+baseline_validation	counts=0;F1=1.11e-16;L1=1.15e-12;Pearson=5.55e-16	results/feature_allocator_refined_score_replay_validation.tsv	pass
+score_replay_effect	samples=38;switched=33;improved=33;worsened=0;mean_L1_delta_pp=-0.262955;selected_mean_L1_delta_pp=-0.311474;external_mean_L1_delta_pp=-0.004186;max_worse_L1_delta_pp=0.000000	results/feature_allocator_refined_score_replay_summary.tsv	fixed_call_abundance_replay
+score_replay_matches_guard_estimate	max_abs_mean_delta=3.10619365229e-07	results/feature_allocator_refined_score_replay_summary.tsv;results/feature_allocator_combined_guard_audit.tsv	pass
+promotion_decision	refined_guard_score_replay_pass_candidate_needs_independent_holdout	results/feature_allocator_refined_score_replay_audit.tsv	current_default_unchanged

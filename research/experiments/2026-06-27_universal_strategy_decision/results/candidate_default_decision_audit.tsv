@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+candidate_vs_current_panel_safety	f1_worse=0;l1_worse=0;pearson_worse=0	candidate_default_vs_current.tsv	candidate_dominates_current_panels
+candidate_vs_current_mean_delta	F1=0.007199;L1=-1.994230;Pearson=0.013705	candidate_default_vs_current.tsv	effect_size
+candidate_vs_sylph_panel_wins	F1_wins=1/4;L1_wins=0/4;Pearson_wins=0/4	candidate_default_vs_sylph.tsv	not_broad_sylph_beating
+default_candidate_decision	promote_candidate_for_minco_default_study_not_release_claim	dominates current MinCO panels but does not beat Sylph on abundance	candidate_default_next_step

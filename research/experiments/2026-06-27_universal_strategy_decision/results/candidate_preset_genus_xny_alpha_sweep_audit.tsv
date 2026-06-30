@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+variants_tested	6	candidate_preset_genus_xny_alpha_sweep_overall.tsv	cached_selected_default_posthoc_sweep
+sample_safe_variants	0	none	none
+panel_safe_variants	6	worsened_panels=0 and improved_panels>0	panel_mean_only
+best_ranked_variant	genus_xny_a0.15;mean_panel_delta=-0.309376;worsened_samples=4;max_worse=0.580806	ranked by worsened_samples then mean_panel_L1_delta_pp	informational
+promotion_decision	do_not_promote_alpha_sweep	alpha/cap sweep over selected-default profiles	do_not_promote_alpha_sweep

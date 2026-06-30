@@ -1,0 +1,4 @@
+sample	current_profile_scope_mapped_pct	additional_rows_needed_for_95pct	reviewed_sources	reviewed_unmapped_rows	unique_taxid_resolvable_rows	unique_ncbi_name_resolvable_rows	unique_gtdb_binomial_resolvable_rows	recommended_resolvable_rows	recommended_resolvable_pct_of_reviewed	projected_profile_scope_mapped_pct_after_recommended	projected_profile_scope_release_ready
+0	93.82693507434847	220749	20	1161656	0	0	397912	397912	34.2538582850689	95.94144798582644	true
+1	94.55431059825214	103277	20	1261518	0	0	521696	521696	41.35462197130758	96.80569453893013	true
+2	96.86956130124197	0	20	835630	0	0	812412	812412	97.22149755274464	99.90839495695722	true

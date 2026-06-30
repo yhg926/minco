@@ -1,0 +1,3 @@
+sample	current_profile	profile_strategy	adaptive_mode	raw_unique_fallback	raw_unique95_n	raw_unique_to_base_ratio	joined_base_n	joined_base_median_uaf	probability_extra_mass_ratio	auto_exact_split_requested	auto_exact_split_used	auto_exact_split_unavailable_reason
+gastrooral0	/tmp/cami2_hmp_pilot_20260625/run/minco_sample0_universal_autoexact_tablemode_check.tsv	universal	base	True	34	0.9714285714285714	35	0.684	0.004199022467546	True	False	missing_ref_or_reads
+gastrooral6	/tmp/cami2_hmp_pilot_20260625/run/minco_sample6_universal_autoexact_tablemode_current.tsv	universal-auto-exact	rescue	False	40	0.9302325581395348	43	0.559	0.3104491763906995	False	False	

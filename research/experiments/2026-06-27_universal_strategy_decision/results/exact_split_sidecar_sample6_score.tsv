@@ -1,0 +1,3 @@
+sample	method	path	gold_taxa	pred_taxa	TP	FP	FN	precision	recall	F1	l1_pct_points	pearson
+6	minco_sidecar_autoexact_sample6	/tmp/minco_exact_split_sidecar_wrapper_20260627/sample6_sidecar_p16.tsv	201	157	153	4	48	0.9745222929936306	0.7611940298507462	0.8547486033519553	20.062955823580346	0.973754513728038
+6	sylph_gtdb_profile_sample6	/tmp/cami2_toymouse_samples5_7_20260625/run/sylph_sample6/profile.tsv	201	193	185	8	16	0.9585492227979274	0.9203980099502488	0.9390862944162437	11.759074897164671	0.9848757313686317

@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+raw_rescue_candidates	14	TP=13;FP=1;rule=raw_side_cross_rule_ani90_xny100_br01_af70	diagnostic_scope
+taxid_collapsed_to_other_called_gtdb	7	same NCBI taxid row is called but best accession maps to another GTDB species	requires_accession_or_gtdb_species_level_candidate_surface
+profile_taxid_absent	5	raw accession maps to a GTDB species whose NCBI taxid is absent from emitted profile rows	requires_raw_side_candidate_surface
+taxid_profile_row_uncalled_or_other	2	profile taxid exists but is uncalled or has nonmatching best accession	could_be_handled_by_profile_or_accession_rescue
+promotion_decision	diagnostic_only_not_default	classification audit only; no default behavior changed	use_to_design_raw_side_candidate_surface

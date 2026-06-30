@@ -1,0 +1,11 @@
+panel	sample	expected_offline_method	adaptive_call_filter_applied	removed_rows	wrapper_TP	wrapper_FP	wrapper_FN	TP_delta_vs_expected	FP_delta_vs_expected	FN_delta_vs_expected	F1_delta_vs_expected	official_L1_delta_vs_expected_pp	official_Pearson_delta_vs_expected	F1_delta_vs_current	official_L1_delta_vs_current_pp	official_Pearson_delta_vs_current	expected_F1_delta_vs_current	expected_official_L1_delta_vs_current_pp	expected_official_Pearson_delta_vs_current
+cami2_toy_mouse_gut	5	current_calls	False	0	157	5	41	0	0	0	0.0	-3.552713678800501e-15	-1.1102230246251565e-16	0.0	-3.552713678800501e-15	-1.1102230246251565e-16	0.0	0.0	0.0
+cami2_toy_mouse_gut	6	min_xny_ge_25	True	0	153	4	48	0	0	0	0.0	-0.23137854954371662	0.0005764459489213669	0.0	-0.23137854954371662	0.0005764459489213669	0.0	0.0	0.0
+cami2_toy_mouse_gut	7	min_xny_ge_25	True	0	63	1	5	0	0	0	1.1102230246251565e-16	0.0007951262263272696	-4.1577761480393605e-06	1.1102230246251565e-16	0.0007951262263272696	-4.1577761480393605e-06	0.0	0.0	0.0
+hmp_airskin_gtdb_source_abundance	6	min_xny_ge_25	True	0	15	1	1	0	0	0	0.0	3.552713678800501e-15	-1.1102230246251565e-16	0.0	3.552713678800501e-15	-1.1102230246251565e-16	0.0	0.0	0.0
+hmp_airskin_gtdb_source_abundance	11	min_xny_ge_25	True	0	32	0	1	0	0	0	-1.1102230246251565e-16	0.0	0.0	-1.1102230246251565e-16	0.0	0.0	0.0	0.0	0.0
+hmp_gastrooral_gtdb_source_abundance	0	min_xny_ge_25	True	0	32	2	2	0	0	0	1.1102230246251565e-16	0.0	0.0	1.1102230246251565e-16	0.0	0.0	0.0	0.0	0.0
+hmp_gastrooral_gtdb_source_abundance	6	min_xny_ge_25	True	1	44	6	3	0	0	0	0.0	0.0	0.0	0.009257311171891436	-0.06534130144608241	-5.4528018548993806e-05	0.009257311171891436	-0.06534130144608241	-5.4528018548993806e-05
+cami3_toy_human_gut_gtdb_source_readmap	0	current_calls	False	0	78	16	15	0	0	0	0.0	3.8356455568917767	-0.01440293693516237	0.0	3.8356455568917767	-0.01440293693516237	0.0	0.0	0.0
+cami3_toy_human_gut_gtdb_source_readmap	1	current_calls	False	0	86	13	18	0	0	0	0.0	0.276032225487711	-0.004298625154237068	0.0	0.276032225487711	-0.004298625154237068	0.0	0.0	0.0
+cami3_toy_human_gut_gtdb_source_readmap	2	current_calls	False	0	82	33	17	0	0	0	0.0	-4.495294038052798	0.02976408055063262	0.0	-4.495294038052798	0.02976408055063262	0.0	0.0	0.0

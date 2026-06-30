@@ -67,6 +67,13 @@ enum
 	ANI_READWISE_TRACK,
 	ANI_READWISE_TRACK_SUMMARY,
 	ANI_READWISE_TAXONOMY,
+	ANI_READWISE_UNIQUE_OUT,
+	ANI_READWISE_EXACT_SPLIT_OUT,
+	ANI_READWISE_EDGE_OUT,
+	ANI_READWISE_EDGE_MAX,
+	ANI_READWISE_EDGE_MAX_CANDIDATES,
+	ANI_READWISE_EDGE_ALL,
+	ANI_READWISE_EDGE_SELECTED_ONLY,
 	ANI_GTDB_TAXMAP,
 	ANI_NCBI_TAXMAP
 };
@@ -125,6 +132,13 @@ static struct argp_option opt_ani[] =
 		{"readwise-track", ANI_READWISE_TRACK, "<FILE>", 0, "Write a Kraken-like read tracking TSV from direct readwise FASTQ mode. Forces per-read density units so read IDs and context offsets are exact.", ANI_GROUP_REPORT},
 		{"readwise-track-summary", ANI_READWISE_TRACK_SUMMARY, "<FILE>", 0, "Write read tracking summary TSV. Defaults to <readwise-track>.summary.tsv.", ANI_GROUP_REPORT},
 		{"readwise-taxonomy", ANI_READWISE_TAXONOMY, "<none|gtdb|ncbi|both>", 0, "Taxonomy namespace(s) for --readwise-track LCA columns. [none]", ANI_GROUP_REPORT},
+		{"readwise-unique-out", ANI_READWISE_UNIQUE_OUT, "<FILE>", 0, "Experimental: while running direct readwise depth mode, also write a best-diff-unique profile table from the same read stream.", ANI_GROUP_REPORT},
+		{"readwise-exact-split-out", ANI_READWISE_EXACT_SPLIT_OUT, "<FILE>", 0, "Experimental: while running block-mode best-diff-split depth mode, also write an exact per-read best-diff-split profile table from the same read stream.", ANI_GROUP_REPORT},
+		{"readwise-edge-out", ANI_READWISE_EDGE_OUT, "<FILE>", 0, "Experimental: write context-level readwise ambiguity edges for EM/debugging. Forces per-read density units.", ANI_GROUP_REPORT},
+		{"readwise-edge-max", ANI_READWISE_EDGE_MAX, "<INT>", 0, "Maximum ambiguity edge rows to write; 0 disables the cap. [10000000]", ANI_GROUP_REPORT},
+		{"readwise-edge-max-candidates", ANI_READWISE_EDGE_MAX_CANDIDATES, "<INT>", 0, "Skip context groups with more candidate refs than this; 0 disables the cap. [64]", ANI_GROUP_REPORT},
+		{"readwise-edge-all", ANI_READWISE_EDGE_ALL, 0, 0, "With --readwise-edge-out, include unambiguous context groups too. Default writes ambiguous groups only.", ANI_GROUP_REPORT},
+		{"readwise-edge-selected-only", ANI_READWISE_EDGE_SELECTED_ONLY, 0, 0, "With --readwise-edge-out, write only candidate edges selected by the assignment mode.", ANI_GROUP_REPORT},
 		{"gtdb-taxmap", ANI_GTDB_TAXMAP, "<TSV>", 0, "GTDB ref taxonomy map for --readwise-track; same schema as --cami-taxmap.", ANI_GROUP_REPORT},
 		{"ncbi-taxmap", ANI_NCBI_TAXMAP, "<TSV>", 0, "NCBI ref taxonomy map for --readwise-track; same schema as --cami-taxmap.", ANI_GROUP_REPORT},
 		{"top", 'N', "<INT>", 0, "Report at most top N references per query. [all]", ANI_GROUP_REPORT},
@@ -226,11 +240,15 @@ static char doc_ani[] =
 	"reference hit, including target refs, selected context offsets, and optional\n"
 	"GTDB/NCBI LCA labels. It forces per-read density units because block mode\n"
 	"does not preserve read-level identity or context offsets.\n"
+	"For AMR/gene-panel databases, interpret readwise depth output as\n"
+	"determinant/family evidence; exact allele names are representative hints.\n"
+	"Normal runs report only detected determinants present in the refdb.\n"
+	"not_in_refdb rows require an external benchmark truth list.\n"
 	"\n"
 	"Default filters are -n 0.95, -f 0.5, and -t 3. In direct readwise\n"
 	"--qraw FASTQ density mode with --abundance-est depth and no custom\n"
 	"-f/-n/-t/--top, minco applies the default abundance report: support_cut=\n"
-	"min(S,max(100,ceil(S/100))), anicut=0.96, no hidden AF cutoff, and only\n"
+	"min(S,max(100,ceil(S/100))), anicut=0.95, no hidden AF cutoff, and only\n"
 	"major or low_abundance calls are printed.\n"
 	"In readwise mode, -t is unique context overlap. Use -f0 -n0 -t0 when every\n"
 	"comparison must be reported. In --qraw mode without this abundance report,\n"
@@ -249,7 +267,7 @@ static char doc_ani[] =
 		"  ANI mutation features use the best object difference per unique\n"
 		"  reference context entry; depth columns keep occurrence coverage.\n"
 		"  With no custom filters it prints default major/low_abundance calls;\n"
-		"  support is min(S,max(100,ceil(S/100))) and ANI cutoff is 0.96.\n"
+		"  support is min(S,max(100,ceil(S/100))) and ANI cutoff is 0.95.\n"
 		"  Normalized abundance sums to 1 over printed rows. It is incompatible\n"
 		"  with --readsQC, --abundance, and --save-query-sketch.\n"
 	"  --readwise-profile-only keeps depth coverage but skips exact global\n"
@@ -353,6 +371,13 @@ ani_opt_t ani_opt = {
 	.cami_sample_id[0] = '\0',
 	.readwise_track[0] = '\0',
 	.readwise_track_summary[0] = '\0',
+	.readwise_unique_out[0] = '\0',
+	.readwise_exact_split_out[0] = '\0',
+	.readwise_edge_out[0] = '\0',
+	.readwise_edge_max = 10000000ULL,
+	.readwise_edge_max_candidates = 64u,
+	.readwise_edge_ambiguous_only = true,
+	.readwise_edge_selected_only = false,
 	.gtdb_taxmap[0] = '\0',
 	.ncbi_taxmap[0] = '\0',
 	.outf[0] = '\0',
@@ -371,6 +396,21 @@ static int parse_int_range(struct argp_state *state, const char *option_name,
 	if (errno != 0 || end == arg || *end != '\0' || value < min_value || value > max_value)
 		argp_error(state, "%s requires an integer in range %d..%d", option_name, min_value, max_value);
 	return (int)value;
+}
+
+static uint64_t parse_uint64_arg(struct argp_state *state,
+								 const char *option_name,
+								 const char *arg,
+								 uint64_t max_value)
+{
+	char *end = NULL;
+	errno = 0;
+	unsigned long long value = strtoull(arg, &end, 10);
+	if (errno != 0 || end == arg || *end != '\0' ||
+		(uint64_t)value > max_value)
+		argp_error(state, "%s requires an integer in range 0..%llu",
+				   option_name, (unsigned long long)max_value);
+	return (uint64_t)value;
 }
 
 static double parse_nonnegative_double(struct argp_state *state, const char *option_name,
@@ -712,6 +752,47 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 		ani_opt.readwise_taxonomy_mode = parse_readwise_taxonomy_mode(state, arg);
 		break;
 	}
+	case ANI_READWISE_UNIQUE_OUT:
+	{
+		copy_path_arg(state, "--readwise-unique-out", ani_opt.readwise_unique_out,
+					  sizeof(ani_opt.readwise_unique_out), arg);
+		break;
+	}
+	case ANI_READWISE_EXACT_SPLIT_OUT:
+	{
+		copy_path_arg(state, "--readwise-exact-split-out", ani_opt.readwise_exact_split_out,
+					  sizeof(ani_opt.readwise_exact_split_out), arg);
+		break;
+	}
+	case ANI_READWISE_EDGE_OUT:
+	{
+		copy_path_arg(state, "--readwise-edge-out", ani_opt.readwise_edge_out,
+					  sizeof(ani_opt.readwise_edge_out), arg);
+		break;
+	}
+	case ANI_READWISE_EDGE_MAX:
+	{
+		ani_opt.readwise_edge_max =
+			parse_uint64_arg(state, "--readwise-edge-max", arg, UINT64_MAX);
+		break;
+	}
+	case ANI_READWISE_EDGE_MAX_CANDIDATES:
+	{
+		ani_opt.readwise_edge_max_candidates =
+			(uint32_t)parse_uint64_arg(state, "--readwise-edge-max-candidates",
+									   arg, UINT32_MAX);
+		break;
+	}
+	case ANI_READWISE_EDGE_ALL:
+	{
+		ani_opt.readwise_edge_ambiguous_only = false;
+		break;
+	}
+	case ANI_READWISE_EDGE_SELECTED_ONLY:
+	{
+		ani_opt.readwise_edge_selected_only = true;
+		break;
+	}
 	case ANI_GTDB_TAXMAP:
 	{
 		copy_path_arg(state, "--gtdb-taxmap", ani_opt.gtdb_taxmap, sizeof(ani_opt.gtdb_taxmap), arg);
@@ -938,6 +1019,47 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 				argp_error(state, "--readwise-taxonomy ncbi/both requires --ncbi-taxmap");
 			if (ani_opt.density_block_ctx != 0) {
 				warnx("--readwise-track forces --density-block-ctx 0 for exact read IDs and context offsets");
+				ani_opt.density_block_ctx = 0;
+			}
+		}
+		if (ani_opt.readwise_unique_out[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-unique-out requires --query-density ref");
+			if (ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+				argp_error(state, "--readwise-unique-out requires --abundance-est depth");
+			if (!ani_opt.readwise_profile_only)
+				argp_error(state, "--readwise-unique-out requires --readwise-profile-only");
+			if (ani_opt.fmt != 0)
+				argp_error(state, "--readwise-unique-out requires detail output -m0");
+			if (strcmp(ani_opt.readwise_unique_out, "-") == 0 && ani_opt.outf[0] == '\0')
+				argp_error(state, "--readwise-unique-out - cannot be combined with ANI detail output on stdout; use -o or write unique output to a file");
+		}
+		if (ani_opt.readwise_exact_split_out[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-exact-split-out requires --query-density ref");
+			if (ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+				argp_error(state, "--readwise-exact-split-out requires --abundance-est depth");
+			if (!ani_opt.readwise_profile_only)
+				argp_error(state, "--readwise-exact-split-out requires --readwise-profile-only");
+			if (ani_opt.fmt != 0)
+				argp_error(state, "--readwise-exact-split-out requires detail output -m0");
+			if (ani_opt.readwise_assign_mode != ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT)
+				argp_error(state, "--readwise-exact-split-out requires --readwise-assign best-diff-split");
+			if (strcmp(ani_opt.readwise_exact_split_out, "-") == 0 && ani_opt.outf[0] == '\0')
+				argp_error(state, "--readwise-exact-split-out - cannot be combined with ANI detail output on stdout; use -o or write exact split output to a file");
+		}
+		if (ani_opt.readwise_edge_out[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-edge-out requires --query-density ref");
+			if (ani_opt.fmt != 0)
+				argp_error(state, "--readwise-edge-out requires detail output -m0");
+			if (strcmp(ani_opt.readwise_edge_out, "-") == 0 && ani_opt.outf[0] == '\0')
+				argp_error(state, "--readwise-edge-out - cannot be combined with ANI detail output on stdout; use -o or write edges to a file");
+			if (ani_opt.density_block_ctx != 0) {
+				warnx("--readwise-edge-out forces --density-block-ctx 0 for exact read/context ambiguity groups");
 				ani_opt.density_block_ctx = 0;
 			}
 		}
@@ -2391,6 +2513,41 @@ static int run_direct_query_sequence_ani(ani_opt_t *opt, bool force_raw_query, c
 	return rc;
 }
 
+int run_ani_configured(ani_opt_t *opt)
+{
+	// instantilize distance fn according selection of naive model or not
+	ani_model_compat_filter_shift = opt->sketch_filter_shift;
+	ani_model_target_sketch_size = opt->sketch_size ? opt->sketch_size : ANI_MODEL_REFERENCE_SKETCH_SIZE;
+	get_generic_dist_from_features = opt->v ? get_naive_dist : lm3ways_dist_from_features;
+
+	if (opt->abundance_model != ANI_ABUNDANCE_NONE &&
+		(opt->reflist[0] != '\0' || opt->qrylist[0] != '\0' ||
+		 opt->num_remaining_args >= 2))
+		errx(EXIT_FAILURE,
+			 "--abundance-est currently supports only direct -r REF --qraw FASTQ --query-density ref");
+
+	if (opt->reflist[0] != '\0' || opt->qrylist[0] != '\0')
+		return run_auto_list_ani(opt);
+	else if (opt->qrydir[0] != '\0')
+	{
+		const bool qry_is_sketch = is_minco_sketch_dir(opt->qrydir);
+		if (opt->abundance_model != ANI_ABUNDANCE_NONE && qry_is_sketch)
+			errx(EXIT_FAILURE,
+				 "--abundance-est currently requires a direct FASTQ query, not an existing query sketch");
+		if (opt->save_query_sketch[0] != '\0' && qry_is_sketch)
+			errx(EXIT_FAILURE, "--save-query-sketch requires a FASTA/FASTQ query input; query sketch %s is already persistent",
+				 opt->qrydir);
+		if (!qry_is_sketch)
+			return run_direct_query_sequence_ani(opt,
+												 opt->unassembled,
+												 opt->unassembled ? "--qraw" : "-q/--query");
+		return run_sketch_ani(opt);
+	}
+	else if (opt->num_remaining_args >= 2)
+		return run_auto_positional_ani(opt);
+	return 1;
+}
+
 int cmd_ani(struct argp_state *state)
 {
 
@@ -2403,35 +2560,5 @@ int cmd_ani(struct argp_state *state)
 	argp_parse(&argp_ani, argc, argv, ARGP_IN_ORDER, &argc, &ani);
 	state->next += argc - 1;
 
-	// instantilize distance fn according selection of naive model or not
-	ani_model_compat_filter_shift = ani_opt.sketch_filter_shift;
-	ani_model_target_sketch_size = ani_opt.sketch_size ? ani_opt.sketch_size : ANI_MODEL_REFERENCE_SKETCH_SIZE;
-	get_generic_dist_from_features = ani_opt.v ? get_naive_dist : lm3ways_dist_from_features;
-
-	if (ani_opt.abundance_model != ANI_ABUNDANCE_NONE &&
-		(ani_opt.reflist[0] != '\0' || ani_opt.qrylist[0] != '\0' ||
-		 ani_opt.num_remaining_args >= 2))
-		errx(EXIT_FAILURE,
-			 "--abundance-est currently supports only direct -r REF --qraw FASTQ --query-density ref");
-
-	if (ani_opt.reflist[0] != '\0' || ani_opt.qrylist[0] != '\0')
-		return run_auto_list_ani(&ani_opt);
-	else if (ani_opt.qrydir[0] != '\0')
-	{
-		const bool qry_is_sketch = is_minco_sketch_dir(ani_opt.qrydir);
-		if (ani_opt.abundance_model != ANI_ABUNDANCE_NONE && qry_is_sketch)
-			errx(EXIT_FAILURE,
-				 "--abundance-est currently requires a direct FASTQ query, not an existing query sketch");
-		if (ani_opt.save_query_sketch[0] != '\0' && qry_is_sketch)
-			errx(EXIT_FAILURE, "--save-query-sketch requires a FASTA/FASTQ query input; query sketch %s is already persistent",
-				 ani_opt.qrydir);
-		if (!qry_is_sketch)
-			return run_direct_query_sequence_ani(&ani_opt,
-												 ani_opt.unassembled,
-												 ani_opt.unassembled ? "--qraw" : "-q/--query");
-		return run_sketch_ani(&ani_opt);
-	}
-	else if (ani_opt.num_remaining_args >= 2)
-		return run_auto_positional_ani(&ani_opt);
-	return 1;
+	return run_ani_configured(&ani_opt);
 }

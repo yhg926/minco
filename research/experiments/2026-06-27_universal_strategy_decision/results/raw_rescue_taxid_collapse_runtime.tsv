@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/audit_raw_rescue_taxid_collapse.py	62.63	58.49	5.58	4014288	0	classifies selected raw-side rescue candidates by emitted-profile taxid/accession visibility

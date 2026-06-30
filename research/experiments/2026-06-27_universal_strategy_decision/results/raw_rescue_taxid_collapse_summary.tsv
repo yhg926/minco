@@ -1,0 +1,6 @@
+collapse_reason	truth_status	candidates	samples	truth_abundance_pct
+profile_taxid_absent	TP	5	14,15,18	5.479946907346327
+same_accession_called_mapping_gap	TP	1	19	0.19654810335066114
+same_accession_profile_row_uncalled	TP	1	6	1.886792452830171
+taxid_collapsed_to_other_called_gtdb	FP	1	19	0.0
+taxid_collapsed_to_other_called_gtdb	TP	6	0,6,19,24,25	10.657427068244639

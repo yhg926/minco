@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_raw_side_candidate_surface_hmp.py	70.19	65.22	6.23	4071784	0	all cached HMP source-abundance profiles; appends accession-level zero-mass raw-side rescue rows and compares to offline raw-cache rule

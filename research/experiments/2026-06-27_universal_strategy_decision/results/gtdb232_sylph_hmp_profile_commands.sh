@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+test -s /mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.syldb
+
+mkdir -p /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample6
+/usr/bin/time -v -o /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample6/profile.time.log /home/ubuntu/yihuiguang/bin/sylph profile -t 16 /mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.syldb /tmp/cami2_hmp_unseen_transfer_20260626/run/sylph_sample6/airskinurogenital_sample6.nonzero.fastq.gz.sylsp -o /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample6/profile.tsv
+
+mkdir -p /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample11
+/usr/bin/time -v -o /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample11/profile.time.log /home/ubuntu/yihuiguang/bin/sylph profile -t 16 /mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.syldb /tmp/cami2_hmp_unseen_transfer_20260626/run/sylph_sample11/airskinurogenital_sample11.nonzero.fastq.gz.sylsp -o /tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample11/profile.tsv

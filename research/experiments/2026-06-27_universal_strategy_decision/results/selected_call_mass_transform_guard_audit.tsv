@@ -1,0 +1,9 @@
+metric	value	evidence	decision
+candidate_methods	base_genus_xny_a0.10,base_genus_xny_a0.05,base_genus_xny_a0.02,base_global_xny_a0.10,base_global_xny_a0.05,base_global_xny_a0.02,base_global_probability_a0.02,base_global_probability_a0.05	top selected-call transforms by cached overall ranking	truth_used_only_for_method_scoring
+tested_guard_rules	5659	method plus output-derived threshold guards;top_saved=1000	truth_used_only_for_scoring
+sample_safe_guards	822	full in-memory scoring;top_saved=1000	strict_sample_gate
+panel_safe_guards	3600	full in-memory scoring;top_saved=1000	panel_gate
+best_mean_guard	base_global_xny_a0.10;single;max_species_per_genus>=5;mean_delta=-0.738736;worsened_samples=4;max_worse=0.825999;switched=31	selected_call_mass_transform_guard_rules.tsv;top_saved=1000	tradeoff
+best_sample_safe_guard	base_global_xny_a0.10;single;n_calls>=71.4;mean_delta=-0.491859;switched=13	selected_call_mass_transform_guard_rules.tsv;top_saved=1000	candidate
+lopo_guard_result	mean_delta=-0.129226;holdouts_with_mean_regression=1;holdouts_with_sample_regression=2;max_sample_worse=0.825999	selected_call_mass_transform_guard_lopo.tsv;top_rules=512	leave_one_panel_out_validation
+promotion_decision	sample_safe_in_panel_but_fails_lopo	guard rules plus leave-one-panel-out	sample_safe_in_panel_but_fails_lopo

@@ -1,0 +1,4 @@
+gtdb_metadata_rows_with_species	wgs_prefixes_total	wgs_prefixes_unique	taxids_total	taxids_unique	names_total	names_unique	sample	read_rows_total	read_rows_wgs_prefix	read_rows_unique_taxid	read_rows_unmapped	read_rows_mapped	read_rows_mapped_pct	truth_gtdb_species	source_genomes_total	source_genomes_primary_wgs_prefix	source_genomes_primary_unique_taxid	source_genomes_primary_unmapped	raw_ref_rows	raw_ref_taxids	raw_ref_taxids_gtdb_mapped
+901341	832187	832187	120216	111234	120070	111096	0	33267026	17243592	9314068	6709366	26557660	79.83178297933816	93	309	125	12	172	91045	18736	18736
+901341	832187	832187	120216	111234	120070	111096	1	33266680	21045546	5254716	6966418	26300262	79.05887212069254	104	329	133	16	180	99413	20580	20580
+901341	832187	832187	120216	111234	120070	111096	2	33267952	25416426	2832878	5018648	28249304	84.91446663142955	99	317	126	16	175	86694	18601	18601

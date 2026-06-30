@@ -1,0 +1,5 @@
+holdout_panel	variant_method	feature	op	threshold	train_strict_panel_safe	train_mean_panel_delta_L1_pp	train_max_panel_worse_L1_pp	train_improved_panels	train_worsened_panels	holdout_mean_panel_delta_L1_pp	holdout_max_sample_worse_L1_pp	holdout_improved_samples	holdout_worsened_samples	holdout_switched_samples	holdout_sample_count	selection_pool
+cami2_toy_mouse_gut	genus_realloc_xny	probability_median	<=	0.9193028552667324	True	-1.6657124457417236	-0.9939835900643198	3	0	1.2189139667692832	1.5232847616562388	0	3	3	3	strict_train_panel_safe
+cami3_toy_human_gut_gtdb_source_readmap	genus_realloc_xny	breadth_ratio_median	>=	1.111107130512372	True	-1.2628350099541186	0.0	2	0	-0.9939835900643198	-0.377249878395034	3	0	3	3	strict_train_panel_safe
+hmp_airskin_gtdb_source_abundance	genus_realloc_xny	breadth_ratio_median	>=	1.111107130512372	True	-0.7435470434452642	0.0	2	0	-2.5518474895908825	4.177991585407593	18	3	21	24	strict_train_panel_safe
+hmp_gastrooral_gtdb_source_abundance	genus_realloc_xny	depth_cv_mean	>=	5.862105344601063	True	-1.2453473133028339	0.0	2	0	-0.6220559467918232	1.2292031869592996	1	1	2	2	strict_train_panel_safe

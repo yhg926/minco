@@ -1,0 +1,46 @@
+sample	source_genome_id	source_accession	raw_abundance	gtdb_species	mapping_method
+2	OTU_97.2666.0	GCA_000056065.1	2.44059792298	s__Lactobacillus delbrueckii	exact_accession
+2	OTU_97.2666.1	GCA_001514415.1	0.559402077024	s__Lacticaseibacillus paracasei	exact_accession
+2	OTU_97.6439.0	GCA_001469775.1	32.0	s__Lactobacillus delbrueckii	exact_accession
+2	OTU_97.39620.0	GCA_001011095.1	99.0	s__Ligilactobacillus salivarius	exact_accession
+2	OTU_97.36691.0	GCA_001936335.1	28.0	s__Amylolactobacillus amylophilus	exact_accession
+2	OTU_97.2798.0	GCA_001042655.1	2.0	s__Bifidobacterium vaginale	exact_accession
+2	OTU_97.25104.0	GCA_001602195.1	4.0		unmapped
+2	OTU_97.13662.1	GCA_000255615.3	0.223439614871	s__Hungateiclostridium thermocellum	exact_accession
+2	OTU_97.13662.0	GCA_000349885.2	0.776560385129	s__Thermoclostridium stercorarium	exact_accession
+2	OTU_97.18236.0	GCA_900070175.1	4.0	s__Lacticaseibacillus rhamnosus	exact_accession
+2	OTU_97.26970.0	GCA_000023085.1	3.0	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.7047.0	GCA_000016825.1	1.95741826619	s__Limosilactobacillus reuteri	exact_accession
+2	OTU_97.7047.1	GCA_001953135.1	3.04258173381	s__Lactobacillus delbrueckii	exact_accession
+2	OTU_97.39415.0	GCA_000410995.1	27.0	s__Limosilactobacillus reuteri_L	exact_accession
+2	OTU_97.3429.0	GCA_001887595.1	1.0	s__Luteibacter rhizovicinus	exact_accession
+2	OTU_97.19349.0	GCA_000182835.1	18.0	s__Lactobacillus delbrueckii	exact_accession
+2	OTU_97.31883.0	GCA_001275345.1	2.0	s__Kocuria palustris	exact_accession
+2	OTU_97.24982.0	GCA_001702155.1	1.86245467248	s__Secundilactobacillus paracollinoides	exact_accession
+2	OTU_97.24982.1	GCA_001704315.1	0.137545327517	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.90.0	GCA_000159155.2	5.0	s__Bifidobacterium vaginale	exact_accession
+2	OTU_97.13075.0	GCA_000418515.1	2.0	s__Lacticaseibacillus paracasei	exact_accession
+2	OTU_97.36696.1	GCA_001659745.1	16.9660158255	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.36696.0	GCA_000225325.1	0.0339841744557	s__Fructilactobacillus sanfranciscensis	exact_accession
+2	OTU_97.33842.0	GCA_000211375.1	8.0	s__Lentilactobacillus buchneri	exact_accession
+2	OTU_97.9566.0	GCA_001477625.1	1.0	s__Paucibacter_A sp001477625	exact_accession
+2	OTU_97.33420.0	GCA_000165775.3	4.0	s__Lactobacillus helveticus	exact_accession
+2	OTU_97.6777.0	GCA_000025205.1	3.0	s__Bifidobacterium swidsinskii	exact_accession
+2	OTU_97.9203.0	GCA_001581895.1	23.9826654584	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.9203.1	GCA_001314245.2	0.0173345416205	s__Lactobacillus helveticus	exact_accession
+2	OTU_97.5788.0	GCA_000026485.1	9.0	s__Lacticaseibacillus paracasei	exact_accession
+2	OTU_97.391.0	GCA_000026145.1	0.993045121823	s__Bradyrhizobium sp000026145	exact_accession
+2	OTU_97.391.1	GCA_001642675.1	0.00695487817716	s__Bradyrhizobium diazoefficiens	exact_accession
+2	OTU_97.11873.0	GCA_001715615.1	1.0	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.28509.0	GCA_001888965.1	1.0	s__Lactobacillus delbrueckii	exact_accession
+2	OTU_97.33281.0	GCA_001880185.1	3.0		unmapped
+2	OTU_97.28203.0	GCA_000604105.1	1.0	s__Lactiplantibacillus plantarum	exact_accession
+2	OTU_97.32648.0	GCA_001050475.1	3.0	s__Companilactobacillus ginsenosidimutans	exact_accession
+2	OTU_97.19631.0	GCA_001723525.1	1.0	s__Ligilactobacillus salivarius	exact_accession
+2	OTU_97.29336.0	GCA_000248095.3	13.0	s__Limosilactobacillus mucosae	exact_accession
+2	OTU_97.13700.0	GCA_000831645.3	3.0	s__Companilactobacillus heilongjiangensis	exact_accession
+2	OTU_97.21234.0	GCA_000015385.1	1.0	s__Lactobacillus helveticus	exact_accession
+2	OTU_97.26940.0	GCA_000224985.1	4.0	s__Ligilactobacillus ruminis	exact_accession
+2	OTU_97.35314.0	GCA_001688685.1	1.0		unmapped
+2	OTU_97.40239.1	GCA_000012045.1	0.0245322882017	s__Staphylococcus aureus	exact_accession
+2	OTU_97.40239.0	GCA_000709475.1	0.975467711798	s__Staphylococcus aureus	exact_accession

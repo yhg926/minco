@@ -1,0 +1,4 @@
+method	samples	sample_count	mean_F1	mean_L1	mean_Pearson	mean_delta_F1	mean_delta_L1	max_worse_L1	improved_L1_samples	worsened_L1_samples	switched_samples	mean_truth_mass_mapped_pct_bacteria_archaea	min_truth_mass_mapped_pct_bacteria_archaea	max_validation_L1_delta_raw_vs_calibrated
+marine_exactsplit_current_gtdb_transfer	0,2	2	0.9193146054318686	0.14079125460598207	0.9917222198922787	0.0	0.0	0.0	0	0	0			
+marine_exactsplit_refined_allocator_xny230	0,2	2	0.9193146054318686	0.1402696207551311	0.9917590884889357	0.0	-0.0005216338508509805	-0.0005030010617360081	2	0	2			
+refined_vs_current	0,2	2	0.9193146054318686	0.1402696207551311	0.9917590884889357	0.0	-0.0005216338508509805	-0.0005030010617360081	2	0	2	74.6404757552958	74.12067027142771	6.63358257213531e-15

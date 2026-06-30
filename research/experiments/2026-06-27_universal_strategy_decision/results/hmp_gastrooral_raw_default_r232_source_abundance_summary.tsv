@@ -1,0 +1,3 @@
+method	samples	mean_F1	pooled_TP	pooled_FP	pooled_FN	pooled_F1	mean_L1_union_pp	mean_L1_truth_only_pp	mean_Pearson_union	mean_Pearson_truth_only
+sylph_gtdb_r232_gastrooral_source_abundance	0,6	0.9552995391705069	78	4	3	0.9570552147239264	5.063129406373072	3.8770276784189726	0.9991248095933805	0.9994736876657926
+minco_current_raw_default_gastrooral_source_abundance	0,6	0.9195678271308523	76	9	5	0.9156626506024096	48.98699110632436	46.62558013379819	0.8822766995655476	0.8825793655462644

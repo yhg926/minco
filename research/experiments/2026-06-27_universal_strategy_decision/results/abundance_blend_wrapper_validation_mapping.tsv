@@ -1,0 +1,11 @@
+panel	sample	profile	pred_species	pred_abundance_sum
+cami2_toy_mouse_gut	5	/tmp/minco_abundance_blend_validation_20260627/toymouse_sample5.tsv	162	1.0000000000000004
+cami2_toy_mouse_gut	6	/tmp/minco_abundance_blend_validation_20260627/toymouse_sample6.tsv	157	0.9999999999999999
+cami2_toy_mouse_gut	7	/tmp/minco_abundance_blend_validation_20260627/toymouse_sample7.tsv	64	1.0000000000000002
+hmp_airskin_gtdb_source_abundance	6	/tmp/minco_abundance_blend_validation_20260627/hmp_airskin_sample6.tsv	16	1.0
+hmp_airskin_gtdb_source_abundance	11	/tmp/minco_abundance_blend_validation_20260627/hmp_airskin_sample11.tsv	32	1.0
+hmp_gastrooral_gtdb_source_abundance	0	/tmp/minco_abundance_blend_validation_20260627/hmp_gastrooral_sample0.tsv	34	1.0
+hmp_gastrooral_gtdb_source_abundance	6	/tmp/minco_abundance_blend_validation_20260627/hmp_gastrooral_sample6.tsv	51	0.9999999999999999
+cami3_toy_human_gut_gtdb_source_readmap	0	/tmp/minco_abundance_blend_validation_20260627/cami3_sample0.tsv	94	1.0
+cami3_toy_human_gut_gtdb_source_readmap	1	/tmp/minco_abundance_blend_validation_20260627/cami3_sample1.tsv	99	1.0
+cami3_toy_human_gut_gtdb_source_readmap	2	/tmp/minco_abundance_blend_validation_20260627/cami3_sample2.tsv	115	0.9999999999999999

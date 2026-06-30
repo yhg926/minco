@@ -1,0 +1,10 @@
+metric	value
+sample	5
+positive_genomes	254
+raw_abundance_sum	7357.999999993966
+mapped_positive_genomes	250
+unmapped_positive_genomes	4
+gtdb_species_count	198
+mapping_method:exact_accession	212
+mapping_method:unique_assembly_core	38
+mapping_method:unmapped	4

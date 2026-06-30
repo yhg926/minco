@@ -1,0 +1,538 @@
+sample	ncbi_species_taxid	truth_name	abundance_pct_all	candidate_gtdb_species	setup_genome_count	setup_exact_unique_genomes	setup_ambiguous_exact_genomes	setup_unmatched_genomes	setup_exact_unique_gtdb_species_count	setup_assembly_unique_genomes	setup_assembly_ambiguous_genomes	setup_assembly_unmatched_genomes	setup_assembly_unique_gtdb_species_count	setup_combined_unique_genomes	setup_combined_ambiguous_genomes	setup_combined_unmatched_genomes	setup_combined_unique_gtdb_species_count	rule_id
+0	1063	Rhodobacter sphaeroides	0.0455	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	1063	Rhodobacter sphaeroides	0.0455	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	1263979	Candidatus Endolissoclinum faulkneri	1.0368	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+0	1427364	Candidatus Thioglobus singularis	0.0086	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+0	1427364	Candidatus Thioglobus singularis	0.0086	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+0	1462	Geobacillus kaustophilus	0.0086	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+0	1462	Geobacillus kaustophilus	0.0086	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	1462	Geobacillus kaustophilus	0.0086	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	1462	Geobacillus kaustophilus	0.0086	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	1491	Clostridium botulinum	0.2158	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+0	1491	Clostridium botulinum	0.2158	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	1491	Clostridium botulinum	0.2158	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	2743	Marinobacter hydrocarbonoclasticus	0.0183	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+0	2743	Marinobacter hydrocarbonoclasticus	0.0183	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+0	28229	Colwellia psychrerythraea	0.0949	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+0	28229	Colwellia psychrerythraea	0.0949	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	28229	Colwellia psychrerythraea	0.0949	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	28229	Colwellia psychrerythraea	0.0949	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	316279	Synechococcus sp. CC9902	0.0345	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	316279	Synechococcus sp. CC9902	0.0345	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	324767	Bacillus infantis	0.0345	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+0	324767	Bacillus infantis	0.0345	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	324767	Bacillus infantis	0.0345	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	324767	Bacillus infantis	0.0345	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	44251	Paenibacillus durus	0.0259	s__Paenibacillus_AQ durus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	44251	Paenibacillus durus	0.0259	s__Paenibacillus_AQ durus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	467094	Ilumatobacter coccineus	0.397	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	467094	Ilumatobacter coccineus	0.397	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	53633	Sulfobacillus acidophilus	0.069	s__Sulfobacillus_A acidophilus	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+0	53633	Sulfobacillus acidophilus	0.069	s__Sulfobacillus_A acidophilus	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	53633	Sulfobacillus acidophilus	0.069	s__Sulfobacillus_A acidophilus	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	582419	Thermococcus paralvinellae	0.0086	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	582419	Thermococcus paralvinellae	0.0086	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	713887	Candidatus Atelocyanobacterium thalassa	0.0777	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+0	713887	Candidatus Atelocyanobacterium thalassa	0.0777	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	713887	Candidatus Atelocyanobacterium thalassa	0.0777	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	713887	Candidatus Atelocyanobacterium thalassa	0.0777	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+0	73141	Thiocystis violascens	0.0518	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+0	73141	Thiocystis violascens	0.0518	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+0	73141	Thiocystis violascens	0.0518	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+0	73141	Thiocystis violascens	0.0518	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	1063	Rhodobacter sphaeroides	0.0256	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1063	Rhodobacter sphaeroides	0.0256	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1263979	Candidatus Endolissoclinum faulkneri	0.5927	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+1	1336794	Formosa sp. Hel1_33_131	0.0009	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1336794	Formosa sp. Hel1_33_131	0.0009	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1336795	Formosa sp. Hel3_A1_48	0.0092	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1336795	Formosa sp. Hel3_A1_48	0.0092	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1427364	Candidatus Thioglobus singularis	0.0259	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+1	1427364	Candidatus Thioglobus singularis	0.0259	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1462	Geobacillus kaustophilus	0.0259	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	1462	Geobacillus kaustophilus	0.0259	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1462	Geobacillus kaustophilus	0.0259	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1462	Geobacillus kaustophilus	0.0259	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	1491	Clostridium botulinum	0.0778	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+1	1491	Clostridium botulinum	0.0778	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1491	Clostridium botulinum	0.0778	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	154	Spirochaeta thermophila	0.1037	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	154	Spirochaeta thermophila	0.1037	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	155863	Methanothermococcus okinawensis	0.0259	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	155863	Methanothermococcus okinawensis	0.0259	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	155863	Methanothermococcus okinawensis	0.0259	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	155863	Methanothermococcus okinawensis	0.0259	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	1705394	Candidatus Thioglobus autotrophicus	0.0259	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1705394	Candidatus Thioglobus autotrophicus	0.0259	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1833	Rhodococcus erythropolis	0.013	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	1833	Rhodococcus erythropolis	0.013	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	1833	Rhodococcus erythropolis	0.013	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	1833	Rhodococcus erythropolis	0.013	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	198252	Candidatus Pelagibacter ubique	0.0626	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	198252	Candidatus Pelagibacter ubique	0.0626	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	198252	Candidatus Pelagibacter ubique	0.0626	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	198252	Candidatus Pelagibacter ubique	0.0626	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	2296	Desulfobacterium autotrophicum	0.1556	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	2296	Desulfobacterium autotrophicum	0.1556	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	28229	Colwellia psychrerythraea	0.1037	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	28229	Colwellia psychrerythraea	0.1037	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	28229	Colwellia psychrerythraea	0.1037	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	28229	Colwellia psychrerythraea	0.1037	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	316279	Synechococcus sp. CC9902	0.0778	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	316279	Synechococcus sp. CC9902	0.0778	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	324767	Bacillus infantis	0.0778	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	324767	Bacillus infantis	0.0778	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	324767	Bacillus infantis	0.0778	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	324767	Bacillus infantis	0.0778	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	467094	Ilumatobacter coccineus	0.3112	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	467094	Ilumatobacter coccineus	0.3112	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	582419	Thermococcus paralvinellae	0.013	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	582419	Thermococcus paralvinellae	0.013	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	713887	Candidatus Atelocyanobacterium thalassa	0.0389	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	713887	Candidatus Atelocyanobacterium thalassa	0.0389	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	713887	Candidatus Atelocyanobacterium thalassa	0.0389	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	713887	Candidatus Atelocyanobacterium thalassa	0.0389	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	73141	Thiocystis violascens	0.1426	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	73141	Thiocystis violascens	0.1426	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	73141	Thiocystis violascens	0.1426	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	73141	Thiocystis violascens	0.1426	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+1	89184	Ruegeria pomeroyi	0.0648	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+1	89184	Ruegeria pomeroyi	0.0648	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+1	89184	Ruegeria pomeroyi	0.0648	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+1	89184	Ruegeria pomeroyi	0.0648	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	1063	Rhodobacter sphaeroides	0.036	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	1063	Rhodobacter sphaeroides	0.036	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1263979	Candidatus Endolissoclinum faulkneri	0.5472	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+2	1336794	Formosa sp. Hel1_33_131	0.0009	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	1336794	Formosa sp. Hel1_33_131	0.0009	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1336795	Formosa sp. Hel3_A1_48	0.0486	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	1336795	Formosa sp. Hel3_A1_48	0.0486	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1427364	Candidatus Thioglobus singularis	0.0547	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+2	1427364	Candidatus Thioglobus singularis	0.0547	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1462	Geobacillus kaustophilus	0.082	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	1462	Geobacillus kaustophilus	0.082	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	1462	Geobacillus kaustophilus	0.082	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1462	Geobacillus kaustophilus	0.082	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	1491	Clostridium botulinum	0.1776	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+2	1491	Clostridium botulinum	0.1776	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1491	Clostridium botulinum	0.1776	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	154	Spirochaeta thermophila	0.0137	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	154	Spirochaeta thermophila	0.0137	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1833	Rhodococcus erythropolis	0.0273	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	1833	Rhodococcus erythropolis	0.0273	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	1833	Rhodococcus erythropolis	0.0273	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	1833	Rhodococcus erythropolis	0.0273	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	2296	Desulfobacterium autotrophicum	0.0273	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	2296	Desulfobacterium autotrophicum	0.0273	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	2743	Marinobacter hydrocarbonoclasticus	0.0073	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+2	2743	Marinobacter hydrocarbonoclasticus	0.0073	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+2	28229	Colwellia psychrerythraea	0.0273	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	28229	Colwellia psychrerythraea	0.0273	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	28229	Colwellia psychrerythraea	0.0273	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	28229	Colwellia psychrerythraea	0.0273	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	316279	Synechococcus sp. CC9902	0.0683	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	316279	Synechococcus sp. CC9902	0.0683	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	324767	Bacillus infantis	0.041	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	324767	Bacillus infantis	0.041	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	324767	Bacillus infantis	0.041	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	324767	Bacillus infantis	0.041	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	467094	Ilumatobacter coccineus	0.1503	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	467094	Ilumatobacter coccineus	0.1503	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	543877	Altererythrobacter marensis	0.041	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	543877	Altererythrobacter marensis	0.041	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	713887	Candidatus Atelocyanobacterium thalassa	0.0137	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	713887	Candidatus Atelocyanobacterium thalassa	0.0137	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	713887	Candidatus Atelocyanobacterium thalassa	0.0137	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	713887	Candidatus Atelocyanobacterium thalassa	0.0137	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	73141	Thiocystis violascens	0.0956	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	73141	Thiocystis violascens	0.0956	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	73141	Thiocystis violascens	0.0956	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	73141	Thiocystis violascens	0.0956	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+2	89184	Ruegeria pomeroyi	0.0273	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+2	89184	Ruegeria pomeroyi	0.0273	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+2	89184	Ruegeria pomeroyi	0.0273	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+2	89184	Ruegeria pomeroyi	0.0273	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	1063	Rhodobacter sphaeroides	0.0129	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	1063	Rhodobacter sphaeroides	0.0129	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	111501	Muricauda ruestringensis	0.0488	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	111501	Muricauda ruestringensis	0.0488	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1263979	Candidatus Endolissoclinum faulkneri	0.5825	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+3	1336794	Formosa sp. Hel1_33_131	0.001	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	1336794	Formosa sp. Hel1_33_131	0.001	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1336795	Formosa sp. Hel3_A1_48	0.0486	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	1336795	Formosa sp. Hel3_A1_48	0.0486	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1427364	Candidatus Thioglobus singularis	0.0244	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+3	1427364	Candidatus Thioglobus singularis	0.0244	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1462	Geobacillus kaustophilus	0.0195	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	1462	Geobacillus kaustophilus	0.0195	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	1462	Geobacillus kaustophilus	0.0195	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1462	Geobacillus kaustophilus	0.0195	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	1491	Clostridium botulinum	0.1952	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+3	1491	Clostridium botulinum	0.1952	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1491	Clostridium botulinum	0.1952	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	154	Spirochaeta thermophila	0.0244	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	154	Spirochaeta thermophila	0.0244	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1833	Rhodococcus erythropolis	0.0049	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	1833	Rhodococcus erythropolis	0.0049	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	1833	Rhodococcus erythropolis	0.0049	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	1833	Rhodococcus erythropolis	0.0049	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	198252	Candidatus Pelagibacter ubique	0.0047	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	198252	Candidatus Pelagibacter ubique	0.0047	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	198252	Candidatus Pelagibacter ubique	0.0047	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	198252	Candidatus Pelagibacter ubique	0.0047	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	2296	Desulfobacterium autotrophicum	0.1659	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	2296	Desulfobacterium autotrophicum	0.1659	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	2743	Marinobacter hydrocarbonoclasticus	0.0298	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+3	2743	Marinobacter hydrocarbonoclasticus	0.0298	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+3	28229	Colwellia psychrerythraea	0.0829	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	28229	Colwellia psychrerythraea	0.0829	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	28229	Colwellia psychrerythraea	0.0829	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	28229	Colwellia psychrerythraea	0.0829	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	316279	Synechococcus sp. CC9902	0.0683	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	316279	Synechococcus sp. CC9902	0.0683	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	324767	Bacillus infantis	0.0488	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	324767	Bacillus infantis	0.0488	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	324767	Bacillus infantis	0.0488	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	324767	Bacillus infantis	0.0488	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	467094	Ilumatobacter coccineus	0.2049	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	467094	Ilumatobacter coccineus	0.2049	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	543877	Altererythrobacter marensis	0.0342	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	543877	Altererythrobacter marensis	0.0342	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	582419	Thermococcus paralvinellae	0.0195	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	582419	Thermococcus paralvinellae	0.0195	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	713887	Candidatus Atelocyanobacterium thalassa	0.0683	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	713887	Candidatus Atelocyanobacterium thalassa	0.0683	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	713887	Candidatus Atelocyanobacterium thalassa	0.0683	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	713887	Candidatus Atelocyanobacterium thalassa	0.0683	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	73141	Thiocystis violascens	0.0878	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	73141	Thiocystis violascens	0.0878	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	73141	Thiocystis violascens	0.0878	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	73141	Thiocystis violascens	0.0878	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+3	89184	Ruegeria pomeroyi	0.039	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+3	89184	Ruegeria pomeroyi	0.039	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+3	89184	Ruegeria pomeroyi	0.039	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+3	89184	Ruegeria pomeroyi	0.039	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	1063	Rhodobacter sphaeroides	0.0126	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	1063	Rhodobacter sphaeroides	0.0126	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	111501	Muricauda ruestringensis	0.0384	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	111501	Muricauda ruestringensis	0.0384	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1263979	Candidatus Endolissoclinum faulkneri	0.4995	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+4	1336794	Formosa sp. Hel1_33_131	0.0063	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	1336794	Formosa sp. Hel1_33_131	0.0063	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1336795	Formosa sp. Hel3_A1_48	0.0273	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	1336795	Formosa sp. Hel3_A1_48	0.0273	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1427364	Candidatus Thioglobus singularis	0.0096	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+4	1427364	Candidatus Thioglobus singularis	0.0096	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1491	Clostridium botulinum	0.163	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+4	1491	Clostridium botulinum	0.163	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1491	Clostridium botulinum	0.163	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	1833	Rhodococcus erythropolis	0.0192	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	1833	Rhodococcus erythropolis	0.0192	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	1833	Rhodococcus erythropolis	0.0192	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	1833	Rhodococcus erythropolis	0.0192	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	2296	Desulfobacterium autotrophicum	0.0288	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	2296	Desulfobacterium autotrophicum	0.0288	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	2743	Marinobacter hydrocarbonoclasticus	0.0357	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+4	2743	Marinobacter hydrocarbonoclasticus	0.0357	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+4	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	316279	Synechococcus sp. CC9902	0.0288	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	316279	Synechococcus sp. CC9902	0.0288	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	324767	Bacillus infantis	0.0288	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	324767	Bacillus infantis	0.0288	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	324767	Bacillus infantis	0.0288	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	324767	Bacillus infantis	0.0288	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	467094	Ilumatobacter coccineus	0.4123	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	467094	Ilumatobacter coccineus	0.4123	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	543877	Altererythrobacter marensis	0.0096	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	543877	Altererythrobacter marensis	0.0096	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	582419	Thermococcus paralvinellae	0.0096	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	582419	Thermococcus paralvinellae	0.0096	s__Thermococcus_B paralvinellae	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	713887	Candidatus Atelocyanobacterium thalassa	0.0479	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	713887	Candidatus Atelocyanobacterium thalassa	0.0479	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	713887	Candidatus Atelocyanobacterium thalassa	0.0479	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	713887	Candidatus Atelocyanobacterium thalassa	0.0479	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	73141	Thiocystis violascens	0.0479	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	73141	Thiocystis violascens	0.0479	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	73141	Thiocystis violascens	0.0479	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	73141	Thiocystis violascens	0.0479	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+4	89184	Ruegeria pomeroyi	0.0384	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+4	89184	Ruegeria pomeroyi	0.0384	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+4	89184	Ruegeria pomeroyi	0.0384	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+4	89184	Ruegeria pomeroyi	0.0384	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	1063	Rhodobacter sphaeroides	0.0056	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1063	Rhodobacter sphaeroides	0.0056	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	111501	Muricauda ruestringensis	0.0341	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	111501	Muricauda ruestringensis	0.0341	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1263979	Candidatus Endolissoclinum faulkneri	0.3445	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+5	1336794	Formosa sp. Hel1_33_131	0.0022	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1336794	Formosa sp. Hel1_33_131	0.0022	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1336795	Formosa sp. Hel3_A1_48	0.0546	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1336795	Formosa sp. Hel3_A1_48	0.0546	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1427364	Candidatus Thioglobus singularis	0.017	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+5	1427364	Candidatus Thioglobus singularis	0.017	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1462	Geobacillus kaustophilus	0.017	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	1462	Geobacillus kaustophilus	0.017	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1462	Geobacillus kaustophilus	0.017	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1462	Geobacillus kaustophilus	0.017	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	1491	Clostridium botulinum	0.0767	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+5	1491	Clostridium botulinum	0.0767	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1491	Clostridium botulinum	0.0767	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	154	Spirochaeta thermophila	0.0426	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	154	Spirochaeta thermophila	0.0426	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	155863	Methanothermococcus okinawensis	0.017	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	155863	Methanothermococcus okinawensis	0.017	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	155863	Methanothermococcus okinawensis	0.017	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	155863	Methanothermococcus okinawensis	0.017	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	1705394	Candidatus Thioglobus autotrophicus	0.017	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1705394	Candidatus Thioglobus autotrophicus	0.017	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1833	Rhodococcus erythropolis	0.0085	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	1833	Rhodococcus erythropolis	0.0085	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	1833	Rhodococcus erythropolis	0.0085	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	1833	Rhodococcus erythropolis	0.0085	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	198252	Candidatus Pelagibacter ubique	0.0412	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	198252	Candidatus Pelagibacter ubique	0.0412	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	198252	Candidatus Pelagibacter ubique	0.0412	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	198252	Candidatus Pelagibacter ubique	0.0412	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	2296	Desulfobacterium autotrophicum	0.4175	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	2296	Desulfobacterium autotrophicum	0.4175	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	2743	Marinobacter hydrocarbonoclasticus	0.0792	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+5	2743	Marinobacter hydrocarbonoclasticus	0.0792	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+5	28229	Colwellia psychrerythraea	0.017	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	28229	Colwellia psychrerythraea	0.017	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	28229	Colwellia psychrerythraea	0.017	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	28229	Colwellia psychrerythraea	0.017	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	316279	Synechococcus sp. CC9902	0.0426	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	316279	Synechococcus sp. CC9902	0.0426	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	324767	Bacillus infantis	0.0426	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	324767	Bacillus infantis	0.0426	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	324767	Bacillus infantis	0.0426	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	324767	Bacillus infantis	0.0426	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	467094	Ilumatobacter coccineus	0.2812	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	467094	Ilumatobacter coccineus	0.2812	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	713887	Candidatus Atelocyanobacterium thalassa	0.0085	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	713887	Candidatus Atelocyanobacterium thalassa	0.0085	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	713887	Candidatus Atelocyanobacterium thalassa	0.0085	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	713887	Candidatus Atelocyanobacterium thalassa	0.0085	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	73141	Thiocystis violascens	0.0596	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	73141	Thiocystis violascens	0.0596	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	73141	Thiocystis violascens	0.0596	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	73141	Thiocystis violascens	0.0596	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+5	89184	Ruegeria pomeroyi	0.017	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+5	89184	Ruegeria pomeroyi	0.017	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+5	89184	Ruegeria pomeroyi	0.017	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+5	89184	Ruegeria pomeroyi	0.017	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	1063	Rhodobacter sphaeroides	0.0253	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	1063	Rhodobacter sphaeroides	0.0253	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	111501	Muricauda ruestringensis	0.0384	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	111501	Muricauda ruestringensis	0.0384	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	1263979	Candidatus Endolissoclinum faulkneri	0.3733	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+6	1336795	Formosa sp. Hel3_A1_48	0.0547	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	1336795	Formosa sp. Hel3_A1_48	0.0547	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	1491	Clostridium botulinum	0.0673	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+6	1491	Clostridium botulinum	0.0673	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	1491	Clostridium botulinum	0.0673	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	154	Spirochaeta thermophila	0.0288	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	154	Spirochaeta thermophila	0.0288	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	155863	Methanothermococcus okinawensis	0.0288	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	155863	Methanothermococcus okinawensis	0.0288	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	155863	Methanothermococcus okinawensis	0.0288	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	155863	Methanothermococcus okinawensis	0.0288	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	198252	Candidatus Pelagibacter ubique	0.0093	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	198252	Candidatus Pelagibacter ubique	0.0093	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	198252	Candidatus Pelagibacter ubique	0.0093	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	198252	Candidatus Pelagibacter ubique	0.0093	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	201	Campylobacter lari	0.0096	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	201	Campylobacter lari	0.0096	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	2296	Desulfobacterium autotrophicum	0.221	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	2296	Desulfobacterium autotrophicum	0.221	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	2743	Marinobacter hydrocarbonoclasticus	0.074	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+6	2743	Marinobacter hydrocarbonoclasticus	0.074	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+6	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	28229	Colwellia psychrerythraea	0.0096	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	316279	Synechococcus sp. CC9902	0.0673	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	316279	Synechococcus sp. CC9902	0.0673	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	324767	Bacillus infantis	0.0192	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	324767	Bacillus infantis	0.0192	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	324767	Bacillus infantis	0.0192	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	324767	Bacillus infantis	0.0192	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	467094	Ilumatobacter coccineus	0.2018	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	467094	Ilumatobacter coccineus	0.2018	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	713887	Candidatus Atelocyanobacterium thalassa	0.0096	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	713887	Candidatus Atelocyanobacterium thalassa	0.0096	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	713887	Candidatus Atelocyanobacterium thalassa	0.0096	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	713887	Candidatus Atelocyanobacterium thalassa	0.0096	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	73141	Thiocystis violascens	0.0769	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	73141	Thiocystis violascens	0.0769	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	73141	Thiocystis violascens	0.0769	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	73141	Thiocystis violascens	0.0769	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+6	89184	Ruegeria pomeroyi	0.0288	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+6	89184	Ruegeria pomeroyi	0.0288	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+6	89184	Ruegeria pomeroyi	0.0288	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+6	89184	Ruegeria pomeroyi	0.0288	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	1063	Rhodobacter sphaeroides	0.007	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	1063	Rhodobacter sphaeroides	0.007	s__Cereibacter_A sphaeroides	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	111501	Muricauda ruestringensis	0.0213	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	111501	Muricauda ruestringensis	0.0213	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	1263979	Candidatus Endolissoclinum faulkneri	0.5846	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+7	1336795	Formosa sp. Hel3_A1_48	0.0152	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	1336795	Formosa sp. Hel3_A1_48	0.0152	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	1427364	Candidatus Thioglobus singularis	0.0213	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+7	1427364	Candidatus Thioglobus singularis	0.0213	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+7	1491	Clostridium botulinum	0.1066	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+7	1491	Clostridium botulinum	0.1066	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	1491	Clostridium botulinum	0.1066	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	154	Spirochaeta thermophila	0.0213	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	154	Spirochaeta thermophila	0.0213	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	155863	Methanothermococcus okinawensis	0.032	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	155863	Methanothermococcus okinawensis	0.032	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	155863	Methanothermococcus okinawensis	0.032	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	155863	Methanothermococcus okinawensis	0.032	s__Methanofervidicoccus okinawensis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	1833	Rhodococcus erythropolis	0.0107	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	1833	Rhodococcus erythropolis	0.0107	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	1833	Rhodococcus erythropolis	0.0107	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	1833	Rhodococcus erythropolis	0.0107	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	201	Campylobacter lari	0.0639	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	201	Campylobacter lari	0.0639	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	2296	Desulfobacterium autotrophicum	0.1385	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	2296	Desulfobacterium autotrophicum	0.1385	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	2743	Marinobacter hydrocarbonoclasticus	0.0113	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+7	2743	Marinobacter hydrocarbonoclasticus	0.0113	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+7	28229	Colwellia psychrerythraea	0.2345	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	28229	Colwellia psychrerythraea	0.2345	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	28229	Colwellia psychrerythraea	0.2345	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	28229	Colwellia psychrerythraea	0.2345	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	316279	Synechococcus sp. CC9902	0.0426	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	316279	Synechococcus sp. CC9902	0.0426	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	324767	Bacillus infantis	0.032	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	324767	Bacillus infantis	0.032	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	324767	Bacillus infantis	0.032	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	324767	Bacillus infantis	0.032	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	467094	Ilumatobacter coccineus	0.2025	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	467094	Ilumatobacter coccineus	0.2025	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	543877	Altererythrobacter marensis	0.0107	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	543877	Altererythrobacter marensis	0.0107	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	713887	Candidatus Atelocyanobacterium thalassa	0.0107	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	713887	Candidatus Atelocyanobacterium thalassa	0.0107	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	713887	Candidatus Atelocyanobacterium thalassa	0.0107	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	713887	Candidatus Atelocyanobacterium thalassa	0.0107	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	73141	Thiocystis violascens	0.0213	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	73141	Thiocystis violascens	0.0213	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	73141	Thiocystis violascens	0.0213	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	73141	Thiocystis violascens	0.0213	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+7	89184	Ruegeria pomeroyi	0.0746	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+7	89184	Ruegeria pomeroyi	0.0746	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+7	89184	Ruegeria pomeroyi	0.0746	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+7	89184	Ruegeria pomeroyi	0.0746	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	111501	Muricauda ruestringensis	0.0449	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	111501	Muricauda ruestringensis	0.0449	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1263979	Candidatus Endolissoclinum faulkneri	0.4777	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+8	1336794	Formosa sp. Hel1_33_131	0.0004	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	1336794	Formosa sp. Hel1_33_131	0.0004	s__Hel1-33-131 sp001735745	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1336795	Formosa sp. Hel3_A1_48	0.0091	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	1336795	Formosa sp. Hel3_A1_48	0.0091	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1427364	Candidatus Thioglobus singularis	0.0192	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+8	1427364	Candidatus Thioglobus singularis	0.0192	s__Pseudothioglobus singularis	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1462	Geobacillus kaustophilus	0.0257	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	1462	Geobacillus kaustophilus	0.0257	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	1462	Geobacillus kaustophilus	0.0257	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1462	Geobacillus kaustophilus	0.0257	s__Geobacillus thermoleovorans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	1491	Clostridium botulinum	0.0898	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+8	1491	Clostridium botulinum	0.0898	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1491	Clostridium botulinum	0.0898	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	1705394	Candidatus Thioglobus autotrophicus	0.0128	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	1705394	Candidatus Thioglobus autotrophicus	0.0128	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1833	Rhodococcus erythropolis	0.0064	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	1833	Rhodococcus erythropolis	0.0064	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	1833	Rhodococcus erythropolis	0.0064	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	1833	Rhodococcus erythropolis	0.0064	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	198252	Candidatus Pelagibacter ubique	0.0062	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	198252	Candidatus Pelagibacter ubique	0.0062	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	198252	Candidatus Pelagibacter ubique	0.0062	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	198252	Candidatus Pelagibacter ubique	0.0062	s__Pelagibacter ubiqueversans	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	201	Campylobacter lari	0.0128	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	201	Campylobacter lari	0.0128	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	2296	Desulfobacterium autotrophicum	0.077	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	2296	Desulfobacterium autotrophicum	0.077	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	271420	Pseudomonas xanthomarina	0.0128	s__Stutzerimonas xanthomarina	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	271420	Pseudomonas xanthomarina	0.0128	s__Stutzerimonas xanthomarina	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	2743	Marinobacter hydrocarbonoclasticus	0.0477	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+8	2743	Marinobacter hydrocarbonoclasticus	0.0477	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+8	28229	Colwellia psychrerythraea	0.1475	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	28229	Colwellia psychrerythraea	0.1475	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	28229	Colwellia psychrerythraea	0.1475	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	28229	Colwellia psychrerythraea	0.1475	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	316279	Synechococcus sp. CC9902	0.0577	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	316279	Synechococcus sp. CC9902	0.0577	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	324767	Bacillus infantis	0.077	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	324767	Bacillus infantis	0.077	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	324767	Bacillus infantis	0.077	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	324767	Bacillus infantis	0.077	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	467094	Ilumatobacter coccineus	0.0834	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	467094	Ilumatobacter coccineus	0.0834	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	543877	Altererythrobacter marensis	0.0128	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	543877	Altererythrobacter marensis	0.0128	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	713887	Candidatus Atelocyanobacterium thalassa	0.0577	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	713887	Candidatus Atelocyanobacterium thalassa	0.0577	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	713887	Candidatus Atelocyanobacterium thalassa	0.0577	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	713887	Candidatus Atelocyanobacterium thalassa	0.0577	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	73141	Thiocystis violascens	0.0321	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	73141	Thiocystis violascens	0.0321	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	73141	Thiocystis violascens	0.0321	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	73141	Thiocystis violascens	0.0321	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+8	89184	Ruegeria pomeroyi	0.0321	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+8	89184	Ruegeria pomeroyi	0.0321	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+8	89184	Ruegeria pomeroyi	0.0321	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+8	89184	Ruegeria pomeroyi	0.0321	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	111501	Muricauda ruestringensis	0.0243	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	111501	Muricauda ruestringensis	0.0243	s__Flagellimonas ruestringensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1263979	Candidatus Endolissoclinum faulkneri	0.3969	s__Thalassobaculum faulkneri_A	2	1	0	1	1	1	0	1	1	1	0	1	1	diagnostic_partial_setup_unique_source_name
+9	1336795	Formosa sp. Hel3_A1_48	0.0173	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	1336795	Formosa sp. Hel3_A1_48	0.0173	s__UBA3537 sp001735715	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1491	Clostridium botulinum	0.0607	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_all_setup_sources_unique
+9	1491	Clostridium botulinum	0.0607	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1491	Clostridium botulinum	0.0607	s__Clostridium cagae	1	1	0	0	1	0	0	1	0	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	154	Spirochaeta thermophila	0.1577	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	154	Spirochaeta thermophila	0.1577	s__Winmispira thermophila	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1705394	Candidatus Thioglobus autotrophicus	0.0121	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	1705394	Candidatus Thioglobus autotrophicus	0.0121	s__Thioglobus_A autotrophicus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1833	Rhodococcus erythropolis	0.0121	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	1833	Rhodococcus erythropolis	0.0121	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	1833	Rhodococcus erythropolis	0.0121	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	1833	Rhodococcus erythropolis	0.0121	s__Rhodococcus_F erythropolis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	201	Campylobacter lari	0.0121	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	201	Campylobacter lari	0.0121	s__Campylobacter_D lari_C	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	2296	Desulfobacterium autotrophicum	0.3154	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	2296	Desulfobacterium autotrophicum	0.3154	s__Desulforapulum autotrophicum	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	2743	Marinobacter hydrocarbonoclasticus	0.0258	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_assembly_summary_sources_unique
+9	2743	Marinobacter hydrocarbonoclasticus	0.0258	s__Marinobacter nauticus	2	0	0	2	0	2	0	0	1	2	0	0	1	strict_source_name_or_assembly_sources_unique
+9	28229	Colwellia psychrerythraea	0.2184	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	28229	Colwellia psychrerythraea	0.2184	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	28229	Colwellia psychrerythraea	0.2184	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	28229	Colwellia psychrerythraea	0.2184	s__Colwellia psychrerythraea_A	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	316279	Synechococcus sp. CC9902	0.0607	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	316279	Synechococcus sp. CC9902	0.0607	s__Parasynechococcus sp000012505	1	0	1	0	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	324767	Bacillus infantis	0.0728	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	324767	Bacillus infantis	0.0728	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	324767	Bacillus infantis	0.0728	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	324767	Bacillus infantis	0.0728	s__Bacillus_AB infantis	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	467094	Ilumatobacter coccineus	0.6187	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	467094	Ilumatobacter coccineus	0.6187	s__Ilumatobacter_A coccineus	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	543877	Altererythrobacter marensis	0.0121	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	543877	Altererythrobacter marensis	0.0121	s__Pelagerythrobacter marensis	1	0	0	1	0	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	713887	Candidatus Atelocyanobacterium thalassa	0.0121	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	713887	Candidatus Atelocyanobacterium thalassa	0.0121	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	713887	Candidatus Atelocyanobacterium thalassa	0.0121	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	713887	Candidatus Atelocyanobacterium thalassa	0.0121	s__Atelocyanobacterium thalassae	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	73141	Thiocystis violascens	0.0243	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	73141	Thiocystis violascens	0.0243	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	73141	Thiocystis violascens	0.0243	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	73141	Thiocystis violascens	0.0243	s__Chromatium violascens	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name
+9	89184	Ruegeria pomeroyi	0.0485	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_all_setup_sources_unique
+9	89184	Ruegeria pomeroyi	0.0485	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_assembly_summary_sources_unique
+9	89184	Ruegeria pomeroyi	0.0485	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	strict_source_name_or_assembly_sources_unique
+9	89184	Ruegeria pomeroyi	0.0485	s__Ruegeria_B pomeroyi	1	1	0	0	1	1	0	0	1	1	0	0	1	diagnostic_partial_setup_unique_source_name

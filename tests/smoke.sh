@@ -46,6 +46,18 @@ for hidden in shuffle dist reverse; do
 done
 "$BIN" set --help > "$WORK/set_help.txt"
 grep -q -- '--downsample' "$WORK/set_help.txt"
+"$BIN" profile --help > "$WORK/profile_help.txt"
+grep -q -- '--reads' "$WORK/profile_help.txt"
+grep -q -- '--track' "$WORK/profile_help.txt"
+grep -q 'conservative direct' "$WORK/profile_help.txt"
+env PYTHONDONTWRITEBYTECODE=1 python3 -B "$ROOT/scripts/minco_profile" --help \
+  > "$WORK/profile_default_help.txt" 2>&1
+grep -q 'recommended no-manual-strategy entry point' "$WORK/profile_default_help.txt"
+grep -q 'scripts/minco_profile -r ref.minco' "$WORK/profile_default_help.txt"
+grep -q 'scripts/minco_profile --check-ref -r ref.minco' "$WORK/profile_default_help.txt"
+grep -q 'sidecar beside --ref' "$WORK/profile_default_help.txt"
+grep -q 'AMR/gene/virus/mixed-domain profiling' "$WORK/profile_default_help.txt"
+env PYTHONDONTWRITEBYTECODE=1 python3 -B "$ROOT/tests/test_minco_profile_calibrated_auto_exact.py"
 
 "$BIN" sketch -p 2 --ctxmeta both -o "$WORK/pair.minco" "$WORK/a.fna" "$WORK/b.fna" > "$WORK/sketch.log" 2>&1
 test -s "$WORK/pair.minco/minco.ctxobj64"
@@ -141,6 +153,87 @@ grep -q $'^sketch_corrected_available\t1$' "$WORK/read.track.summary.tsv"
 grep -q $'^estimated_unknown_reads_pct\t' "$WORK/read.track.summary.tsv"
 grep -q $'^estimated_unknown_reads_basis\tsketch_corrected_ref_absent_contexts' "$WORK/read.track.summary.tsv"
 ! grep -q $'^estimated_ref_absent_ctx_pct\t' "$WORK/read.track.summary.tsv"
+
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-edge-out "$WORK/read.edges.tsv" \
+  --readwise-edge-max 10000 \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.edge.ani.tsv" \
+  > "$WORK/read.edge.log" 2>&1
+test -s "$WORK/read.edges.tsv"
+grep -q "forces --density-block-ctx 0" "$WORK/read.edge.log"
+grep -q $'^edge_id\tread_id\tunit_id\tqctx\tedge_rank\tref_begin\tgid\t' "$WORK/read.edges.tsv"
+
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split \
+  --readwise-unique-out "$WORK/read.unique.sidecar.tsv" \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.split.with_unique.tsv" \
+  > "$WORK/read.split.with_unique.log" 2>&1
+test -s "$WORK/read.unique.sidecar.tsv"
+test -s "$WORK/read.split.with_unique.tsv"
+grep -q "wrote best-diff-unique sidecar" "$WORK/read.split.with_unique.log"
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-unique \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.unique.separate.tsv" \
+  > "$WORK/read.unique.separate.log" 2>&1
+python3 - "$WORK/read.unique.sidecar.tsv" "$WORK/read.unique.separate.tsv" <<'PY'
+import csv
+import sys
+
+sidecar, separate = sys.argv[1:3]
+cols = [
+    "Qry", "Ref", "ANI", "XnY_ctx", "N_diff_obj", "N_diff_obj_section",
+    "N_mut2_ctx", "Unique_ref_ctx_hit", "Raw_XnY_ctx",
+    "Ref_breadth", "Ref_mean_depth", "Ref_hit_mean_depth", "Ref_zip_af",
+    "Relative_abundance_depth", "Normalized_abundance_depth",
+]
+
+def read_rows(path):
+    with open(path, newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        missing = [c for c in cols if c not in (reader.fieldnames or [])]
+        if missing:
+            raise SystemExit(f"{path}: missing columns {missing}")
+        return sorted(
+            ({c: row[c] for c in cols} for row in reader),
+            key=lambda row: (row["Qry"], row["Ref"]),
+        )
+
+a = read_rows(sidecar)
+b = read_rows(separate)
+if a != b:
+    raise SystemExit(f"unique sidecar differs from separate unique pass: {sidecar} {separate}")
+PY
+
+"$BIN" profile -r "$WORK/pair.minco" "$WORK/a.fna" -p 2 \
+  -o "$WORK/profile.tsv" > "$WORK/profile.log" 2>&1
+test -s "$WORK/profile.tsv"
+grep -q 'Relative_abundance_depth' "$WORK/profile.tsv"
+grep -q 'Default_call' "$WORK/profile.tsv"
+grep -q 'major' "$WORK/profile.tsv"
+
+"$BIN" profile -r "$WORK/pair.minco" "$WORK/a.fna" \
+  --track "$WORK/profile.track.tsv" \
+  --track-summary "$WORK/profile.track.summary.tsv" \
+  --taxonomy gtdb --gtdb-taxmap "$WORK/gtdb.taxmap.tsv" \
+  --report-all -o "$WORK/profile.track.profile.tsv" \
+  > "$WORK/profile.track.log" 2>&1
+test -s "$WORK/profile.track.tsv"
+test -s "$WORK/profile.track.summary.tsv"
+grep -q "forces --density-block-ctx 0" "$WORK/profile.track.log"
+grep -q $'^read_id\tread_ord\tread_len\tpossible_ctx\tdensity_ctx\tmatched_ctx' "$WORK/profile.track.tsv"
+grep -q $'^estimated_unknown_reads_basis\tsketch_corrected_ref_absent_contexts' "$WORK/profile.track.summary.tsv"
+
+"$BIN" profile -r "$WORK/pair.minco" "$WORK/a.fna" \
+  --edge-out "$WORK/profile.edges.tsv" \
+  --edge-max 10000 \
+  --report-all -o "$WORK/profile.edge.profile.tsv" \
+  > "$WORK/profile.edge.log" 2>&1
+test -s "$WORK/profile.edges.tsv"
+grep -q "forces --density-block-ctx 0" "$WORK/profile.edge.log"
+grep -q $'^edge_id\tread_id\tunit_id\tqctx\tedge_rank\tref_begin\tgid\t' "$WORK/profile.edges.tsv"
 
 "$BIN" ani -q "$WORK/pair.minco" -m2 -s -1 -d -p 2 -o "$WORK/ani.tsv" > "$WORK/ani.log" 2>&1
 test -s "$WORK/ani.tsv"

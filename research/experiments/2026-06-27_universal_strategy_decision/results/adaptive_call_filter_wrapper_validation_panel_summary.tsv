@@ -1,0 +1,5 @@
+panel	method	samples	mean_F1	pooled_F1	pooled_TP	pooled_FP	pooled_FN	official_L1_pp	official_Pearson	switched_samples	removed_rows
+cami2_toy_mouse_gut	wrapper_adaptive_call_filter_lopo_min_xny25	5,6,7	0.8938387600398774	0.8776470588235294	373	10	94	13.690975981820758	0.9881673704508959	2	0
+cami3_toy_human_gut_gtdb_source_readmap	wrapper_adaptive_call_filter_lopo_min_xny25	0,1,2	0.8159567931704953	0.8145695364238409	246	62	50	62.60415694820017	0.8276026158310531	0	0
+hmp_airskin_gtdb_source_abundance	wrapper_adaptive_call_filter_lopo_min_xny25	11,6	0.9610576923076923	0.9690721649484536	47	1	2	22.780570236553928	0.9256139889209761	2	0
+hmp_gastrooral_gtdb_source_abundance	wrapper_adaptive_call_filter_lopo_min_xny25	0,6	0.9241964827167981	0.9212121212121211	76	8	5	48.95432045560146	0.882249435556273	2	1

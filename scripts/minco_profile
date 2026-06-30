@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""User-facing MinCO calibrated species-profile launcher."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from typing import Mapping, Optional, Sequence
+
+
+def main(argv: Optional[Sequence[str]] = None, env: Optional[Mapping[str, str]] = None) -> int:
+    repo = Path(__file__).resolve().parents[1]
+    if str(repo) not in sys.path:
+        sys.path.insert(0, str(repo))
+    from scripts import minco_profile_default
+
+    return minco_profile_default.main(argv, env)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

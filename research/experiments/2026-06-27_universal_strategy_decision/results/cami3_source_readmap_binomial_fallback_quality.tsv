@@ -1,0 +1,4 @@
+sample	base_read_rows_total	base_read_rows_mapped	fallback_added_rows	adjusted_read_rows_mapped	base_all_rows_mapped_pct	adjusted_all_rows_mapped_pct	profile_scope_read_rows	base_profile_scope_mapped_rows	adjusted_profile_scope_mapped_rows	base_profile_scope_mapped_pct	adjusted_profile_scope_mapped_pct	release_threshold_pct	profile_scope_release_ready_after_fallback
+0	33267026	26557660	397912	26955572	79.83178297933816	81.02789831588792	18818140	17656484	18054396	93.82693507434847	95.94144798582644	95.0	true
+1	33266680	26300262	521696	26821958	79.05887212069254	80.6270959410437	23172236	21910348	22432044	94.55431059825214	96.80569453893013	95.0	true
+2	33267952	28249304	812412	29061716	84.91446663142955	87.35649251868585	26734336	25897434	26709846	96.86956130124197	99.90839495695722	95.0	true

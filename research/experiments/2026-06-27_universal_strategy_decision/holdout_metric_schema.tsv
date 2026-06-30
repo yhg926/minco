@@ -1,0 +1,14 @@
+field	required	description
+panel_id	true	Stable validation panel identifier.
+dataset_family	true	Dataset or ecosystem family.
+samples	true	Comma-separated sample IDs or aggregate sample count.
+truth_namespace	true	Truth namespace used for scoring.
+truth_status	true	Whether truth transfer is clean, partial, mixed, or diagnostic.
+minco_result	true	MinCO profile/table path or not_single_profile_set for aggregate-only evidence.
+sylph_result	true	Sylph profile/table path or not_single_profile_set for aggregate-only evidence.
+metric_source	true	TSV containing comparable MinCO/Sylph metrics.
+minco_method	true	Method name used in metric_source.
+sylph_method	true	Method name used in metric_source.
+release_grade_ready	true	true only when truth namespace is GTDB_species and metric_source has comparable MinCO/Sylph F1 plus abundance metrics.
+diagnostic_grade_ready	true	true only when the panel is not release-grade but has comparable MinCO/Sylph metrics and high-value diagnostic truth transfer.
+notes	false	Short caveat.

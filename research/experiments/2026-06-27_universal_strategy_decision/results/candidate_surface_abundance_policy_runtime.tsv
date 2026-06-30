@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/sweep_candidate_surface_abundance_policy.py	49.78	48.70	2.59	3805916	0	cached HMP integrated candidate-surface abundance-policy sweep; no profile copies written; uses max(split,unique) normalized-depth convention

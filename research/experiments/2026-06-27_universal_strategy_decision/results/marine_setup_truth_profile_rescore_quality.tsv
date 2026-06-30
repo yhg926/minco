@@ -1,0 +1,4 @@
+sample	rule_id	release_grade_allowed	description	extra_mapped_pct_all	mapped_pct_all	mapped_pct_bacteria_archaea	ready_at_95pct_bacteria_archaea	base_mapped_pct_bacteria_archaea
+3	strict_source_name_or_assembly_sources_unique	True	every setup source under the unresolved NCBI species row has a unique exact source-name or local RefSeq assembly-summary GTDB match and all agree	1.2338	30.592299999999984	96.46368457895308	True	92.5732646355846
+4	strict_source_name_or_assembly_sources_unique	True	every setup source under the unresolved NCBI species row has a unique exact source-name or local RefSeq assembly-summary GTDB match and all agree	0.9738	30.03940000000002	97.2403769272852	True	94.08809429008905
+5	strict_source_name_or_assembly_sources_unique	True	every setup source under the unresolved NCBI species row has a unique exact source-name or local RefSeq assembly-summary GTDB match and all agree	1.2987	36.40910000000002	97.57621236281771	True	94.09570262773526

@@ -277,6 +277,26 @@ static infile_meta_t *read_optional_sketch_infile_meta_stats(const char *sketch_
 	return stats;
 }
 
+static uint8_t *read_optional_domain_profiles(const char *sketch_dir, int infile_num)
+{
+	if (infile_num <= 0 || !file_exists_in_folder(sketch_dir, sketch_domain_stat))
+		return NULL;
+	size_t domain_file_size = 0;
+	char *domain_path = test_get_fullpath(sketch_dir, sketch_domain_stat);
+	uint8_t *profiles = read_from_file(domain_path, &domain_file_size);
+	free(domain_path);
+	const size_t expected_size = (size_t)infile_num * sizeof(profiles[0]);
+	if (domain_file_size != expected_size)
+		err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+			__func__, sketch_dir, sketch_domain_stat, domain_file_size, expected_size);
+	for (int i = 0; i < infile_num; ++i)
+		if (profiles[i] > MINCO_DOMAIN_PROFILE_MAX)
+			errx(EINVAL, "%s(): %s/%s has invalid profile %u at sample %d",
+				 __func__, sketch_dir, sketch_domain_stat,
+				 (unsigned)profiles[i], i);
+	return profiles;
+}
+
 static int split_tsv_fields(char *line, char **fields, int max_fields)
 {
 	int n = 0;
@@ -1160,6 +1180,7 @@ typedef struct {
     unsigned char confidence;
     unsigned char best_guarded;
     unsigned char af_pass;
+    uint8_t domain_profile;
     double   af_qry, blastn_af_qry, af_ref, blastn_af_ref;
     double   real_af_qry, real_af_ref;
     unsigned char real_af_available;
@@ -1252,7 +1273,8 @@ typedef enum ani_readwise_default_call
 {
 	ANI_READWISE_CALL_WEAK = 0,
 	ANI_READWISE_CALL_LOW_ABUNDANCE = 1,
-	ANI_READWISE_CALL_MAJOR = 2
+	ANI_READWISE_CALL_SCREENING = 2,
+	ANI_READWISE_CALL_MAJOR = 3
 } ani_readwise_default_call_t;
 
 static inline uint64_t ani_readwise_default_support_cut_for_ref(uint64_t ref_ctx_total)
@@ -1304,20 +1326,54 @@ static inline bool ani_readwise_default_support_pass(const ani_row_t *r,
 		   r->readwise_unique_ref_ctx_hit >= support_cut;
 }
 
+static inline uint64_t ani_readwise_fractional_support_cut(const ani_row_t *r,
+														   uint64_t min_support,
+														   double support_fraction)
+{
+	const uint64_t total = r ? r->readwise_ref_ctx_total : 0;
+	uint64_t fractional = 0;
+	if (total > 0 && support_fraction > 0.0)
+		fractional = (uint64_t)ceill((long double)total *
+									 (long double)support_fraction);
+	return fractional > min_support ? fractional : min_support;
+}
+
+static inline bool ani_readwise_small_feature_profile(uint8_t profile)
+{
+	return profile == MINCO_DOMAIN_PROFILE_AMR ||
+		   profile == MINCO_DOMAIN_PROFILE_GENE;
+}
+
 static inline ani_readwise_default_call_t ani_readwise_default_call(const ani_row_t *r)
 {
 	if (!r)
 		return ANI_READWISE_CALL_WEAK;
+	if (ani_readwise_small_feature_profile(r->domain_profile)) {
+		const uint64_t high_support =
+			ani_readwise_fractional_support_cut(r, 30, 0.03);
+		if (r->abundance_ref_breadth >= 0.60 &&
+			ani_readwise_default_support_pass(r, high_support) &&
+			r->selected_ani >= 0.96)
+			return ANI_READWISE_CALL_MAJOR;
+
+		const uint64_t screen_support =
+			ani_readwise_fractional_support_cut(r, 20, 0.02);
+		if (r->abundance_ref_breadth >= 0.35 &&
+			ani_readwise_default_support_pass(r, screen_support) &&
+			r->selected_ani >= 0.95)
+			return ANI_READWISE_CALL_SCREENING;
+		return ANI_READWISE_CALL_WEAK;
+	}
 	const uint64_t support_cut = ani_readwise_default_support_cut(r);
 	if (r->abundance_ref_breadth >= 0.5 &&
 		r->abundance_relative_depth >= 1e-4 &&
 		ani_readwise_default_support_pass(r, support_cut) &&
-		r->selected_ani >= 0.96)
+		r->selected_ani >= 0.95)
 		return ANI_READWISE_CALL_MAJOR;
 	if (r->abundance_ref_breadth >= 0.5 &&
 		r->abundance_relative_depth >= 1e-5 &&
 		ani_readwise_default_support_pass(r, support_cut) &&
-		r->selected_ani >= 0.96)
+		r->selected_ani >= 0.95)
 		return ANI_READWISE_CALL_LOW_ABUNDANCE;
 	return ANI_READWISE_CALL_WEAK;
 }
@@ -1328,6 +1384,8 @@ static inline const char *ani_readwise_default_call_label(ani_readwise_default_c
 	{
 	case ANI_READWISE_CALL_MAJOR:
 		return "major";
+	case ANI_READWISE_CALL_SCREENING:
+		return "screening";
 	case ANI_READWISE_CALL_LOW_ABUNDANCE:
 		return "low_abundance";
 	case ANI_READWISE_CALL_WEAK:
@@ -1336,14 +1394,19 @@ static inline const char *ani_readwise_default_call_label(ani_readwise_default_c
 	}
 }
 
-static inline const char *ani_readwise_default_call_rule(ani_readwise_default_call_t call)
+static inline const char *ani_readwise_default_call_rule(const ani_row_t *r,
+														ani_readwise_default_call_t call)
 {
 	switch (call)
 	{
 	case ANI_READWISE_CALL_MAJOR:
-		return "breadth>=0.5;rel_depth>=1e-4;support>=min(S,max(100,ceil(S/100)));ANI>=0.96";
+		if (r && ani_readwise_small_feature_profile(r->domain_profile))
+			return "domain=amr/gene;major:breadth>=0.60;support>=max(30,ceil(0.03*S));ANI>=0.96";
+		return "breadth>=0.5;rel_depth>=1e-4;support>=min(S,max(100,ceil(S/100)));ANI>=0.95";
+	case ANI_READWISE_CALL_SCREENING:
+		return "domain=amr/gene;screening:breadth>=0.35;support>=max(20,ceil(0.02*S));ANI>=0.95";
 	case ANI_READWISE_CALL_LOW_ABUNDANCE:
-		return "breadth>=0.5;rel_depth>=1e-5;support>=min(S,max(100,ceil(S/100)));ANI>=0.96";
+		return "breadth>=0.5;rel_depth>=1e-5;support>=min(S,max(100,ceil(S/100)));ANI>=0.95";
 	case ANI_READWISE_CALL_WEAK:
 	default:
 		return "below_default_call_thresholds";
@@ -2154,11 +2217,11 @@ static inline void append_unified_detail_row(kstring_t *ks_out,
                      r->reliable_ref_mean_depth,
                      r->reliable_ref_hit_ctx,
                      r->reliable_ref_hit_mean_depth,
-                     r->reliable_ref_hit_median_depth,
+					 r->reliable_ref_hit_median_depth,
                      r->reliable_ref_hit_depth_variance,
                      r->reliable_ref_zip_af,
 					 ani_readwise_default_call_label(default_call),
-					 ani_readwise_default_call_rule(default_call));
+					 ani_readwise_default_call_rule(r, default_call));
 			if (ani_opt->readwise_dual_evidence) {
 				ksprintf(ks_out, "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%" PRIu64 "\t%f\t%f\t%f\t%f",
 						 r->marker_xny_ctx,
@@ -6933,15 +6996,22 @@ static ani_fastx_stream_t ani_open_fastx_stream(const char *path, const char *pi
 	return stream;
 }
 
-static void ani_close_fastx_stream(ani_fastx_stream_t *stream)
+static bool ani_close_fastx_stream(ani_fastx_stream_t *stream, bool warn_on_gzip_close)
 {
 	if (!stream)
-		return;
+		return false;
+	bool had_warning = false;
 	if (stream->gz) {
 		const int rc = gzclose(stream->gz);
 		stream->gz = NULL;
-		if (rc != Z_OK)
-			errx(EXIT_FAILURE, "%s(): gzclose failed", __func__);
+		if (rc != Z_OK) {
+			if (!warn_on_gzip_close)
+				errx(EXIT_FAILURE, "%s(): gzclose failed", __func__);
+			warnx("%s(): gzclose failed after sequence parsing completed; "
+				  "input gzip may be truncated/corrupt, keeping completed readwise result",
+				  __func__);
+			had_warning = true;
+		}
 	}
 	if (stream->pipe_fp) {
 		const int rc = pclose(stream->pipe_fp);
@@ -6954,6 +7024,7 @@ static void ani_close_fastx_stream(ani_fastx_stream_t *stream)
 	}
 	free(stream->cmd);
 	stream->cmd = NULL;
+	return had_warning;
 }
 
 static void ani_progress_format_duration(uint64_t seconds, char *buf, size_t buf_size)
@@ -7334,6 +7405,11 @@ static void ani_process_density_ctxobj_unit(
 	ani_u64_set_t *qry_ref_ctx_seen,
 	ani_readwise_assign_mode_t assign_mode,
 	ani_readwise_acc_t *acc,
+	uint64_t *unique_read_marks,
+	uint8_t *unique_ref_hit_bits,
+	kv_size_t *unique_ref_ctx_hit_positions,
+	kv_u64_t *unique_ref_ctx_cov_hits,
+	ani_readwise_acc_t *unique_acc,
 	const char *unit_read_name,
 	const ani_readwise_trace_t *trace,
 	ani_readwise_edge_trace_t *edge_trace)
@@ -7385,12 +7461,14 @@ static void ani_process_density_ctxobj_unit(
 		if (kv_size(candidates) == 0)
 			continue;
 
+		size_t best_selected_n = 0;
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+			if (kv_A(candidates, ci).diff == best_diff)
+				++best_selected_n;
+
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
-			selected_n = 0;
-			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
-				if (kv_A(candidates, ci).diff == best_diff)
-					++selected_n;
+			selected_n = best_selected_n;
 			if (!selected_n)
 				continue;
 			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
@@ -7448,6 +7526,37 @@ static void ani_process_density_ctxobj_unit(
 					acc[gid].N_mut2_ctx++;
 			}
 		}
+		if (unique_acc && best_selected_n == 1) {
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+				const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+				if (cand->diff != best_diff)
+					continue;
+				const uint32_t gid = cand->gid;
+				const size_t ref_begin = cand->ref_begin;
+				if (unique_read_marks && unique_read_marks[gid] != unit_id) {
+					unique_read_marks[gid] = unit_id;
+					unique_acc[gid].reads_with_ctx_match += unit_reads_with_density_ctx;
+					unique_acc[gid].blocks_with_ctx_match++;
+				}
+				unique_acc[gid].XnY_ctx++;
+				if (unique_ref_hit_bits &&
+					!ani_bitset_test_set(unique_ref_hit_bits, ref_begin)) {
+					unique_acc[gid].ref_ctx_hit++;
+					if (unique_ref_ctx_hit_positions)
+						kv_push(size_t, *unique_ref_ctx_hit_positions, ref_begin);
+				}
+				if (unique_ref_ctx_cov_hits)
+					kv_push(uint64_t, *unique_ref_ctx_cov_hits,
+							ani_ref_covdiff_pack_hit(ref_begin, cand->diff, 1u));
+				if (cand->diff > 0) {
+					unique_acc[gid].N_diff_obj++;
+					unique_acc[gid].N_diff_obj_section += (uint64_t)cand->diff;
+					if (cand->diff > 1)
+						unique_acc[gid].N_mut2_ctx++;
+				}
+				break;
+			}
+		}
 	}
 	kv_destroy(candidates);
 }
@@ -7469,7 +7578,8 @@ static void ani_process_density_units_parallel(
 	bool track_query_sets,
 	ani_readwise_assign_mode_t assign_mode,
 	const ani_readwise_trace_t *trace,
-	ani_readwise_edge_trace_t *edge_trace)
+	ani_readwise_edge_trace_t *edge_trace,
+	ani_readwise_thread_state_t *unique_states)
 {
 	const size_t unit_n = units ? kv_size(*units) : 0;
 	if (!unit_n)
@@ -7478,6 +7588,7 @@ static void ani_process_density_units_parallel(
 	for (size_t i = 0; i < unit_n; ++i) {
 		const int tid = omp_get_thread_num();
 		ani_readwise_thread_state_t *st = &states[tid];
+		ani_readwise_thread_state_t *ust = unique_states ? &unique_states[tid] : NULL;
 		ani_density_unit_t *unit = &kv_A(*units, i);
 		ani_process_density_ctxobj_unit(
 			&unit->vec, unit->id, unit->reads_with_density_ctx,
@@ -7490,6 +7601,11 @@ static void ani_process_density_units_parallel(
 			track_query_sets ? &st->qry_ref_ctx_seen : NULL,
 			assign_mode,
 			st->acc,
+			ust ? ust->read_marks : NULL,
+			ust ? ust->ref_hit_bits : NULL,
+			ust ? &ust->ref_ctx_hit_positions : NULL,
+			ust ? &ust->ref_ctx_cov_hits : NULL,
+			ust ? ust->acc : NULL,
 			unit->read_name,
 			trace,
 			edge_trace);
@@ -7514,6 +7630,30 @@ static void ani_density_unit_push_move(kv_density_unit_t *units,
 		err(EXIT_FAILURE, "%s(): OOM readwise trace read name", __func__);
 	kv_push(ani_density_unit_t, *units, unit);
 	v_init(vec, 0);
+}
+
+static void ani_density_unit_push_copy(kv_density_unit_t *units,
+									   const u64vec *vec,
+									   uint64_t id,
+									   uint64_t reads_with_density_ctx,
+									   const char *read_name)
+{
+	if (!vec || vec->n == 0)
+		return;
+	u64vec copy = {0};
+	v_init(&copy, vec->n);
+	v_reserve(&copy, vec->n);
+	memcpy(copy.a, vec->a, vec->n * sizeof(copy.a[0]));
+	copy.n = vec->n;
+	ani_density_unit_t unit = {
+		.vec = copy,
+		.id = id,
+		.reads_with_density_ctx = reads_with_density_ctx ? reads_with_density_ctx : 1,
+		.read_name = read_name ? strdup(read_name) : NULL,
+	};
+	if (read_name && !unit.read_name)
+		err(EXIT_FAILURE, "%s(): OOM readwise exact sidecar read name", __func__);
+	kv_push(ani_density_unit_t, *units, unit);
 }
 
 static int ani_min_diff_sections_read_run_vs_ref_index128(const ctxobj96_t *qry,
@@ -7555,6 +7695,11 @@ static void ani_process_density_ctxobj96_unit(
 	kv_u64_t *ref_ctx_cov_hits,
 	ani_readwise_assign_mode_t assign_mode,
 	ani_readwise_acc_t *acc,
+	uint64_t *unique_read_marks,
+	uint8_t *unique_ref_hit_bits,
+	kv_size_t *unique_ref_ctx_hit_positions,
+	kv_u64_t *unique_ref_ctx_cov_hits,
+	ani_readwise_acc_t *unique_acc,
 	const char *unit_read_name,
 	const ani_readwise_trace_t *trace,
 	ani_readwise_edge_trace_t *edge_trace)
@@ -7606,12 +7751,14 @@ static void ani_process_density_ctxobj96_unit(
 		if (kv_size(candidates) == 0)
 			continue;
 
+		size_t best_selected_n = 0;
+		for (size_t ci = 0; ci < kv_size(candidates); ++ci)
+			if (kv_A(candidates, ci).diff == best_diff)
+				++best_selected_n;
+
 		size_t selected_n = kv_size(candidates);
 		if (assign_mode != ANI_READWISE_ASSIGN_ALL) {
-			selected_n = 0;
-			for (size_t ci = 0; ci < kv_size(candidates); ++ci)
-				if (kv_A(candidates, ci).diff == best_diff)
-					++selected_n;
+			selected_n = best_selected_n;
 			if (!selected_n)
 				continue;
 			if (assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE &&
@@ -7663,6 +7810,37 @@ static void ani_process_density_ctxobj96_unit(
 					acc[gid].N_mut2_ctx++;
 			}
 		}
+		if (unique_acc && best_selected_n == 1) {
+			for (size_t ci = 0; ci < kv_size(candidates); ++ci) {
+				const ani_readwise_candidate_t *cand = &kv_A(candidates, ci);
+				if (cand->diff != best_diff)
+					continue;
+				const uint32_t gid = cand->gid;
+				const size_t ref_begin = cand->ref_begin;
+				if (unique_read_marks && unique_read_marks[gid] != unit_id) {
+					unique_read_marks[gid] = unit_id;
+					unique_acc[gid].reads_with_ctx_match += unit_reads_with_density_ctx;
+					unique_acc[gid].blocks_with_ctx_match++;
+				}
+				unique_acc[gid].XnY_ctx++;
+				if (unique_ref_hit_bits &&
+					!ani_bitset_test_set(unique_ref_hit_bits, ref_begin)) {
+					unique_acc[gid].ref_ctx_hit++;
+					if (unique_ref_ctx_hit_positions)
+						kv_push(size_t, *unique_ref_ctx_hit_positions, ref_begin);
+				}
+				if (unique_ref_ctx_cov_hits)
+					kv_push(uint64_t, *unique_ref_ctx_cov_hits,
+							ani_ref_covdiff_pack_hit(ref_begin, cand->diff, 1u));
+				if (cand->diff > 0) {
+					unique_acc[gid].N_diff_obj++;
+					unique_acc[gid].N_diff_obj_section += (uint64_t)cand->diff;
+					if (cand->diff > 1)
+						unique_acc[gid].N_mut2_ctx++;
+				}
+				break;
+			}
+		}
 	}
 	kv_destroy(candidates);
 }
@@ -7680,7 +7858,8 @@ static void ani_process_density_units96_parallel(
 	bool need_ref_ctx_cov,
 	ani_readwise_assign_mode_t assign_mode,
 	const ani_readwise_trace_t *trace,
-	ani_readwise_edge_trace_t *edge_trace)
+	ani_readwise_edge_trace_t *edge_trace,
+	ani_readwise_thread_state_t *unique_states)
 {
 	const size_t unit_n = units ? kv_size(*units) : 0;
 	if (!unit_n)
@@ -7689,6 +7868,7 @@ static void ani_process_density_units96_parallel(
 	for (size_t i = 0; i < unit_n; ++i) {
 		const int tid = omp_get_thread_num();
 		ani_readwise_thread_state_t *st = &states[tid];
+		ani_readwise_thread_state_t *ust = unique_states ? &unique_states[tid] : NULL;
 		ani_density_unit96_t *unit = &kv_A(*units, i);
 		ani_process_density_ctxobj96_unit(
 			&unit->vec, unit->id, unit->reads_with_density_ctx,
@@ -7698,6 +7878,11 @@ static void ani_process_density_units96_parallel(
 			need_ref_ctx_cov ? &st->ref_ctx_cov_hits : NULL,
 			assign_mode,
 			st->acc,
+			ust ? ust->read_marks : NULL,
+			ust ? ust->ref_hit_bits : NULL,
+			ust ? &ust->ref_ctx_hit_positions : NULL,
+			ust ? &ust->ref_ctx_cov_hits : NULL,
+			ust ? ust->acc : NULL,
 			unit->read_name,
 			trace,
 			edge_trace);
@@ -7705,10 +7890,10 @@ static void ani_process_density_units96_parallel(
 }
 
 static void ani_density_unit96_push_move(kv_density_unit96_t *units,
-										 ani_ctxobj96_vec_t *vec,
-										 uint64_t id,
-										 uint64_t reads_with_density_ctx,
-										 const char *read_name)
+										ani_ctxobj96_vec_t *vec,
+										uint64_t id,
+										uint64_t reads_with_density_ctx,
+										const char *read_name)
 {
 	if (!vec || vec->n == 0)
 		return;
@@ -7722,6 +7907,30 @@ static void ani_density_unit96_push_move(kv_density_unit96_t *units,
 		err(EXIT_FAILURE, "%s(): OOM readwise trace read name", __func__);
 	kv_push(ani_density_unit96_t, *units, unit);
 	ani_ctxobj96_vec_init(vec, 0);
+}
+
+static void ani_density_unit96_push_copy(kv_density_unit96_t *units,
+										const ani_ctxobj96_vec_t *vec,
+										uint64_t id,
+										uint64_t reads_with_density_ctx,
+										const char *read_name)
+{
+	if (!vec || vec->n == 0)
+		return;
+	ani_ctxobj96_vec_t copy;
+	ani_ctxobj96_vec_init(&copy, vec->n);
+	ani_ctxobj96_vec_reserve(&copy, vec->n);
+	memcpy(copy.a, vec->a, vec->n * sizeof(copy.a[0]));
+	copy.n = vec->n;
+	ani_density_unit96_t unit = {
+		.vec = copy,
+		.id = id,
+		.reads_with_density_ctx = reads_with_density_ctx ? reads_with_density_ctx : 1,
+		.read_name = read_name ? strdup(read_name) : NULL,
+	};
+	if (read_name && !unit.read_name)
+		err(EXIT_FAILURE, "%s(): OOM readwise exact sidecar read name", __func__);
+	kv_push(ani_density_unit96_t, *units, unit);
 }
 
 static uint32_t *ani_ref_ctx_counts_from_sorted_index(const ctxgidobj_t *index,
@@ -8947,6 +9156,346 @@ static ani_readwise_reliable_abundance_t *ani_reliable_abundance_from_ref_covdif
 	return stats;
 }
 
+static void ani_write_readwise_unique_sidecar(
+	ani_opt_t *ani_opt,
+	const char *query_path,
+	char (*refname)[PATHLEN],
+	char (*refanno)[PATHLEN],
+	uint32_t ref_n,
+	bool ref_uses_ctxobj96,
+	const ctxgidobj_t *index,
+	const ctxgidobj128_t *index96,
+	size_t index_n,
+	const uint32_t *ref_ctx_total,
+	const ani_readwise_acc_t *unique_acc,
+	const uint32_t *unique_ref_ctx_cov,
+	uint64_t total_reads,
+	uint64_t total_density_blocks,
+	bool density_block_mode,
+	uint32_t density_block_ctx,
+	const infile_meta_t *ref_infile_meta,
+	const uint8_t *ref_domain_profiles,
+	bool auto_readwise_abundance_report)
+{
+	if (!ani_opt || ani_opt->readwise_unique_out[0] == '\0')
+		return;
+	if (!unique_acc || !unique_ref_ctx_cov || !ref_ctx_total)
+		return;
+
+	FILE *fp = strcmp(ani_opt->readwise_unique_out, "-") == 0
+				   ? stdout
+				   : fopen(ani_opt->readwise_unique_out, "w");
+	if (!fp)
+		err(errno, "%s", ani_opt->readwise_unique_out);
+
+	ani_opt_t side_opt = *ani_opt;
+	side_opt.readwise_dual_evidence = false;
+	side_opt.readwise_assign_mode = ANI_READWISE_ASSIGN_BEST_DIFF_UNIQUE;
+	print_ani_detail_header(fp, &side_opt, true);
+
+	ani_readwise_abundance_t *abundance_stats = ref_uses_ctxobj96
+		? ani_depth_abundance_from_ref_coverage128(
+			  index96, index_n, ref_n, side_opt.ignoreconflict,
+			  unique_ref_ctx_cov, NULL, ref_ctx_total, unique_acc, 1.0, false)
+		: ani_depth_abundance_from_ref_coverage(
+			  index, index_n, ref_n, side_opt.ignoreconflict,
+			  unique_ref_ctx_cov, NULL, ref_ctx_total, unique_acc, 1.0, false);
+	ani_readwise_acc_t *raw_feature_acc = ref_uses_ctxobj96
+		? ani_unique_best_features_from_ref_covdiff128(
+			  index96, index_n, ref_n, side_opt.ignoreconflict,
+			  unique_ref_ctx_cov, false)
+		: ani_unique_best_features_from_ref_covdiff(
+			  index, index_n, ref_n, side_opt.ignoreconflict,
+			  unique_ref_ctx_cov, false);
+	if (!abundance_stats || !raw_feature_acc)
+		err(EXIT_FAILURE, "%s(): OOM unique sidecar features", __func__);
+
+	kv_ani_row_t survivors;
+	kv_init(survivors);
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const ani_readwise_acc_t *a = &unique_acc[rn];
+		const ani_readwise_acc_t *fa = &raw_feature_acc[rn];
+		const uint64_t unique_overlap = a->ref_ctx_hit;
+		if (unique_overlap < (uint64_t)side_opt.ctxcut)
+			continue;
+		if (!fa->XnY_ctx || !ref_ctx_total[rn])
+			continue;
+		if (fa->XnY_ctx < (uint64_t)side_opt.ctxcut)
+			continue;
+		const double ref_af = (double)a->ref_ctx_hit / (double)ref_ctx_total[rn];
+		ani_density_af_t density_af = {
+			.qry = ref_af,
+			.ref = ref_af,
+			.available = 1,
+		};
+		if (!ani_report_af_pass(&side_opt, density_af.qry, density_af.ref))
+			continue;
+
+		ani_features_t f = {
+			.XnY_ctx = ani_clamp_u64_to_u32(fa->XnY_ctx),
+			.X_ctx = ref_ctx_total[rn],
+			.N_diff_obj_section = ani_clamp_u64_to_u32(fa->N_diff_obj_section),
+			.N_mut2_ctx = ani_clamp_u64_to_u32(fa->N_mut2_ctx),
+			.N_diff_obj = ani_clamp_u64_to_u32(fa->N_diff_obj),
+		};
+		ani_row_t row = make_selected_output_row(
+			rn, &f, &side_opt,
+			ref_ctx_total[rn],
+			ref_ctx_total[rn],
+			ref_af, ref_af,
+			ref_af, ref_af,
+			density_af,
+			NULL,
+			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
+		row.domain_profile = ref_domain_profiles
+								  ? ref_domain_profiles[rn]
+								  : MINCO_DOMAIN_PROFILE_DEFAULT;
+		row.XnY_ctx = ani_readwise_scaled_round_int(fa->XnY_ctx, 1u);
+		row.N_diff_obj = ani_readwise_scaled_round_int(fa->N_diff_obj, 1u);
+		row.N_diff_obj_section =
+			ani_readwise_scaled_round_int(fa->N_diff_obj_section, 1u);
+		row.N_mut2_ctx = ani_readwise_scaled_round_int(fa->N_mut2_ctx, 1u);
+		row.readwise_total_reads = total_reads;
+		row.readwise_reads_with_ctx_match = a->reads_with_ctx_match;
+		row.readwise_unique_query_ctx = 0;
+		row.readwise_unique_query_ctx_hit = a->ref_ctx_hit;
+		row.readwise_unique_ref_ctx_hit = a->ref_ctx_hit;
+		row.readwise_ref_ctx_total = ref_ctx_total[rn];
+		row.readwise_density_block_ctx = density_block_mode ? density_block_ctx : 0u;
+		row.readwise_total_density_blocks = total_density_blocks;
+		row.readwise_blocks_with_ctx_match = a->blocks_with_ctx_match;
+		row.readwise_raw_xny_ctx = fa->XnY_ctx;
+
+		row.abundance_ref_breadth = abundance_stats[rn].ref_breadth;
+		row.abundance_ref_mean_depth = abundance_stats[rn].ref_mean_depth;
+		row.abundance_ref_hit_mean_depth = abundance_stats[rn].ref_hit_mean_depth;
+		row.abundance_ref_depth_variance = abundance_stats[rn].ref_depth_variance;
+		row.abundance_ref_depth_cv = abundance_stats[rn].ref_depth_cv;
+		row.abundance_ref_zero_fraction = abundance_stats[rn].ref_zero_fraction;
+		row.abundance_relative_depth = abundance_stats[rn].relative_depth;
+		row.abundance_ref_zip_af = ani_zip_corrected_af(
+			row.abundance_ref_breadth, row.abundance_ref_mean_depth);
+		row.abundance_ref_zip_aaf_ani =
+			aaf_ani_from_containment(row.abundance_ref_zip_af);
+		row.reliable_ref_breadth = row.abundance_ref_breadth;
+		row.reliable_ref_mean_depth = row.abundance_ref_mean_depth;
+		row.reliable_ref_hit_ctx = a->ref_ctx_hit;
+		row.reliable_ref_hit_mean_depth = row.abundance_ref_hit_mean_depth;
+		row.reliable_ref_hit_median_depth = 0.0;
+		row.reliable_ref_hit_depth_variance = row.abundance_ref_depth_variance;
+		row.reliable_ref_zip_af = row.abundance_ref_zip_af;
+		row.abundance_effective_depth =
+			ani_readwise_effective_abundance_depth(&row);
+
+		const uint32_t unique_overlap_u32 = ani_clamp_u64_to_u32(unique_overlap);
+		row.mash_dist = get_mashD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								  ref_ctx_total[rn], unique_overlap_u32);
+		row.aaf_dist = get_aafD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								ref_ctx_total[rn], unique_overlap_u32);
+		finalize_row_selected_metric(&row, &side_opt);
+		if (row.selected_ani < side_opt.anicut)
+			continue;
+		kv_push(ani_row_t, survivors, row);
+	}
+
+	if (auto_readwise_abundance_report) {
+		keep_readwise_default_calls(&survivors);
+		if (kv_size(survivors))
+			qsort(&kv_A(survivors, 0), kv_size(survivors),
+				  sizeof(ani_row_t), cmp_readwise_default_call_desc);
+	} else if (kv_size(survivors)) {
+		qsort(&kv_A(survivors, 0), kv_size(survivors), sizeof(ani_row_t),
+			  cmp_ani_desc);
+	}
+	size_t out_n = kv_size(survivors);
+	if (side_opt.ntop > 0 && (size_t)side_opt.ntop < out_n)
+		out_n = (size_t)side_opt.ntop;
+	normalize_readwise_abundance_depth(&survivors, out_n);
+	for (size_t i = 0; i < out_n; ++i) {
+		const ani_row_t *r = &kv_A(survivors, i);
+		print_unified_detail_row(fp, &side_opt, query_path, refname[r->rn],
+								 r, annotation_at(refanno, r->rn));
+	}
+	if (fp != stdout)
+		fclose(fp);
+	kv_destroy(survivors);
+	free(abundance_stats);
+	free(raw_feature_acc);
+	fprintf(stderr, "minco readwise: wrote best-diff-unique sidecar %s\n",
+			ani_opt->readwise_unique_out);
+}
+
+static void ani_write_readwise_exact_split_sidecar(
+	ani_opt_t *ani_opt,
+	const char *query_path,
+	char (*refname)[PATHLEN],
+	char (*refanno)[PATHLEN],
+	uint32_t ref_n,
+	bool ref_uses_ctxobj96,
+	const ctxgidobj_t *index,
+	const ctxgidobj128_t *index96,
+	size_t index_n,
+	const uint32_t *ref_ctx_total,
+	const ani_readwise_acc_t *exact_acc,
+	const uint32_t *exact_ref_ctx_cov,
+	const uint16_t *exact_ref_ctx_hit_weight,
+	uint64_t total_reads,
+	uint64_t exact_total_density_blocks,
+	const infile_meta_t *ref_infile_meta,
+	const uint8_t *ref_domain_profiles,
+	bool auto_readwise_abundance_report)
+{
+	if (!ani_opt || ani_opt->readwise_exact_split_out[0] == '\0')
+		return;
+	if (!exact_acc || !exact_ref_ctx_cov || !exact_ref_ctx_hit_weight || !ref_ctx_total)
+		return;
+
+	FILE *fp = strcmp(ani_opt->readwise_exact_split_out, "-") == 0
+				   ? stdout
+				   : fopen(ani_opt->readwise_exact_split_out, "w");
+	if (!fp)
+		err(errno, "%s", ani_opt->readwise_exact_split_out);
+
+	ani_opt_t side_opt = *ani_opt;
+	side_opt.readwise_dual_evidence = false;
+	side_opt.readwise_assign_mode = ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT;
+	print_ani_detail_header(fp, &side_opt, true);
+
+	const double coverage_scale = (double)ANI_REFCOV_SPLIT_SCALE;
+	ani_readwise_abundance_t *abundance_stats = ref_uses_ctxobj96
+		? ani_depth_abundance_from_ref_coverage128(
+			  index96, index_n, ref_n, side_opt.ignoreconflict,
+			  exact_ref_ctx_cov, exact_ref_ctx_hit_weight, ref_ctx_total,
+			  exact_acc, coverage_scale, false)
+		: ani_depth_abundance_from_ref_coverage(
+			  index, index_n, ref_n, side_opt.ignoreconflict,
+			  exact_ref_ctx_cov, exact_ref_ctx_hit_weight, ref_ctx_total,
+			  exact_acc, coverage_scale, false);
+	ani_readwise_acc_t *raw_feature_acc = ref_uses_ctxobj96
+		? ani_unique_best_features_from_ref_covdiff128(
+			  index96, index_n, ref_n, side_opt.ignoreconflict,
+			  exact_ref_ctx_cov, false)
+		: ani_unique_best_features_from_ref_covdiff(
+			  index, index_n, ref_n, side_opt.ignoreconflict,
+			  exact_ref_ctx_cov, false);
+	if (!abundance_stats || !raw_feature_acc)
+		err(EXIT_FAILURE, "%s(): OOM exact split sidecar features", __func__);
+
+	kv_ani_row_t survivors;
+	kv_init(survivors);
+	for (uint32_t rn = 0; rn < ref_n; ++rn) {
+		const ani_readwise_acc_t *a = &exact_acc[rn];
+		const ani_readwise_acc_t *fa = &raw_feature_acc[rn];
+		const uint64_t unique_overlap = a->ref_ctx_hit;
+		if (unique_overlap < (uint64_t)side_opt.ctxcut)
+			continue;
+		if (!fa->XnY_ctx || !ref_ctx_total[rn])
+			continue;
+		if (fa->XnY_ctx < (uint64_t)side_opt.ctxcut)
+			continue;
+		const double ref_af = (double)a->ref_ctx_hit / (double)ref_ctx_total[rn];
+		ani_density_af_t density_af = {
+			.qry = ref_af,
+			.ref = ref_af,
+			.available = 1,
+		};
+		if (!ani_report_af_pass(&side_opt, density_af.qry, density_af.ref))
+			continue;
+
+		ani_features_t f = {
+			.XnY_ctx = ani_clamp_u64_to_u32(fa->XnY_ctx),
+			.X_ctx = ref_ctx_total[rn],
+			.N_diff_obj_section = ani_clamp_u64_to_u32(fa->N_diff_obj_section),
+			.N_mut2_ctx = ani_clamp_u64_to_u32(fa->N_mut2_ctx),
+			.N_diff_obj = ani_clamp_u64_to_u32(fa->N_diff_obj),
+		};
+		ani_row_t row = make_selected_output_row(
+			rn, &f, &side_opt,
+			ref_ctx_total[rn],
+			ref_ctx_total[rn],
+			ref_af, ref_af,
+			ref_af, ref_af,
+			density_af,
+			NULL,
+			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
+		row.domain_profile = ref_domain_profiles
+								  ? ref_domain_profiles[rn]
+								  : MINCO_DOMAIN_PROFILE_DEFAULT;
+		row.XnY_ctx = ani_readwise_scaled_round_int(fa->XnY_ctx, 1u);
+		row.N_diff_obj = ani_readwise_scaled_round_int(fa->N_diff_obj, 1u);
+		row.N_diff_obj_section =
+			ani_readwise_scaled_round_int(fa->N_diff_obj_section, 1u);
+		row.N_mut2_ctx = ani_readwise_scaled_round_int(fa->N_mut2_ctx, 1u);
+		row.readwise_total_reads = total_reads;
+		row.readwise_reads_with_ctx_match = a->reads_with_ctx_match;
+		row.readwise_unique_query_ctx = 0;
+		row.readwise_unique_query_ctx_hit = a->ref_ctx_hit;
+		row.readwise_unique_ref_ctx_hit = a->ref_ctx_hit;
+		row.readwise_ref_ctx_total = ref_ctx_total[rn];
+		row.readwise_density_block_ctx = 0u;
+		row.readwise_total_density_blocks = exact_total_density_blocks;
+		row.readwise_blocks_with_ctx_match = a->blocks_with_ctx_match;
+		row.readwise_raw_xny_ctx = fa->XnY_ctx;
+
+		row.abundance_ref_breadth = abundance_stats[rn].ref_breadth;
+		row.abundance_ref_mean_depth = abundance_stats[rn].ref_mean_depth;
+		row.abundance_ref_hit_mean_depth = abundance_stats[rn].ref_hit_mean_depth;
+		row.abundance_ref_depth_variance = abundance_stats[rn].ref_depth_variance;
+		row.abundance_ref_depth_cv = abundance_stats[rn].ref_depth_cv;
+		row.abundance_ref_zero_fraction = abundance_stats[rn].ref_zero_fraction;
+		row.abundance_relative_depth = abundance_stats[rn].relative_depth;
+		row.abundance_ref_zip_af = ani_zip_corrected_af(
+			row.abundance_ref_breadth, row.abundance_ref_mean_depth);
+		row.abundance_ref_zip_aaf_ani =
+			aaf_ani_from_containment(row.abundance_ref_zip_af);
+		row.reliable_ref_breadth = row.abundance_ref_breadth;
+		row.reliable_ref_mean_depth = row.abundance_ref_mean_depth;
+		row.reliable_ref_hit_ctx = a->ref_ctx_hit;
+		row.reliable_ref_hit_mean_depth = row.abundance_ref_hit_mean_depth;
+		row.reliable_ref_hit_median_depth = 0.0;
+		row.reliable_ref_hit_depth_variance = row.abundance_ref_depth_variance;
+		row.reliable_ref_zip_af = row.abundance_ref_zip_af;
+		row.abundance_effective_depth =
+			ani_readwise_effective_abundance_depth(&row);
+
+		const uint32_t unique_overlap_u32 = ani_clamp_u64_to_u32(unique_overlap);
+		row.mash_dist = get_mashD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								  ref_ctx_total[rn], unique_overlap_u32);
+		row.aaf_dist = get_aafD(Bitslen.ctx / 2, ref_ctx_total[rn],
+								ref_ctx_total[rn], unique_overlap_u32);
+		finalize_row_selected_metric(&row, &side_opt);
+		if (row.selected_ani < side_opt.anicut)
+			continue;
+		kv_push(ani_row_t, survivors, row);
+	}
+
+	if (auto_readwise_abundance_report) {
+		keep_readwise_default_calls(&survivors);
+		if (kv_size(survivors))
+			qsort(&kv_A(survivors, 0), kv_size(survivors),
+				  sizeof(ani_row_t), cmp_readwise_default_call_desc);
+	} else if (kv_size(survivors)) {
+		qsort(&kv_A(survivors, 0), kv_size(survivors), sizeof(ani_row_t),
+			  cmp_ani_desc);
+	}
+	size_t out_n = kv_size(survivors);
+	if (side_opt.ntop > 0 && (size_t)side_opt.ntop < out_n)
+		out_n = (size_t)side_opt.ntop;
+	normalize_readwise_abundance_depth(&survivors, out_n);
+	for (size_t i = 0; i < out_n; ++i) {
+		const ani_row_t *r = &kv_A(survivors, i);
+		print_unified_detail_row(fp, &side_opt, query_path, refname[r->rn],
+								 r, annotation_at(refanno, r->rn));
+	}
+	if (fp != stdout)
+		fclose(fp);
+	kv_destroy(survivors);
+	free(abundance_stats);
+	free(raw_feature_acc);
+	fprintf(stderr, "minco readwise: wrote exact best-diff-split sidecar %s\n",
+			ani_opt->readwise_exact_split_out);
+}
+
 int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *query_path,
 											uint64_t density_threshold)
 {
@@ -8958,6 +9507,10 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		errx(EXIT_FAILURE,
 			 "readwise density ANI does not yet support --readsQC or --abundance; "
 			 "use --save-query-sketch to force the materialized query-sketch path");
+	if (ani_opt->readwise_unique_out[0] != '\0' && !ani_opt->readwise_profile_only)
+		errx(EXIT_FAILURE, "--readwise-unique-out requires --readwise-profile-only");
+	if (ani_opt->readwise_exact_split_out[0] != '\0' && !ani_opt->readwise_profile_only)
+		errx(EXIT_FAILURE, "--readwise-exact-split-out requires --readwise-profile-only");
 
 	char *ref_stat_path = test_get_fullpath(ani_opt->refdir, sketch_stat);
 	size_t ref_stat_size = 0;
@@ -9000,31 +9553,36 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 				readwise_trace.gid, trace_ref_match, trace_out_path);
 	}
 	ani_readwise_edge_trace_t edge_trace = {0};
-	const char *edge_out_path = getenv("MINCO_READWISE_EDGE_OUT");
+	const bool edge_from_cli = ani_opt->readwise_edge_out[0] != '\0';
+	const char *edge_out_path = edge_from_cli
+		? ani_opt->readwise_edge_out
+		: getenv("MINCO_READWISE_EDGE_OUT");
 	if (edge_out_path && edge_out_path[0]) {
-		edge_trace.max_edges = 10000000ULL;
-		edge_trace.max_candidate_refs = 64u;
-		edge_trace.ambiguous_only = true;
-		edge_trace.selected_only = false;
-		const char *edge_max = getenv("MINCO_READWISE_EDGE_MAX");
-		if (edge_max && edge_max[0])
-			edge_trace.max_edges = strtoull(edge_max, NULL, 10);
-		const char *edge_max_cand = getenv("MINCO_READWISE_EDGE_MAX_CANDIDATES");
-		if (edge_max_cand && edge_max_cand[0]) {
-			const unsigned long v = strtoul(edge_max_cand, NULL, 10);
-			edge_trace.max_candidate_refs = v > UINT32_MAX ? UINT32_MAX : (uint32_t)v;
+		edge_trace.max_edges = edge_from_cli ? ani_opt->readwise_edge_max : 10000000ULL;
+		edge_trace.max_candidate_refs = edge_from_cli ? ani_opt->readwise_edge_max_candidates : 64u;
+		edge_trace.ambiguous_only = edge_from_cli ? ani_opt->readwise_edge_ambiguous_only : true;
+		edge_trace.selected_only = edge_from_cli ? ani_opt->readwise_edge_selected_only : false;
+		if (!edge_from_cli) {
+			const char *edge_max = getenv("MINCO_READWISE_EDGE_MAX");
+			if (edge_max && edge_max[0])
+				edge_trace.max_edges = strtoull(edge_max, NULL, 10);
+			const char *edge_max_cand = getenv("MINCO_READWISE_EDGE_MAX_CANDIDATES");
+			if (edge_max_cand && edge_max_cand[0]) {
+				const unsigned long v = strtoul(edge_max_cand, NULL, 10);
+				edge_trace.max_candidate_refs = v > UINT32_MAX ? UINT32_MAX : (uint32_t)v;
+			}
+			const char *edge_ambiguous_only = getenv("MINCO_READWISE_EDGE_AMBIGUOUS_ONLY");
+			if (edge_ambiguous_only && edge_ambiguous_only[0] &&
+				strcmp(edge_ambiguous_only, "0") == 0)
+				edge_trace.ambiguous_only = false;
+			const char *edge_selected_only = getenv("MINCO_READWISE_EDGE_SELECTED_ONLY");
+			if (edge_selected_only && edge_selected_only[0] &&
+				strcmp(edge_selected_only, "0") != 0)
+				edge_trace.selected_only = true;
 		}
-		const char *edge_ambiguous_only = getenv("MINCO_READWISE_EDGE_AMBIGUOUS_ONLY");
-		if (edge_ambiguous_only && edge_ambiguous_only[0] &&
-			strcmp(edge_ambiguous_only, "0") == 0)
-			edge_trace.ambiguous_only = false;
-		const char *edge_selected_only = getenv("MINCO_READWISE_EDGE_SELECTED_ONLY");
-		if (edge_selected_only && edge_selected_only[0] &&
-			strcmp(edge_selected_only, "0") != 0)
-			edge_trace.selected_only = true;
 		edge_trace.fp = fopen(edge_out_path, "w");
 		if (!edge_trace.fp)
-			err(errno, "Cannot write MINCO_READWISE_EDGE_OUT %s", edge_out_path);
+			err(errno, "Cannot write readwise edge output %s", edge_out_path);
 		fprintf(edge_trace.fp,
 				"edge_id\tread_id\tunit_id\tqctx\tedge_rank\tref_begin\tgid\tdiff\tbest_diff\tcandidate_refs\tselected_refs\tselected_by_mode\tcov_inc\n");
 		fprintf(stderr,
@@ -9078,6 +9636,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		read_optional_ani_ctxmeta_stats(ani_opt->refdir, (int)ref_n);
 	infile_meta_t *ref_infile_meta =
 		ani_best_guard_enabled(ani_opt) ? read_optional_sketch_infile_meta_stats(ani_opt->refdir, (int)ref_n) : NULL;
+	uint8_t *ref_domain_profiles =
+		read_optional_domain_profiles(ani_opt->refdir, (int)ref_n);
 
 	const int fence_k = minco_choose_k_fenceposts(index_n, 1024);
 	const size_t fence_buckets = (size_t)1u << fence_k;
@@ -9091,6 +9651,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 
 	ani_readwise_acc_t *acc = calloc((size_t)ref_n, sizeof(acc[0]));
 	uint8_t *ref_hit_bits = calloc((index_n + 7u) / 8u, 1);
+	const bool need_unique_sidecar = ani_opt->readwise_unique_out[0] != '\0';
+	const bool need_exact_split_sidecar = ani_opt->readwise_exact_split_out[0] != '\0';
 	const bool need_ref_ctx_cov =
 		ani_opt->abundance_model != ANI_ABUNDANCE_NONE ||
 		ani_opt->readwise_ctx_filter_model != ANI_READWISE_CTX_FILTER_NONE;
@@ -9109,8 +9671,35 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 				ani_opt->readwise_assign_mode == ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT
 			? calloc(index_n, sizeof(ref_ctx_hit_weight[0]))
 			: NULL;
+	ani_readwise_acc_t *unique_acc = need_unique_sidecar
+		? calloc((size_t)ref_n, sizeof(unique_acc[0]))
+		: NULL;
+	uint8_t *unique_ref_hit_bits = need_unique_sidecar
+		? calloc((index_n + 7u) / 8u, 1)
+		: NULL;
+	uint32_t *unique_ref_ctx_cov = need_unique_sidecar
+		? calloc(index_n, sizeof(unique_ref_ctx_cov[0]))
+		: NULL;
+	ani_readwise_acc_t *exact_split_acc = need_exact_split_sidecar
+		? calloc((size_t)ref_n, sizeof(exact_split_acc[0]))
+		: NULL;
+	uint8_t *exact_split_ref_hit_bits = need_exact_split_sidecar
+		? calloc((index_n + 7u) / 8u, 1)
+		: NULL;
+	uint32_t *exact_split_ref_ctx_cov = need_exact_split_sidecar
+		? calloc(index_n, sizeof(exact_split_ref_ctx_cov[0]))
+		: NULL;
+	uint16_t *exact_split_ref_ctx_hit_weight = need_exact_split_sidecar
+		? calloc(index_n, sizeof(exact_split_ref_ctx_hit_weight[0]))
+		: NULL;
 	if (!acc || !ref_hit_bits)
 		err(EXIT_FAILURE, "%s(): OOM readwise accumulators", __func__);
+	if (need_unique_sidecar && (!unique_acc || !unique_ref_hit_bits || !unique_ref_ctx_cov))
+		err(EXIT_FAILURE, "%s(): OOM readwise unique sidecar accumulators", __func__);
+	if (need_exact_split_sidecar &&
+		(!exact_split_acc || !exact_split_ref_hit_bits ||
+		 !exact_split_ref_ctx_cov || !exact_split_ref_ctx_hit_weight))
+		err(EXIT_FAILURE, "%s(): OOM readwise exact split sidecar accumulators", __func__);
 	if (need_ref_ctx_cov && !ref_ctx_cov)
 		err(EXIT_FAILURE, "%s(): OOM readwise abundance coverage", __func__);
 	if (test_mindiff_depth && !ref_ctx_mindiff_cov)
@@ -9146,6 +9735,22 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	for (int t = 0; t < worker_n; ++t)
 		ani_readwise_thread_state_init(&thread_states[t], ref_n, index_n,
 										ref_ctx_cov != NULL, !profile_only);
+	ani_readwise_thread_state_t *unique_thread_states = need_unique_sidecar
+		? calloc((size_t)worker_n, sizeof(unique_thread_states[0]))
+		: NULL;
+	if (need_unique_sidecar && !unique_thread_states)
+		err(EXIT_FAILURE, "%s(): OOM readwise unique sidecar thread states", __func__);
+	for (int t = 0; t < worker_n && unique_thread_states; ++t)
+		ani_readwise_thread_state_init(&unique_thread_states[t], ref_n, index_n,
+										true, false);
+	ani_readwise_thread_state_t *exact_split_thread_states = need_exact_split_sidecar
+		? calloc((size_t)worker_n, sizeof(exact_split_thread_states[0]))
+		: NULL;
+	if (need_exact_split_sidecar && !exact_split_thread_states)
+		err(EXIT_FAILURE, "%s(): OOM readwise exact split sidecar thread states", __func__);
+	for (int t = 0; t < worker_n && exact_split_thread_states; ++t)
+		ani_readwise_thread_state_init(&exact_split_thread_states[t], ref_n, index_n,
+										true, false);
 
 	ani_fastx_stream_t stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
 	(void)gzbuffer(stream.gz, 4u << 20);
@@ -9165,6 +9770,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 										 nobjbits));
 	uint64_t total_reads = 0;
 	uint64_t total_density_blocks = 0;
+	uint64_t exact_split_total_density_blocks = 0;
 	uint64_t block_reads_with_density_ctx = 0;
 	u64vec block_vec = {0};
 	ani_ctxobj96_vec_t block_vec96 = {0};
@@ -9196,11 +9802,18 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 				"minco readwise: parallel density processing active; threads=%d; batch_reads=%u\n",
 				worker_n, (unsigned)ANI_READWISE_BATCH_READS);
 
+	int read_status = 0;
 	for (;;) {
 		ani_readwise_seq_rec_t batch[ANI_READWISE_BATCH_READS];
 		memset(batch, 0, sizeof(batch));
 		size_t batch_n = 0;
-		while (batch_n < ANI_READWISE_BATCH_READS && kseq_read(seq) >= 0) {
+		int kseq_status = 0;
+		while (batch_n < ANI_READWISE_BATCH_READS) {
+			kseq_status = kseq_read(seq);
+			if (kseq_status < 0) {
+				read_status = kseq_status;
+				break;
+			}
 			const size_t len = seq->seq.l;
 			char *copy = malloc(len + 1u);
 			if (!copy)
@@ -9260,10 +9873,19 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			}
 			kv_density_unit96_t units96;
 			kv_init(units96);
+			kv_density_unit96_t exact_units96;
+			kv_init(exact_units96);
 			for (size_t i = 0; i < batch_n; ++i) {
 				if (read_vecs96[i].n == 0) {
 					ani_ctxobj96_vec_free(&read_vecs96[i]);
 					continue;
+				}
+				if (need_exact_split_sidecar) {
+					++exact_split_total_density_blocks;
+					ani_density_unit96_push_copy(
+						&exact_units96, &read_vecs96[i],
+						exact_split_total_density_blocks, 1,
+						batch[i].name);
 				}
 				if (density_block_mode) {
 					ani_ctxobj96_vec_reserve(&block_vec96,
@@ -9295,19 +9917,45 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			free(read_vecs96);
 			ani_readwise_seq_batch_destroy(batch, batch_n);
 
+			if (need_exact_split_sidecar) {
+				ani_process_density_units96_parallel(
+					&exact_units96, exact_split_thread_states, worker_n,
+					index96, index_n, fence, fence_k, ref_n,
+					ani_opt->ignoreconflict,
+					true, ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT,
+					NULL, NULL, NULL);
+				ani_merge_readwise_thread_batch128(
+					exact_split_thread_states, worker_n, exact_split_acc,
+					exact_split_ref_hit_bits, exact_split_ref_ctx_cov,
+					NULL,
+					exact_split_ref_ctx_hit_weight,
+					index96, index_n,
+					ref_n);
+				ani_density_units96_destroy(&exact_units96);
+			}
+
 			ani_process_density_units96_parallel(
 				&units96, thread_states, worker_n,
 				index96, index_n, fence, fence_k, ref_n,
 				ani_opt->ignoreconflict,
 				ref_ctx_cov != NULL, ani_opt->readwise_assign_mode,
 				readwise_trace.fp ? &readwise_trace : NULL,
-				edge_trace.fp ? &edge_trace : NULL);
+				edge_trace.fp ? &edge_trace : NULL,
+				need_unique_sidecar ? unique_thread_states : NULL);
 			ani_merge_readwise_thread_batch128(
 				thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
 				ref_ctx_mindiff_cov,
 				ref_ctx_hit_weight,
 				index96, index_n,
 				ref_n);
+			if (need_unique_sidecar) {
+				ani_merge_readwise_thread_batch128(
+					unique_thread_states, worker_n, unique_acc,
+					unique_ref_hit_bits, unique_ref_ctx_cov,
+					NULL, NULL,
+					index96, index_n,
+					ref_n);
+			}
 			ani_density_units96_destroy(&units96);
 			continue;
 		}
@@ -9327,10 +9975,19 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		}
 		kv_density_unit_t units;
 		kv_init(units);
+		kv_density_unit_t exact_units;
+		kv_init(exact_units);
 		for (size_t i = 0; i < batch_n; ++i) {
 			if (read_vecs[i].n == 0) {
 				v_free(&read_vecs[i]);
 				continue;
+			}
+			if (need_exact_split_sidecar) {
+				++exact_split_total_density_blocks;
+				ani_density_unit_push_copy(
+					&exact_units, &read_vecs[i],
+					exact_split_total_density_blocks, 1,
+					batch[i].name);
 			}
 			if (density_block_mode) {
 				v_reserve(&block_vec, block_vec.n + read_vecs[i].n);
@@ -9360,13 +10017,32 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		free(read_vecs);
 		ani_readwise_seq_batch_destroy(batch, batch_n);
 
+		if (need_exact_split_sidecar) {
+			ani_process_density_units_parallel(
+				&exact_units, exact_split_thread_states, worker_n,
+				index, index_n, fence, fence_k, ref_n,
+				ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
+				true, false, ANI_READWISE_ASSIGN_BEST_DIFF_SPLIT,
+				NULL, NULL, NULL);
+			ani_merge_readwise_thread_batch(
+				exact_split_thread_states, worker_n, exact_split_acc,
+				exact_split_ref_hit_bits, exact_split_ref_ctx_cov,
+				NULL,
+				exact_split_ref_ctx_hit_weight,
+				NULL, NULL,
+				index, index_n,
+				ref_n, gidmask_local);
+			ani_density_units_destroy(&exact_units);
+		}
+
 		ani_process_density_units_parallel(
 			&units, thread_states, worker_n,
 			index, index_n, fence, fence_k, ref_n,
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
 			ref_ctx_cov != NULL, !profile_only, ani_opt->readwise_assign_mode,
 			readwise_trace.fp ? &readwise_trace : NULL,
-			edge_trace.fp ? &edge_trace : NULL);
+			edge_trace.fp ? &edge_trace : NULL,
+			need_unique_sidecar ? unique_thread_states : NULL);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
 			ref_ctx_mindiff_cov,
@@ -9375,8 +10051,22 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			profile_only ? NULL : &qry_ref_ctx_seen,
 			index, index_n,
 			ref_n, gidmask_local);
+		if (need_unique_sidecar) {
+			ani_merge_readwise_thread_batch(
+				unique_thread_states, worker_n, unique_acc,
+				unique_ref_hit_bits, unique_ref_ctx_cov,
+				NULL, NULL, NULL, NULL,
+				index, index_n,
+				ref_n, gidmask_local);
+		}
 		ani_density_units_destroy(&units);
+		if (read_status < 0)
+			break;
 	}
+	if (read_status < -1)
+		errx(EXIT_FAILURE,
+			 "%s(): malformed FASTA/FASTQ or stream read error from %s (kseq_read=%d)",
+			 __func__, query_path, read_status);
 	if (density_block_mode && ref_uses_ctxobj96 && block_vec96.n > 0) {
 		kv_density_unit96_t units96;
 		kv_init(units96);
@@ -9390,13 +10080,22 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			ani_opt->ignoreconflict,
 			ref_ctx_cov != NULL, ani_opt->readwise_assign_mode,
 			readwise_trace.fp ? &readwise_trace : NULL,
-			edge_trace.fp ? &edge_trace : NULL);
+			edge_trace.fp ? &edge_trace : NULL,
+			need_unique_sidecar ? unique_thread_states : NULL);
 		ani_merge_readwise_thread_batch128(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
 			ref_ctx_mindiff_cov,
 			ref_ctx_hit_weight,
 			index96, index_n,
 			ref_n);
+		if (need_unique_sidecar) {
+			ani_merge_readwise_thread_batch128(
+				unique_thread_states, worker_n, unique_acc,
+				unique_ref_hit_bits, unique_ref_ctx_cov,
+				NULL, NULL,
+				index96, index_n,
+				ref_n);
+		}
 		ani_density_units96_destroy(&units96);
 	} else if (density_block_mode && block_vec.n > 0) {
 		kv_density_unit_t units;
@@ -9411,7 +10110,8 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			ani_opt->ignoreconflict, nobjbits, gidmask_local, objmask,
 			ref_ctx_cov != NULL, !profile_only, ani_opt->readwise_assign_mode,
 			readwise_trace.fp ? &readwise_trace : NULL,
-			edge_trace.fp ? &edge_trace : NULL);
+			edge_trace.fp ? &edge_trace : NULL,
+			need_unique_sidecar ? unique_thread_states : NULL);
 		ani_merge_readwise_thread_batch(
 			thread_states, worker_n, acc, ref_hit_bits, ref_ctx_cov,
 			ref_ctx_mindiff_cov,
@@ -9420,6 +10120,14 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			profile_only ? NULL : &qry_ref_ctx_seen,
 			index, index_n,
 			ref_n, gidmask_local);
+		if (need_unique_sidecar) {
+			ani_merge_readwise_thread_batch(
+				unique_thread_states, worker_n, unique_acc,
+				unique_ref_hit_bits, unique_ref_ctx_cov,
+				NULL, NULL, NULL, NULL,
+				index, index_n,
+				ref_n, gidmask_local);
+		}
 		ani_density_units_destroy(&units);
 	}
 	ani_readwise_progress_done(&stream, &progress, total_reads);
@@ -9428,7 +10136,12 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	else
 		v_free(&block_vec);
 	kseq_destroy(seq);
-	ani_close_fastx_stream(&stream);
+	const bool close_warning = ani_close_fastx_stream(&stream, true);
+	if (close_warning)
+		fprintf(stderr,
+				"minco readwise: warning: gzip integrity/close error after %" PRIu64
+				" complete reads; continuing with completed result\n",
+				total_reads);
 	if (readwise_trace.fp) {
 		fclose(readwise_trace.fp);
 		readwise_trace.fp = NULL;
@@ -9444,6 +10157,16 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	for (int t = 0; t < worker_n; ++t)
 		ani_readwise_thread_state_destroy(&thread_states[t]);
 	free(thread_states);
+	if (unique_thread_states) {
+		for (int t = 0; t < worker_n; ++t)
+			ani_readwise_thread_state_destroy(&unique_thread_states[t]);
+		free(unique_thread_states);
+	}
+	if (exact_split_thread_states) {
+		for (int t = 0; t < worker_n; ++t)
+			ani_readwise_thread_state_destroy(&exact_split_thread_states[t]);
+		free(exact_split_thread_states);
+	}
 
 	FILE *outfp = ani_opt->outf[0] == '\0' ? stdout : fopen(ani_opt->outf, "w");
 	if (!outfp)
@@ -9469,10 +10192,10 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			auto_ctxcut = (uint64_t)INT_MAX;
 		ani_opt->ctxcut = (int)auto_ctxcut;
 		ani_opt->afcut = 0.0f;
-		ani_opt->anicut = 0.96f;
+		ani_opt->anicut = 0.95f;
 		fprintf(stderr,
 				"minco readwise: default abundance report active; support_cut=%d; "
-				"breadth>=0.5; anicut=0.96; calls=major|low_abundance; "
+				"breadth>=0.5; anicut=0.95; calls=major|low_abundance; "
 				"final support is checked per reference marker count\n",
 				ani_opt->ctxcut);
 	}
@@ -9667,6 +10390,9 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 			density_af,
 			NULL,
 			ref_infile_meta ? &ref_infile_meta[rn] : NULL);
+		row.domain_profile = ref_domain_profiles
+								  ? ref_domain_profiles[rn]
+								  : MINCO_DOMAIN_PROFILE_DEFAULT;
 		row.XnY_ctx = ani_readwise_scaled_round_int(ani_fa->XnY_ctx, 1u);
 		row.N_diff_obj = ani_readwise_scaled_round_int(ani_fa->N_diff_obj, 1u);
 		row.N_diff_obj_section = ani_readwise_scaled_round_int(ani_fa->N_diff_obj_section, 1u);
@@ -9840,6 +10566,21 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		print_unified_detail_row(outfp, ani_opt, query_path, refname[r->rn],
 								 r, annotation_at(refanno, r->rn));
 	}
+	ani_write_readwise_unique_sidecar(
+		ani_opt, query_path, refname, refanno, ref_n, ref_uses_ctxobj96,
+		index, index96, index_n, ref_ctx_total,
+		unique_acc, unique_ref_ctx_cov,
+		total_reads, total_density_blocks,
+		density_block_mode, density_block_ctx,
+		ref_infile_meta, ref_domain_profiles,
+		auto_readwise_abundance_report);
+	ani_write_readwise_exact_split_sidecar(
+		ani_opt, query_path, refname, refanno, ref_n, ref_uses_ctxobj96,
+		index, index96, index_n, ref_ctx_total,
+		exact_split_acc, exact_split_ref_ctx_cov, exact_split_ref_ctx_hit_weight,
+		total_reads, exact_split_total_density_blocks,
+		ref_infile_meta, ref_domain_profiles,
+		auto_readwise_abundance_report);
 	kv_destroy(survivors);
 
 	ani_opt->readwise_query = old_readwise;
@@ -9868,12 +10609,22 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 	free(ref_ctx_cov);
 	free(ref_ctx_mindiff_cov);
 	free(ref_ctx_hit_weight);
+	free(unique_acc);
+	free(unique_ref_hit_bits);
+	free(unique_ref_ctx_cov);
+	free(exact_split_acc);
+	free(exact_split_ref_hit_bits);
+	free(exact_split_ref_ctx_cov);
+	free(exact_split_ref_ctx_hit_weight);
 	free(fence);
 	free(ref_ctx_total);
 	if (refanno)
 		free_read_from_file(refanno, (size_t)ref_n * PATHLEN);
 	if (ref_infile_meta)
 		free_read_from_file(ref_infile_meta, (size_t)ref_n * sizeof(ref_infile_meta[0]));
+	if (ref_domain_profiles)
+		free_read_from_file(ref_domain_profiles,
+							(size_t)ref_n * sizeof(ref_domain_profiles[0]));
 	free(ref_ctxmeta);
 	free_reference_sorted_index((ctxgidobj_t *)index_mem, index_bytes, index_is_mmap);
 	free_read_from_file(ref_stat, ref_stat_size);

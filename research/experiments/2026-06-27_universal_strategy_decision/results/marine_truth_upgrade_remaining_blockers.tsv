@@ -1,0 +1,41 @@
+transfer_method	ncbi_species_taxid	truth_name	total_abundance_pct_all	sample_count	max_taxid_gtdb_species_count	max_binomial_gtdb_species_count
+ambiguous_taxid	1263979	Candidatus Endolissoclinum faulkneri	5.4357	10	2	0
+ambiguous_taxid	467094	Ilumatobacter coccineus	2.8633	10	2	0
+ambiguous_taxid	1219	Prochlorococcus marinus	2.3293	10	55	0
+ambiguous_taxid	2296	Desulfobacterium autotrophicum	1.547	9	2	0
+ambiguous_taxid	1491	Clostridium botulinum	1.2305	10	13	0
+ambiguous_taxid	28229	Colwellia psychrerythraea	0.9454	10	4	0
+ambiguous_taxid	73141	Thiocystis violascens	0.6399	10	2	0
+ambiguous_taxid	316279	Synechococcus sp. CC9902	0.5486	10	2	0
+ambiguous_taxid	669041	Tenacibaculum dicentrarchi	0.5314	8	2	0
+ambiguous_taxid	324767	Bacillus infantis	0.47450000000000003	10	5	0
+unmapped	1250153	Maribacter sp. MAR_2009_60	0.4391	8	0	0
+ambiguous_taxid	316	Pseudomonas stutzeri	0.4253	10	51	0
+ambiguous_taxid	154	Spirochaeta thermophila	0.3922	7	2	0
+ambiguous_taxid	89184	Ruegeria pomeroyi	0.3705	9	2	0
+ambiguous_taxid	713887	Candidatus Atelocyanobacterium thalassa	0.3451	10	3	0
+ambiguous_taxid	2743	Marinobacter hydrocarbonoclasticus	0.3291	9	4	0
+unmapped	400668	Marinomonas sp. MWYL1	0.2912	7	0	0
+ambiguous_taxid	1336795	Formosa sp. Hel3_A1_48	0.28459999999999996	9	2	0
+ambiguous_taxid	111501	Muricauda ruestringensis	0.2502	7	2	0
+ambiguous_taxid	1155739	Moorea producens	0.2461	8	2	0
+ambiguous_taxid	1427364	Candidatus Thioglobus singularis	0.1807	8	3	0
+ambiguous_taxid	1462	Geobacillus kaustophilus	0.1787	6	2	0
+ambiguous_taxid	1063	Rhodobacter sphaeroides	0.1705	8	6	0
+ambiguous_taxid	294	Pseudomonas fluorescens	0.1653	7	124	0
+unmapped	1547445	Francisella sp. FSC1006	0.1409	5	0	0
+unmapped	1885919	Brucella sp. 141012304	0.1316	6	0	0
+ambiguous_taxid	198252	Candidatus Pelagibacter ubique	0.124	5	21	0
+ambiguous_taxid	543877	Altererythrobacter marensis	0.12040000000000001	6	3	0
+ambiguous_taxid	155863	Methanothermococcus okinawensis	0.1037	4	6	0
+ambiguous_taxid	1833	Rhodococcus erythropolis	0.1021	8	5	0
+ambiguous_taxid	201	Campylobacter lari	0.0984	4	6	0
+ambiguous_taxid	744985	alpha proteobacterium HIMB59	0.0907	5	2	0
+unmapped	349106	Psychrobacter sp. PRwf-1	0.0749	6	0	0
+ambiguous_taxid	53633	Sulfobacillus acidophilus	0.069	1	2	0
+ambiguous_taxid	1705394	Candidatus Thioglobus autotrophicus	0.0678	4	3	0
+ambiguous_taxid	582419	Thermococcus paralvinellae	0.050699999999999995	4	2	0
+unmapped	1898108	bacterium AB1	0.0389	2	0	0
+unmapped	410330	Calyptogena okutanii thioautotrophic gill symbiont	0.0373	3	0	0
+ambiguous_taxid	44251	Paenibacillus durus	0.0259	1	2	0
+ambiguous_taxid	271420	Pseudomonas xanthomarina	0.0128	1	6	0

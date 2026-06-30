@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/sweep_cross_panel_candidate_abundance_policy.py	116.76	111.68	6.56	5318964	0	cached cross-panel selected-candidate abundance-policy sweep; no raw profiling or profile copies

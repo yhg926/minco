@@ -1,0 +1,4 @@
+metric	value	evidence	decision
+high_truth_emitted_absent_targets	10	HMP high-abundance false negatives absent from emitted profile rows	diagnostic_scope
+raw_candidate_visibility	10/10	raw_absent=0; raw_visible=10	raw_tables_expose_many_profile_absent_misses
+promotion_decision	diagnostic_only_not_default	truth-aware HMP raw-table visibility audit; no output-only rule selected	use_to_decide_between_profile_rescue_and_indexing_work

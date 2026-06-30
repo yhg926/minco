@@ -1,0 +1,31 @@
+sample	rule_id	release_grade_allowed	description	extra_mapped_pct_all	mapped_pct_all	mapped_pct_bacteria_archaea	ready_at_95pct_bacteria_archaea	base_mapped_pct_bacteria_archaea
+0	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	24.670400000000008	91.00580627549925	false	91.00580627549924
+0	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.0777	24.748100000000008	91.29243118419981	false	91.00580627549924
+0	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.4122999999999997	27.082700000000006	99.90445836376642	true	91.00580627549924
+1	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	31.173600000000093	92.49448123620307	false	92.49448123620309
+1	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.30879999999999996	31.482400000000094	93.41071470958245	false	92.49448123620309
+1	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.4129	33.58650000000009	99.65374207790353	true	92.49448123620309
+2	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	27.948400000000028	93.51544515231005	false	93.51544515231004
+2	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.0956	28.04400000000003	93.83532309010116	false	93.51544515231004
+2	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	1.8834000000000002	29.83180000000003	99.81730820707743	true	93.51544515231004
+3	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	29.358499999999985	92.57326463558458	false	92.5732646355846
+3	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.3584	29.716899999999985	93.70337203362581	false	92.5732646355846
+3	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.2382	31.596699999999984	99.63076011074051	true	92.5732646355846
+4	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	29.065600000000018	94.08809429008903	false	94.08809429008905
+4	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.1805	29.246100000000016	94.67238984976647	false	94.08809429008905
+4	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	1.74	30.805600000000016	99.72063874348945	true	94.08809429008905
+5	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	35.11040000000003	94.09570262773526	false	94.09570262773526
+5	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.5428999999999999	35.65330000000003	95.55067200879039	true	94.09570262773526
+5	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.0668	37.17720000000003	99.63471665751001	true	94.09570262773526
+6	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	34.039799999999985	94.52532954933586	false	94.52532954933586
+6	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.3973	34.43709999999999	95.62859435788208	true	94.52532954933586
+6	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	1.7794	35.81919999999999	99.46655633092942	true	94.52532954933586
+7	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	29.35110000000002	93.16922197885916	false	93.16922197885916
+7	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.3507	29.70180000000002	94.28244929054377	false	93.16922197885916
+7	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.0559	31.40700000000002	99.69526711741739	true	93.16922197885916
+8	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	29.07099999999997	93.73357623047279	false	93.7335762304728
+8	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.3184	29.38939999999997	94.76019281303901	false	93.7335762304728
+8	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	1.8088	30.87979999999997	99.5656870173628	true	93.7335762304728
+9	accepted_exact_binomial	true	unique NCBI taxid plus exact unique GTDB-binomial fallback	0.0	30.422100000000064	92.24492642443688	false	92.24492642443688
+9	diagnostic_unique_ambiguous_epithet	false	within ambiguous taxid, one GTDB candidate has matching species epithet	0.516	30.938100000000063	93.80952525341348	false	92.24492642443688
+9	unsafe_all_ambiguous_assigned	false	upper bound if every ambiguous taxid could be assigned	2.3634	32.78550000000006	99.41115292134253	true	92.24492642443688

@@ -1,0 +1,11 @@
+sample	gtdb_species	truth_raw_abundance	truth_abundance
+16	s__Campylobacter_D jejuni	1.0000000000003	0.009960597189305505
+16	s__Finegoldia magna_H	3.0	0.029881791567907552
+16	s__Propionibacterium freudenreichii	5.0	0.049802985946512585
+16	s__Staphylococcus aureus	75.4332503681033	0.7513602215964827
+16	s__Staphylococcus epidermidis	3.0	0.029881791567907552
+16	s__Staphylococcus equorum	1.0	0.009960597189302516
+16	s__Staphylococcus lugdunensis	5.96233646217	0.05938843180676641
+16	s__Staphylococcus pseudintermedius	1.0	0.009960597189302516
+16	s__Staphylococcus warneri	4.0	0.039842388757210065
+16	s__Streptococcus hominis	1.0	0.009960597189302516

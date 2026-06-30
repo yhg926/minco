@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+scope	samples=43;panels=7	current cached panels plus completed negative route extensions	diagnostic_scope
+strict_pass_rules	39	requires no sample or panel F1 regression	candidate_found
+best_rule	raw_ani0.93_xny650_breadth0.20	mean_delta_F1=0.007354652291267974;min_delta_F1=0.0;sample_worsen_n=0;panel_worsen_n=0;TP_delta=54;FP_delta=11	review_candidate
+promotion_decision	diagnostic_only_not_default	offline zero-mass raw-candidate retention replay	implement_opt_in_wrapper_then_validate_runtime_and_independent_holdout

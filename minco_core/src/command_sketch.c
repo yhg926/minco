@@ -30,6 +30,7 @@ const char sketch_stat[] = "minco.stat";
 const char sketch_qc_stat[] = "minco.qc";
 const char sketch_anno_stat[] = "minco.anno";
 const char sketch_infile_meta_stat[] = "minco.infilemeta";
+const char sketch_domain_stat[] = "minco.domain";
 const char minco_ctxmeta_bin_stat[] = "minco.ctxmeta";
 static const char minco_ctxmeta_legacy_tsv_stat[] = "minco.ctxmeta.tsv";
 const char minco_ctxsetmeta_legacy_tsv_stat[] = "minco.ctxsetmeta.tsv";
@@ -2887,6 +2888,8 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
     bool merge_seen_no_meta = false;
     char (*merged_annotations)[PATHLEN] = NULL;
     bool write_merged_annotations = false;
+    uint8_t *merged_domains = NULL;
+    bool write_merged_domains = false;
     for (int i = 0; i < sketch_opt_val->num_remaining_args; i++)
     {
         // read stat
@@ -3023,6 +3026,46 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
             write_merged_annotations = true;
         }
 
+        const bool input_has_domains =
+            file_exists_in_folder(sketch_opt_val->remaining_args[i], sketch_domain_stat);
+        if (input_has_domains || write_merged_domains) {
+            uint8_t *new_domains =
+                (uint8_t *)realloc(merged_domains,
+                                   sizeof(merged_domains[0]) * (size_t)new_infile_num);
+            if (!new_domains)
+                err(errno, "%s(): OOM merged domain profiles", __func__);
+            merged_domains = new_domains;
+
+            if (!write_merged_domains && old_infile_num > 0)
+                memset(merged_domains, 0,
+                       sizeof(merged_domains[0]) * (size_t)old_infile_num);
+
+            if (input_has_domains) {
+                size_t domain_file_size = 0;
+                uint8_t *mem_domain_it =
+                    read_from_file(test_get_fullpath(sketch_opt_val->remaining_args[i],
+                                                     sketch_domain_stat),
+                                   &domain_file_size);
+                const size_t expected_size =
+                    sizeof(mem_domain_it[0]) * (size_t)minco_stat_iter.infile_num;
+                if (domain_file_size != expected_size)
+                    err(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+                        __func__, sketch_opt_val->remaining_args[i], sketch_domain_stat,
+                        domain_file_size, expected_size);
+                for (int j = 0; j < minco_stat_iter.infile_num; ++j)
+                    if (mem_domain_it[j] > MINCO_DOMAIN_PROFILE_MAX)
+                        errx(EINVAL, "%s(): %s/%s has invalid domain profile %u at sample %d",
+                             __func__, sketch_opt_val->remaining_args[i],
+                             sketch_domain_stat, (unsigned)mem_domain_it[j], j);
+                memcpy(merged_domains + old_infile_num, mem_domain_it, expected_size);
+                free_read_from_file(mem_domain_it, domain_file_size);
+            } else {
+                memset(merged_domains + old_infile_num, 0,
+                       sizeof(merged_domains[0]) * (size_t)minco_stat_iter.infile_num);
+            }
+            write_merged_domains = true;
+        }
+
         // add file num
         minco_stat_one.infile_num = new_infile_num;
         // write combined sketch payload
@@ -3086,6 +3129,10 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
     }
     if (write_merged_annotations)
         write_sketch_annotations(sketch_opt_val->outdir, merged_annotations, (size_t)minco_stat_one.infile_num);
+    if (write_merged_domains)
+        write_to_file(test_create_fullpath(sketch_opt_val->outdir, sketch_domain_stat),
+                      merged_domains,
+                      sizeof(merged_domains[0]) * (size_t)minco_stat_one.infile_num);
     merge_minco_ctxmeta_stats(sketch_opt_val->outdir, sketch_opt_val->remaining_args,
                               sketch_opt_val->num_remaining_args,
                               minco_stat_one.infile_num);
@@ -3095,6 +3142,7 @@ int merge_minco_sketches(sketch_opt_t *sketch_opt_val)
     free(merged_qc_stats);
     free(merged_infile_meta);
     free(merged_annotations);
+    free(merged_domains);
 
     return minco_stat_one.infile_num;
 }
@@ -3126,6 +3174,9 @@ typedef struct append_sketch_part
     bool has_anno;
     char (*anno)[PATHLEN];
     size_t anno_size;
+    bool has_domain;
+    uint8_t *domain;
+    size_t domain_size;
 } append_sketch_part_t;
 
 typedef struct append_payload_rollback
@@ -3241,6 +3292,25 @@ static void append_load_optional_anno(append_sketch_part_t *part)
              __func__, part->path, sketch_anno_stat, part->anno_size, expected);
 }
 
+static void append_load_optional_domain(append_sketch_part_t *part)
+{
+    part->has_domain = append_file_exists(part->path, sketch_domain_stat);
+    if (!part->has_domain)
+        return;
+    char *path = append_read_path(part->path, sketch_domain_stat);
+    part->domain = read_from_file(path, &part->domain_size);
+    free(path);
+    const size_t expected = (size_t)part->stat.infile_num * sizeof(part->domain[0]);
+    if (part->domain_size != expected)
+        errx(EINVAL, "%s(): %s/%s has %zu bytes, expected %zu",
+             __func__, part->path, sketch_domain_stat, part->domain_size, expected);
+    for (int i = 0; i < part->stat.infile_num; ++i)
+        if (part->domain[i] > MINCO_DOMAIN_PROFILE_MAX)
+            errx(EINVAL, "%s(): %s/%s has invalid domain profile %u at sample %d",
+                 __func__, part->path, sketch_domain_stat,
+                 (unsigned)part->domain[i], i);
+}
+
 static void append_load_part(append_sketch_part_t *part, const char *path)
 {
     memset(part, 0, sizeof(*part));
@@ -3305,6 +3375,7 @@ static void append_load_part(append_sketch_part_t *part, const char *path)
     append_load_optional_qc(part);
     append_load_optional_meta(part);
     append_load_optional_anno(part);
+    append_load_optional_domain(part);
 }
 
 static void append_free_part(append_sketch_part_t *part)
@@ -3319,6 +3390,8 @@ static void append_free_part(append_sketch_part_t *part)
         free_read_from_file(part->meta, part->meta_size);
     if (part->anno)
         free_read_from_file(part->anno, part->anno_size);
+    if (part->domain)
+        free_read_from_file(part->domain, part->domain_size);
 }
 
 static bool append_same_sketch_dir(const char *a, const char *b)
@@ -3738,7 +3811,7 @@ static void remove_file_if_exists(const char *target_dir, const char *suffix)
 static void remove_stale_optional_outputs(const char *target_dir,
                                           bool has_abundance, bool has_positions,
                                           bool has_qc, bool has_meta, bool has_anno,
-                                          bool has_ctxmeta)
+                                          bool has_ctxmeta, bool has_domain)
 {
     if (!has_abundance)
         remove_file_if_exists(target_dir, combined_ab_suffix);
@@ -3752,6 +3825,8 @@ static void remove_stale_optional_outputs(const char *target_dir,
         remove_file_if_exists(target_dir, sketch_anno_stat);
     if (!has_ctxmeta)
         remove_minco_ctxmeta(target_dir);
+    if (!has_domain)
+        remove_file_if_exists(target_dir, sketch_domain_stat);
 }
 
 static void append_truncate_path(const char *path)
@@ -3810,6 +3885,8 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         target->has_meta && kept_samples > 0 ? (infile_meta_t *)calloc(kept_count, sizeof(new_meta[0])) : NULL;
     char (*new_anno)[PATHLEN] =
         target->has_anno && kept_samples > 0 ? (char (*)[PATHLEN])calloc(kept_count, PATHLEN) : NULL;
+    uint8_t *new_domain =
+        target->has_domain && kept_samples > 0 ? (uint8_t *)calloc(kept_count, sizeof(new_domain[0])) : NULL;
     const bool has_ctxmeta = file_exists_in_folder(input_dir, minco_ctxmeta_bin_stat);
     minco_ctxmeta_record_t *target_ctxmeta = NULL;
     size_t target_ctxmeta_size = 0;
@@ -3819,6 +3896,7 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         (target->has_qc && kept_samples > 0 && !new_qc) ||
         (target->has_meta && kept_samples > 0 && !new_meta) ||
         (target->has_anno && kept_samples > 0 && !new_anno) ||
+        (target->has_domain && kept_samples > 0 && !new_domain) ||
         (has_ctxmeta && kept_samples > 0 && !new_ctxmeta))
         err(EXIT_FAILURE, "%s(): OOM filtered sketch auxiliary data", __func__);
 
@@ -3850,6 +3928,8 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
             new_meta[out_i] = target->meta[i];
         if (new_anno)
             memcpy(new_anno[out_i], target->anno[i], PATHLEN);
+        if (new_domain)
+            new_domain[out_i] = target->domain[i];
         if (new_ctxmeta)
             new_ctxmeta[out_i] = target_ctxmeta[i];
         new_index[out_i + 1] = kept_entries;
@@ -3867,6 +3947,7 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
     char *tmp_qc = target->has_qc ? append_tmp_path(output_dir, sketch_qc_stat) : NULL;
     char *tmp_meta = target->has_meta ? append_tmp_path(output_dir, sketch_infile_meta_stat) : NULL;
     char *tmp_anno = target->has_anno ? append_tmp_path(output_dir, sketch_anno_stat) : NULL;
+    char *tmp_domain = target->has_domain ? append_tmp_path(output_dir, sketch_domain_stat) : NULL;
     char *tmp_ctxmeta = has_ctxmeta ? append_tmp_path(output_dir, minco_ctxmeta_bin_stat) : NULL;
 
     remove_copy_filtered_payload(input_dir, target->combined_suffix, tmp_comb,
@@ -3891,6 +3972,9 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         write_to_file(tmp_meta, new_meta ? (const void *)new_meta : "", kept_count * sizeof(new_meta[0]));
     if (target->has_anno)
         write_to_file(tmp_anno, new_anno ? (const void *)new_anno : "", kept_count * PATHLEN);
+    if (target->has_domain)
+        write_to_file(tmp_domain, new_domain ? (const void *)new_domain : "",
+                      kept_count * sizeof(new_domain[0]));
     if (has_ctxmeta)
         write_to_file(tmp_ctxmeta, new_ctxmeta ? (const void *)new_ctxmeta : "",
                       kept_count * sizeof(new_ctxmeta[0]));
@@ -3909,11 +3993,13 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
         remove_replace_tmp(tmp_meta, output_dir, sketch_infile_meta_stat);
     if (target->has_anno)
         remove_replace_tmp(tmp_anno, output_dir, sketch_anno_stat);
+    if (target->has_domain)
+        remove_replace_tmp(tmp_domain, output_dir, sketch_domain_stat);
     if (has_ctxmeta)
         remove_replace_tmp(tmp_ctxmeta, output_dir, minco_ctxmeta_bin_stat);
     remove_stale_optional_outputs(output_dir, target->stat.koc, keep_positions,
                                   target->has_qc, target->has_meta, target->has_anno,
-                                  has_ctxmeta);
+                                  has_ctxmeta, target->has_domain);
     if (has_ctxmeta) {
         minco_stat_density_summary_t density = {0};
         if (read_minco_ctxmeta_density_summary(output_dir, kept_samples, &density))
@@ -3928,12 +4014,14 @@ static int apply_minco_sample_filter(const char *input_dir, const char *output_d
     free(tmp_qc);
     free(tmp_meta);
     free(tmp_anno);
+    free(tmp_domain);
     free(tmp_ctxmeta);
     free(new_index);
     free(new_names);
     free(new_qc);
     free(new_meta);
     free(new_anno);
+    free(new_domain);
     free(new_ctxmeta);
     if (target_ctxmeta)
         free_read_from_file(target_ctxmeta, target_ctxmeta_size);
@@ -4525,6 +4613,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
     bool any_qc = false;
     bool any_meta = false;
     bool any_anno = false;
+    bool any_domain = false;
     bool seen_meta = false;
     bool seen_no_meta = false;
     for (int i = 0; i < part_count; ++i) {
@@ -4537,6 +4626,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         any_qc = any_qc || parts[i].has_qc;
         any_meta = any_meta || parts[i].has_meta;
         any_anno = any_anno || parts[i].has_anno;
+        any_domain = any_domain || parts[i].has_domain;
         seen_meta = seen_meta || parts[i].has_meta;
         seen_no_meta = seen_no_meta || !parts[i].has_meta;
         if (i > 0) {
@@ -4552,8 +4642,11 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
     infile_meta_t *merged_meta =
         any_meta ? calloc((size_t)total_samples, sizeof(merged_meta[0])) : NULL;
     char (*merged_anno)[PATHLEN] = any_anno ? calloc((size_t)total_samples, PATHLEN) : NULL;
+    uint8_t *merged_domain =
+        any_domain ? calloc((size_t)total_samples, sizeof(merged_domain[0])) : NULL;
     if (!merged_index || !merged_names || (any_qc && !merged_qc) ||
-        (any_meta && !merged_meta) || (any_anno && !merged_anno))
+        (any_meta && !merged_meta) || (any_anno && !merged_anno) ||
+        (any_domain && !merged_domain))
         err(EXIT_FAILURE, "%s(): OOM merged append auxiliary data", __func__);
 
     int sample_offset = 0;
@@ -4574,6 +4667,9 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         if (part->has_anno)
             memcpy(merged_anno + sample_offset, part->anno,
                    (size_t)part->stat.infile_num * PATHLEN);
+        if (part->has_domain)
+            memcpy(merged_domain + sample_offset, part->domain,
+                   (size_t)part->stat.infile_num * sizeof(merged_domain[0]));
         sample_offset += part->stat.infile_num;
         entry_offset += part->entries;
     }
@@ -4590,6 +4686,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
     char *tmp_qc = any_qc ? append_tmp_path(sketch_opt_val->outdir, sketch_qc_stat) : NULL;
     char *tmp_meta = any_meta ? append_tmp_path(sketch_opt_val->outdir, sketch_infile_meta_stat) : NULL;
     char *tmp_anno = any_anno ? append_tmp_path(sketch_opt_val->outdir, sketch_anno_stat) : NULL;
+    char *tmp_domain = any_domain ? append_tmp_path(sketch_opt_val->outdir, sketch_domain_stat) : NULL;
     char *tmp_comb = copy_mode ? append_tmp_path(sketch_opt_val->outdir, append_combined_suffix) : NULL;
     char *tmp_ab = copy_mode && parts[0].stat.koc ? append_tmp_path(sketch_opt_val->outdir, combined_ab_suffix) : NULL;
     char *tmp_pos = copy_mode && parts[0].has_positions ? append_tmp_path(sketch_opt_val->outdir, sketch_position_suffix) : NULL;
@@ -4605,6 +4702,9 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
         write_to_file(tmp_meta, merged_meta, (size_t)total_samples * sizeof(merged_meta[0]));
     if (any_anno)
         write_to_file(tmp_anno, merged_anno, (size_t)total_samples * PATHLEN);
+    if (any_domain)
+        write_to_file(tmp_domain, merged_domain,
+                      (size_t)total_samples * sizeof(merged_domain[0]));
 
     append_payload_rollback_t rollback = {0};
     if (copy_mode) {
@@ -4628,9 +4728,11 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
             remove_replace_tmp(tmp_meta, sketch_opt_val->outdir, sketch_infile_meta_stat);
         if (any_anno)
             remove_replace_tmp(tmp_anno, sketch_opt_val->outdir, sketch_anno_stat);
+        if (any_domain)
+            remove_replace_tmp(tmp_domain, sketch_opt_val->outdir, sketch_domain_stat);
         remove_stale_optional_outputs(sketch_opt_val->outdir, parts[0].stat.koc,
                                       parts[0].has_positions, any_qc, any_meta, any_anno,
-                                      false);
+                                      false, any_domain);
     } else {
         rollback.ctxobj_path = append_join_path(sketch_opt_val->outdir, append_combined_suffix);
         rollback.has_abundance = parts[0].stat.koc;
@@ -4676,6 +4778,8 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
             append_replace_tmp_or_rollback(tmp_meta, sketch_opt_val->outdir, sketch_infile_meta_stat, &rollback);
         if (any_anno)
             append_replace_tmp_or_rollback(tmp_anno, sketch_opt_val->outdir, sketch_anno_stat, &rollback);
+        if (any_domain)
+            append_replace_tmp_or_rollback(tmp_domain, sketch_opt_val->outdir, sketch_domain_stat, &rollback);
     }
 
     char **part_paths = (char **)calloc((size_t)part_count, sizeof(part_paths[0]));
@@ -4698,6 +4802,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
     free(tmp_qc);
     free(tmp_meta);
     free(tmp_anno);
+    free(tmp_domain);
     free(tmp_comb);
     free(tmp_ab);
     free(tmp_pos);
@@ -4709,6 +4814,7 @@ int append_minco_sketches(sketch_opt_t *sketch_opt_val)
     free(merged_qc);
     free(merged_meta);
     free(merged_anno);
+    free(merged_domain);
     for (int i = 0; i < part_count; ++i)
         append_free_part(&parts[i]);
     free(parts);

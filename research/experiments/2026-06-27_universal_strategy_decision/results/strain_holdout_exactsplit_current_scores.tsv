@@ -1,0 +1,7 @@
+method	sample_key	dataset	gold_taxa	pred_taxa	TP	FP	FN	precision	recall	F1	FP_plus_FN	L1	Pearson	tp_abundance_n	raw_unique_fallback	source_file
+minco_universal_exactsplit	strain0	strain	20	14	8	6	12	0.5714285714285714	0.4	0.47058823529411764	18	0.6538287291428432	0.8939718661852695	8		/tmp/minco_exactsplit_universal_20260626/strain0_exactsplit_score.tsv
+sylph	strain0	strain	20	18	11	7	9	0.6111111111111112	0.55	0.5789473684210527	16	0.1882811084018584	0.9896572560806315	11		/tmp/minco_exactsplit_universal_20260626/strain0_exactsplit_score.tsv
+minco_universal_exactsplit	strain1	strain	20	23	15	8	5	0.6521739130434783	0.75	0.6976744186046512	13	0.8734446798401098	0.7930644499006304	15		/tmp/minco_exactsplit_universal_20260626/strain1_exactsplit_score.tsv
+sylph	strain1	strain	20	25	11	14	9	0.44	0.55	0.48888888888888893	23	0.3335852797876767	0.9943500224391076	11		/tmp/minco_exactsplit_universal_20260626/strain1_exactsplit_score.tsv
+minco_universal_exactsplit	strain2	strain	20	19	14	5	6	0.7368421052631579	0.7	0.717948717948718	11	0.7520632692341465	0.784428637334301	14		/tmp/minco_exactsplit_universal_20260626/strain2_exactsplit_score.tsv
+sylph	strain2	strain	20	15	9	6	11	0.6	0.45	0.5142857142857143	17	0.08713453945674705	0.9980094347832099	9		/tmp/minco_exactsplit_universal_20260626/strain2_exactsplit_score.tsv

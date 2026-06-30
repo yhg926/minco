@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+tested_rules	1050	rules are evaluated with zero-rescue-mass and raw-depth-abundance scoring	diagnostic_scope
+best_mean_F1_rule	raw_rescue_ani0.9_xny100_br0.05_af0.7_zero_rescue_mass	mean_delta_F1=0.007757430082350909;mean_delta_L1=0.0;TP_delta=13.0;FP_delta=1.0;FN_delta=-13.0	best_diagnostic_rule
+sample_safe_positive_F1_rules	1536	rules with no per-sample F1 decrease and positive mean F1 delta versus current	safety_screen
+best_sample_safe_rule	raw_rescue_ani0.9_xny100_br0.05_af0.7_zero_rescue_mass	mean_delta_F1=0.007757430082350909;mean_delta_L1=0.0;TP_delta=13.0;FP_delta=1.0;FN_delta=-13.0	candidate_requires_non_hmp_validation
+promotion_decision	diagnostic_only_not_default	HMP-only truth-aware raw-side-channel sweep; needs non-HMP validation and wrapper implementation	do_not_promote_raw_rescue_yet

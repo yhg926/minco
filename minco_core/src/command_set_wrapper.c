@@ -25,6 +25,7 @@ static struct argp_option opt_set[] =
     {"markerdb-ctx-index-max-ctx-freq",339,"<INT>",0, "Pairwise context-markerdb indexed candidate mode: skip context groups above this frequency; 0 keeps all. [256]",4 },
     {"markerdb-ctx-index-min-votes",340,"<INT>",0, "Pairwise context-markerdb indexed candidate mode: exact-score pairs with at least this many votes; 0 uses --markerdb-ctx-min-xny. [0]",4 },
     {"markerdb-ctx-index-sample-step",341,"<INT>",0, "Pairwise context-markerdb indexed candidate mode: use every Nth query context for nomination. [1]",4 },
+    {"set-domain",342,"<species|amr|virus|gene|default>",0, "Tag every reference in a minco sketch with a domain-specific reporting profile. Writes minco.domain in-place.",4 },
 //	{"combin_pan",'c',0,  0, "combine pan files to combco file.",4 },
 	{"threads",'p',"<INT>",  0, "Number of threads.",5 },
 	{"sketch-size",'S',"<INT>",  0, "Target sketch size for --downsample. [1000]",5 },
@@ -51,6 +52,7 @@ static char doc_set[] =
   "  minco set --uniq_union --markerdb-ctx --markerdb-warn-threshold 1000 -o ctx_markerdb input_sketches\n"
   "  minco set --subtract pan_sketch -o subtracted input_sketches\n"
   "  minco set --downsample -S 1000 -o sketch.S1000.minco sketch.S10000.minco\n"
+  "  minco set --set-domain amr minco-db-amr-s100.minco\n"
   ;
 
 
@@ -65,6 +67,7 @@ set_opt_t set_opt = {
 .markerdb_ctx_index_max_ctx_freq = 256,
 .markerdb_ctx_index_min_votes = 0,
 .markerdb_ctx_index_sample_step = 1,
+.domain_profile = MINCO_DOMAIN_PROFILE_DEFAULT,
 .p = 1,
 .P = 0,
 .show = 0,
@@ -107,6 +110,70 @@ static void copy_path_arg(struct argp_state *state, const char *option_name,
   if (strlen(arg) >= dest_size)
     argp_error(state, "%s path is too long; maximum supported length is %zu bytes", option_name, dest_size - 1);
   snprintf(dest, dest_size, "%s", arg);
+}
+
+static uint8_t parse_domain_profile_arg(struct argp_state *state, const char *arg)
+{
+  if (!arg)
+    argp_error(state, "--set-domain requires a profile name");
+  if (strcasecmp(arg, "default") == 0 || strcasecmp(arg, "species") == 0 ||
+      strcasecmp(arg, "bacteria") == 0 || strcasecmp(arg, "archaea") == 0 ||
+      strcasecmp(arg, "microbe") == 0)
+    return MINCO_DOMAIN_PROFILE_DEFAULT;
+  if (strcasecmp(arg, "amr") == 0 || strcasecmp(arg, "resistance") == 0)
+    return MINCO_DOMAIN_PROFILE_AMR;
+  if (strcasecmp(arg, "virus") == 0 || strcasecmp(arg, "viral") == 0)
+    return MINCO_DOMAIN_PROFILE_VIRUS;
+  if (strcasecmp(arg, "gene") == 0 || strcasecmp(arg, "genes") == 0)
+    return MINCO_DOMAIN_PROFILE_GENE;
+  argp_error(state, "--set-domain must be one of species, amr, virus, gene, or default");
+  return MINCO_DOMAIN_PROFILE_DEFAULT;
+}
+
+static const char *domain_profile_name(uint8_t profile)
+{
+  switch (profile) {
+  case MINCO_DOMAIN_PROFILE_AMR:
+    return "amr";
+  case MINCO_DOMAIN_PROFILE_VIRUS:
+    return "virus";
+  case MINCO_DOMAIN_PROFILE_GENE:
+    return "gene";
+  case MINCO_DOMAIN_PROFILE_DEFAULT:
+  default:
+    return "species";
+  }
+}
+
+static int set_minco_domain_profile(set_opt_t *opt)
+{
+  if (!opt || opt->num_remaining_args != 1)
+    errx(EXIT_FAILURE, "--set-domain expects exactly one input minco sketch");
+  if (!file_exists_in_folder(opt->insketchpath, sketch_stat))
+    errx(EXIT_FAILURE, "%s is not a valid minco sketch", opt->insketchpath);
+
+  size_t stat_size = 0;
+  char *stat_path = test_get_fullpath(opt->insketchpath, sketch_stat);
+  void *mem_stat = read_from_file(stat_path, &stat_size);
+  free(stat_path);
+  minco_sketch_stat_t stat = {0};
+  if (!minco_stat_decode_mem(mem_stat, stat_size, &stat, NULL))
+    errx(EINVAL, "%s(): malformed %s/%s", __func__, opt->insketchpath, sketch_stat);
+  if (stat.infile_num <= 0)
+    errx(EINVAL, "%s(): input sketch has no references", __func__);
+  uint8_t *profiles = calloc((size_t)stat.infile_num, sizeof(profiles[0]));
+  if (!profiles)
+    err(errno, "%s(): OOM domain profile sidecar", __func__);
+  memset(profiles, opt->domain_profile, (size_t)stat.infile_num);
+  char *domain_path = test_create_fullpath(opt->insketchpath, sketch_domain_stat);
+  write_to_file(domain_path, profiles, (size_t)stat.infile_num * sizeof(profiles[0]));
+  fprintf(stderr, "minco set: tagged %d references in %s as domain=%s (%s)\n",
+          stat.infile_num, opt->insketchpath,
+          domain_profile_name(opt->domain_profile), sketch_domain_stat);
+  free(domain_path);
+  free(profiles);
+  free_read_from_file(mem_stat, stat_size);
+  return 1;
 }
 
 static error_t parse_set(int key, char* arg, struct argp_state* state) {
@@ -237,6 +304,15 @@ static error_t parse_set(int key, char* arg, struct argp_state* state) {
 				(uint32_t)parse_int_range(state, "--markerdb-ctx-index-sample-step", arg, 1, INT32_MAX);
 			break;
 		}
+		case 342:
+		{
+			if (set_opt.operation != -1) printf("set operation is already set, --set-domain is ignored.\n");
+			else {
+				set_opt.operation = 6;
+				set_opt.domain_profile = parse_domain_profile_arg(state, arg);
+			}
+			break;
+		}
 		case 444:
 		{
 			if (set_opt.operation != -1) printf("set operation is already set, --downsample is ignored.\n");
@@ -332,6 +408,9 @@ int cmd_set(struct argp_state* state)
 				return minco_sketch_downsample(&set_opt);
 			else
 				errx(EXIT_FAILURE, "%s is not a valid minco sketch", set_opt.insketchpath);
+		}
+		else if(set_opt.operation == 6){
+			return set_minco_domain_profile(&set_opt);
 		}
 		else if(set_opt.operation == 0 || set_opt.operation == 1 ){
 			if(file_exists_in_folder(set_opt.pansketchpath,co_dstat))

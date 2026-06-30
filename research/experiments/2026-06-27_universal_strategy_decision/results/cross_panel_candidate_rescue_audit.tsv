@@ -1,0 +1,9 @@
+metric	value	evidence	decision
+evaluated_panels	4	cami2_toy_mouse_gut,hmp_airskin_gtdb_source_abundance,hmp_gastrooral_gtdb_source_abundance,cami3_toy_human_gut_gtdb_source_readmap	diagnostic_scope
+tested_rules	1470	zero-mass rescue threshold grid	diagnostic_scope
+baseline_validation_max_abs_delta	7.673861546209082e-13	current baseline F1 and official-L1 compared to official score TSVs	pass
+best_mean_F1_rule	cross_rescue_ani0.9_xny100_br0.01_af0.7_zero_mass	mean_delta_F1=0.007318855410098409;TP_delta=19.0;FP_delta=1.0;FN_delta=-19.0;worsened_samples=0.0;worsened_panels=0.0	best_diagnostic_rule
+sample_safe_positive_F1_rules	830	rules with positive mean F1 delta and no sample-level F1 decrease	safety_screen
+panel_safe_positive_F1_rules	1036	rules with positive mean F1 delta and no panel-level mean F1 decrease	safety_screen
+best_sample_safe_rule	cross_rescue_ani0.9_xny100_br0.01_af0.7_zero_mass	mean_delta_F1=0.007318855410098409;TP_delta=19.0;FP_delta=1.0;FN_delta=-19.0	candidate_requires_wrapper_validation
+promotion_decision	diagnostic_only_not_default	cross-panel truth-aware zero-mass rescue; no abundance recovery and no wrapper implementation	do_not_promote_cross_panel_rescue_yet

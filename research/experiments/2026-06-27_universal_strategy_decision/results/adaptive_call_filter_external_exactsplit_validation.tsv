@@ -1,0 +1,7 @@
+dataset	sample	TP_delta	FP_delta	FN_delta	F1_delta	L1_delta	Pearson_delta	source
+plant_holdout	3	0	0	0	0.0	0.0	1.1102230246251565e-16	/tmp/minco_exactsplit_universal_20260626/plant_holdout3_exactsplit_score.tsv
+plant_holdout	4	0	0	0	0.0	-5.551115123125783e-17	2.220446049250313e-16	/tmp/minco_exactsplit_universal_20260626/plant_holdout4_exactsplit_score.tsv
+plant_holdout	5	0	0	0	0.0	0.0	1.1102230246251565e-16	/tmp/minco_exactsplit_universal_20260626/plant_holdout5_exactsplit_score.tsv
+strainmadness	0	0	0	0	5.551115123125783e-17	1.1102230246251565e-16	0.0	/tmp/minco_exactsplit_universal_20260626/strain0_exactsplit_score.tsv
+strainmadness	1	0	0	0	0.0	-2.220446049250313e-16	-2.220446049250313e-16	/tmp/minco_exactsplit_universal_20260626/strain1_exactsplit_score.tsv
+strainmadness	2	0	0	0	0.0	-1.1102230246251565e-16	-1.1102230246251565e-16	/tmp/minco_exactsplit_universal_20260626/strain2_exactsplit_score.tsv

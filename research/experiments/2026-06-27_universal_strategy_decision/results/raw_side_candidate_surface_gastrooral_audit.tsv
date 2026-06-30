@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+profiles_replayed	2	/tmp/minco_raw_side_candidate_surface_hmp_gastrooral_20260629	focused_gap_replay
+added_rows	2	raw_side_rescue_added rows	candidate_surface_behavior
+zero_mass_violations	0	calibrated_abundance and calibrated_abundance_raw on added rows	pass
+max_delta_vs_offline_raw_cache_rule	counts=0;F1=1.11e-16	raw_side_candidate_surface_gastrooral_vs_offline.tsv	matches_offline_rule
+promotion_decision	experimental_not_default	focused HMP gastrooral replay only; needs integrated raw-side candidate surface	do_not_change_current_default

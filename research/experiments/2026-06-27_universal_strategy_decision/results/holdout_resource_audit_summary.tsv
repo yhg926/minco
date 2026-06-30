@@ -1,0 +1,10 @@
+metric	value
+sylph_binary_exists	true
+sylph_version	sylph 0.6.0
+sylph_gtdb_r226_syldb_exists	true
+sylph_gtdb_r232_syldb_exists	true
+sylph_gtdb_r232_chunk_list_exists	true
+hmp_airskin_cached_inputs_complete	true
+hmp_airskin_r232_profiles_complete	true
+hmp_airskin_same_release_sylph_ready	true
+main_blocker	

@@ -1,0 +1,156 @@
+sample	method	kind	gtdb_species	gold_abundance	accession	Ref	ANI_naive_calc	XnY_ctx	Ref_zip_af	Reliable_Ref_breadth	Reliable_ztp_af	Reliable_Ref_hit_mean_depth	Reliable_depth_vmr	ANI_AF_delta	Normalized_abundance_depth	active_gate_pass
+5	minco_current_code_refresh	FP	s__Butyricicoccus sp959018045				0.912504	25	0.145888	0.0	0.0	0.0	0.0	0.0	0.000328210537293	True
+5	minco_current_code_refresh	FP	s__Kineothrix sp000403275				0.991734	977	0.833729	0.0	0.0	0.0	0.0	0.0	0.0090887371866048	True
+5	minco_current_code_refresh	FP	s__Petralouisia sp000403255				0.988816	953	0.781887	0.0	0.0	0.0	0.0	0.0	0.00780981984104	True
+5	minco_current_code_refresh	FP	s__Solidesulfovibrio carbinoliphilus				0.930878	47	0.218562	0.0	0.0	0.0	0.0	0.0	0.0004555311986059	True
+5	minco_current_code_refresh	FP	s__Trichococcus sp963730595				1.0	21	1.0	0.0	0.0	0.0	0.0	0.0	3.430130655938118e-05	True
+5	minco_current_code_refresh	FN	s__Adlercreutzia caecimuris	4.471245723334764e-06			0.813952	28	0.016688	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Alistipes senegalensis	3.984126743722975e-05			0.836971	71	0.027691	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Anaerostipes hadrus	0.0029146426093015383			0.956292	507	0.38229	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Angelakisella massiliensis	0.00013879250520483516			0.865381	84	0.051735	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Bacteroides hominis	0.0003780159727171798			0.911792	223	0.14362	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Bacteroides ovatus	0.0023594725884821975			0.964546	670	0.458408	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Bacteroides thetaiotaomicron	0.004996530187374066			0.948695	594	0.32345	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Blautia celeris	0.00015579256981831227			0.899115	80	0.108666	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Blautia sp900120295	0.0002775850104096703			0.937435	121	0.252479	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Blautia_A fusiformis	0.00013879250520483516			0.852693	63	0.039134	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Blautia_A wexlerae	0.00010373598240140539			0.803589	60	0.013286	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Butyricicoccus pullicaecorum	0.00013879250520483516			0.893184	93	0.095374	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Butyrivibrio hungatei_B	0.00013879250520483516			0.940107	177	0.267767	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Coprococcus eutactus	4.464027447040518e-05			0.86178	51	0.047795	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Dorea formicigenerans	0.00011214019435456995			0.836915	75	0.027657	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Eubacterium callanderi	0.00041637751561450547			0.913232	191	0.148244	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Faecalibacterium langellae	0.00013879250520483516			0.8866	144	0.082513	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Faecalibacterium prausnitzii	0.0068399350537017714			0.924254	537	0.188925	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Faecalibacterium taiwanense	0.000971547536433846			0.908113	293	0.132454	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Faecalibacterium tardum	0.0002775850104096703			0.881745	352	0.074154	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Faecalicatena contortus_B	0.00013879250520483516			0.855791	70	0.041895	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Flavonifractor plautii	0.00013879250520483516			0.861247	41	0.047238	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Intestinimonas massiliensis	8.952421784823595e-06			0.776487	27	0.007319	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Johnsonella ignava	4.482153558726862e-06			0.738759	13	0.003191	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Limosilactobacillus kinnaridis	0.00013879250520483516			0.882979	36	0.076195	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Limosilactobacillus reuteri_K	0.00013879250520483516			0.834734	62	0.026362	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Massilioclostridium methylpentosum	0.00013284594875389333			0.902811	53	0.117872	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Mediterraneibacter gnavus	1.666108918780021e-05			0.719089	25	0.00207	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__NK4A144 sp900114405	0.00013879250520483516			0.886667	70	0.082635	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Oscillibacter welbionis	0.0002775850104096703			0.874317	95	0.062974	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Phocaeicola coprophilus	3.657332006651223e-06			0.781322	40	0.00814	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Phocaeicola vulgatus	3.836154289732566e-05			0.867001	159	0.053612	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Porphyromonas gulae	4.113263857616213e-05			0.909993	218	0.138047	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Prevotella bryantii	4.664591676645127e-05			0.850433	26	0.037236	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Prevotella oulorum	0.000971547536433846			0.926101	247	0.19676	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Prevotella saccharolytica	6.395061821504313e-05			0.825818	39	0.021666	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Pseudobutyrivibrio sp900100545	3.108006412577203e-05			0.874488	70	0.063211	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Roseburia hominis	0.00013879250520483516			0.886243	103	0.081868	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Tannerella forsythia	0.00013879250520483516			0.872876	69	0.061009	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Weimeria sp900100095	8.31225048648968e-05			0.865835	31	0.052254	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	minco_current_code_refresh	FN	s__Yanshouia sp900113995	5.9465564510112245e-06			0.753116	4	0.004377	0.0	0.0	0.0	0.0	0.0	0.0	False
+5	sylph_gtdb_profile	FP	s__Kineothrix sp000403275		GCA_000403275.2	gtdb_genomes_reps_r226/database/GCA/000/403/275/GCA_000403275.2_genomic.fna.gz	0.9987	0.0	0.0	0.0	0.0	3.454	0.0	0.0	0.009189000000000001	True
+5	sylph_gtdb_profile	FP	s__Lachnoanaerobaculum sp963518365		GCA_963518365.1	gtdb_genomes_reps_r226/database/GCA/963/518/365/GCA_963518365.1_genomic.fna.gz	0.9603	0.0	0.0	0.0	0.0	1.062	0.0	0.0	0.000313	True
+5	sylph_gtdb_profile	FP	s__Limosilactobacillus reuteri_J		GCF_036621895.1	gtdb_genomes_reps_r226/database/GCF/036/621/895/GCF_036621895.1_genomic.fna.gz	0.9954000000000001	0.0	0.0	0.0	0.0	1.02	0.0	0.0	0.00010999999999999999	True
+5	sylph_gtdb_profile	FP	s__Petralouisia sp000403255		GCA_000403255.2	gtdb_genomes_reps_r226/database/GCA/000/403/255/GCA_000403255.2_genomic.fna.gz	0.9976	0.0	0.0	0.0	0.0	2.982	0.0	0.0	0.007935	True
+5	sylph_gtdb_profile	FN	s__Adlercreutzia caecimuris	4.471245723334764e-06												
+5	sylph_gtdb_profile	FN	s__Alistipes senegalensis	3.984126743722975e-05												
+5	sylph_gtdb_profile	FN	s__Blautia_A wexlerae	0.00010373598240140539												
+5	sylph_gtdb_profile	FN	s__Coprococcus eutactus	4.464027447040518e-05												
+5	sylph_gtdb_profile	FN	s__Dorea formicigenerans	0.00011214019435456995												
+5	sylph_gtdb_profile	FN	s__Faecalibacterium tardum	0.0002775850104096703												
+5	sylph_gtdb_profile	FN	s__Intestinimonas massiliensis	8.952421784823595e-06												
+5	sylph_gtdb_profile	FN	s__Johnsonella ignava	4.482153558726862e-06												
+5	sylph_gtdb_profile	FN	s__Lachnoanaerobaculum orale	0.00041189536205586187												
+5	sylph_gtdb_profile	FN	s__Lentilactobacillus parafarraginis	0.00013879250520483516												
+5	sylph_gtdb_profile	FN	s__Limosilactobacillus kinnaridis	0.00013879250520483516												
+5	sylph_gtdb_profile	FN	s__Mediterraneibacter gnavus	1.666108918780021e-05												
+5	sylph_gtdb_profile	FN	s__Phocaeicola coprophilus	3.657332006651223e-06												
+5	sylph_gtdb_profile	FN	s__Phocaeicola ilei	4.116590942390678e-05												
+5	sylph_gtdb_profile	FN	s__Phocaeicola vulgatus	3.836154289732566e-05												
+5	sylph_gtdb_profile	FN	s__Porphyromonas gulae	4.113263857616213e-05												
+5	sylph_gtdb_profile	FN	s__Prevotella bryantii	4.664591676645127e-05												
+5	sylph_gtdb_profile	FN	s__Prevotella saccharolytica	6.395061821504313e-05												
+5	sylph_gtdb_profile	FN	s__Pseudobutyrivibrio sp900100545	3.108006412577203e-05												
+5	sylph_gtdb_profile	FN	s__Weimeria sp900100095	8.31225048648968e-05												
+5	sylph_gtdb_profile	FN	s__Yanshouia sp900113995	5.9465564510112245e-06												
+6	minco_current_code_refresh	FP	s__Bacteroides sp900755095				0.949779	586	0.331255	0.0	0.0	0.0	0.0	0.0	0.0050141482916982	True
+6	minco_current_code_refresh	FP	s__Eisenbergiella tayi				0.977931	626	0.615377	0.0	0.0	0.0	0.0	0.0	0.0060344218534668	True
+6	minco_current_code_refresh	FP	s__Kineothrix sp000403275				0.99224	988	0.843066	0.0	0.0	0.0	0.0	0.0	0.008825984406933	True
+6	minco_current_code_refresh	FP	s__Petralouisia sp000403255				0.989857	987	0.800001	0.0	0.0	0.0	0.0	0.0	0.0086798791027241	True
+6	minco_current_code_refresh	FN	s__Adlercreutzia caecimuris	8.328677724049453e-06			0.850493	64	0.037286	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Allobosea robiniae	0.0005170630816963407			0.939441	125	0.263868	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Alloprevotella rava	0.00017235436056544688			0.86469	76	0.050955	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Alloprevotella tannerae	0.00017235436056544688			0.884466	124	0.078728	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Anaerotignum lactatifermentans	0.00034470872113089376			0.935607	197	0.242528	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides bouchesdurhonensis	0.00017235436056544688			0.909525	133	0.136633	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides cellulosilyticus	0.00034192505426453533			0.910525	101	0.139674	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides eggerthii	0.00017235436056544688			0.900061	109	0.110953	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides hominis	0.0011112047857384799			0.943569	398	0.288957	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides pyogenes_A	0.00017235436056544688			0.898006	90	0.106048	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides sp019412865	0.00017235436056544688			0.903509	360	0.119696	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides stercoris	0.0012064805239581282			0.95732	321	0.391032	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides thetaiotaomicron	0.007755946225445109			0.953456	718	0.359167	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides uniformis	0.0008617718028272344			0.949949	245	0.332497	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Bacteroides zhangwenhongii	3.717657913394621e-05			0.830606	89	0.024073	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Blautia sp900120295	0.00017235436056544688			0.932282	92	0.225419	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Blautia_A wexlerae	5.0979015874131986e-05			0.81268	63	0.016228	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Coprococcus eutactus	2.7717440327493318e-05			0.820963	41	0.019471	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Dorea formicigenerans	0.0001591510514254856			0.852268	87	0.03877	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Enterocloster bolteae	0.00017235436056544688			0.884535	174	0.078848	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Faecalibacterium prausnitzii	0.002571974852264872			0.920799	367	0.175096	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Faecalimonas phoceensis	0.00017235436056544688			0.929543	84	0.212239	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Flavonifractor plautii	0.00017235436056544688			0.886284	62	0.081941	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Hungateiclostridium thermocellum	7.482057021946119e-05			0.978925	38	0.628978	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Johnsonella ignava	3.710664873098166e-06			0.743183	16	0.003518	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Lachnoanaerobaculum orale	0.0003409980562584333			0.92703	87	0.20082	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Lacticaseibacillus rhamnosus	0.00017235436056544688			0.928369	104	0.206826	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Lactobacillus apis_A	0.00017235436056544688			0.878753	58	0.069431	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Lactobacillus sp910589675	0.00017235436056544688			0.864836	53	0.051118	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Ligilactobacillus salivarius	0.00017235436056544688			0.908102	38	0.132423	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Limosilactobacillus ingluviei	2.2629189772508603e-05			0.859152	7	0.04511	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Limosilactobacillus kinnaridis	0.0008617718028272344			0.935694	182	0.24299	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Limosilactobacillus reuteri_K	0.00034470872113089376			0.882858	176	0.075993	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Marseille-P2935 sp900104565	7.00509905757142e-05			0.989654	45	0.796429	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Mediterraneibacter gnavus	6.20698798337229e-05			0.81106	41	0.015659	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Phocaeicola ilei	5.112036839007487e-05			0.868545	41	0.055465	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Phocaeicola massiliensis	0.000167063501780886			0.899027	144	0.108456	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Phocaeicola vulgatus	9.527573821982068e-05			0.859567	163	0.045523	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Porphyromonas circumdentaria	0.00017136673626330897			0.926698	94	0.199359	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Porphyromonas gulae	0.00010215810442630618			0.915809	246	0.156891	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Prevotella oulorum	0.0012064805239581282			0.933812	294	0.233136	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Proteiniphilum acetatigenes	6.059542551503863e-06			0.91379	102	0.150076	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Pseudobutyrivibrio ruminis	0.00017235436056544688			0.905545	54	0.125178	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Ruminococcus_G gauvreauii	0.00010230336998973267			0.979305	49	0.63427	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Streptococcus pneumoniae	0.0005170630816963407			0.927892	197	0.204666	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Tannerella forsythia	0.00017235436056544688			0.877484	85	0.067519	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Thermophilibacter provencensis	0.00017235436056544688			0.974282	74	0.567909	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	minco_current_code_refresh	FN	s__Weimeria sp900100095	6.158046593972048e-05			0.881867	39	0.074354	0.0	0.0	0.0	0.0	0.0	0.0	False
+6	sylph_gtdb_profile	FP	s__Bacteroides sp947646015		GCA_947646015.1	gtdb_genomes_reps_r226/database/GCA/947/646/015/GCA_947646015.1_genomic.fna.gz	0.9643999999999999	0.0	0.0	0.0	0.0	3.391	0.0	0.0	0.008376	True
+6	sylph_gtdb_profile	FP	s__Eisenbergiella tayi		GCF_001881565.1	gtdb_genomes_reps_r226/database/GCF/001/881/565/GCF_001881565.1_genomic.fna.gz	0.9822	0.0	0.0	0.0	0.0	2.504	0.0	0.0	0.0054930000000000005	True
+6	sylph_gtdb_profile	FP	s__Kineothrix sp000403275		GCA_000403275.2	gtdb_genomes_reps_r226/database/GCA/000/403/275/GCA_000403275.2_genomic.fna.gz	0.9983	0.0	0.0	0.0	0.0	3.45	0.0	0.0	0.008520999999999999	True
+6	sylph_gtdb_profile	FP	s__Limosilactobacillus reuteri_E		GCF_013694365.1	gtdb_genomes_reps_r226/database/GCF/013/694/365/GCF_013694365.1_genomic.fna.gz	0.9834	0.0	0.0	0.0	0.0	1.227	0.0	0.0	0.001035	True
+6	sylph_gtdb_profile	FP	s__Petralouisia sp000403255		GCA_000403255.2	gtdb_genomes_reps_r226/database/GCA/000/403/255/GCA_000403255.2_genomic.fna.gz	0.9987	0.0	0.0	0.0	0.0	3.481	0.0	0.0	0.008597	True
+6	sylph_gtdb_profile	FP	s__Phocaeicola sp900760795		GCA_900760795.1	gtdb_genomes_reps_r226/database/GCA/900/760/795/GCA_900760795.1_genomic.fna.gz	0.9671	0.0	0.0	0.0	0.0	1.05	0.0	0.0	0.000234	True
+6	sylph_gtdb_profile	FP	s__Pseudobutyrivibrio ruminis_E		GCF_015057245.1	gtdb_genomes_reps_r226/database/GCF/015/057/245/GCF_015057245.1_genomic.fna.gz	0.972	0.0	0.0	0.0	0.0	1.045	0.0	0.0	0.000152	True
+6	sylph_gtdb_profile	FP	s__Solidesulfovibrio carbinoliphilus		GCF_000177215.2	gtdb_genomes_reps_r226/database/GCF/000/177/215/GCF_000177215.2_genomic.fna.gz	0.9578	0.0	0.0	0.0	0.0	1.195	0.0	0.0	0.0009130000000000001	True
+6	sylph_gtdb_profile	FN	s__Adlercreutzia caecimuris	8.328677724049453e-06												
+6	sylph_gtdb_profile	FN	s__Bacteroides sp019412865	0.00017235436056544688												
+6	sylph_gtdb_profile	FN	s__Bacteroides zhangwenhongii	3.717657913394621e-05												
+6	sylph_gtdb_profile	FN	s__Blautia_A wexlerae	5.0979015874131986e-05												
+6	sylph_gtdb_profile	FN	s__Coprobacter secundus	0.00017235436056544688												
+6	sylph_gtdb_profile	FN	s__Coprococcus eutactus	2.7717440327493318e-05												
+6	sylph_gtdb_profile	FN	s__Enterocloster bolteae	0.00017235436056544688												
+6	sylph_gtdb_profile	FN	s__Johnsonella ignava	3.710664873098166e-06												
+6	sylph_gtdb_profile	FN	s__Limosilactobacillus ingluviei	2.2629189772508603e-05												
+6	sylph_gtdb_profile	FN	s__Limosilactobacillus kinnaridis	0.0008617718028272344												
+6	sylph_gtdb_profile	FN	s__Mediterraneibacter gnavus	6.20698798337229e-05												
+6	sylph_gtdb_profile	FN	s__Phocaeicola ilei	5.112036839007487e-05												
+6	sylph_gtdb_profile	FN	s__Phocaeicola vulgatus	9.527573821982068e-05												
+6	sylph_gtdb_profile	FN	s__Proteiniphilum acetatigenes	6.059542551503863e-06												
+6	sylph_gtdb_profile	FN	s__Pseudobutyrivibrio ruminis	0.00017235436056544688												
+6	sylph_gtdb_profile	FN	s__Weimeria sp900100095	6.158046593972048e-05												
+7	minco_current_code_refresh	FP	s__Kineothrix sp000403275				0.984561	450	0.712008	0.0	0.0	0.0	0.0	0.0	0.0008934675965295	True
+7	minco_current_code_refresh	FN	s__Anaerostipes hadrus	0.0006868131868131876			0.951593	278	0.344747	0.0	0.0	0.0	0.0	0.0	0.0	False
+7	minco_current_code_refresh	FN	s__Faecalibacterium prausnitzii	0.0006868131868131876			0.913572	220	0.149358	0.0	0.0	0.0	0.0	0.0	0.0	False
+7	minco_current_code_refresh	FN	s__Limosilactobacillus reuteri_K	0.0006868131868131876			0.927121	299	0.201223	0.0	0.0	0.0	0.0	0.0	0.0	False
+7	minco_current_code_refresh	FN	s__Rhodospira trueperi	6.175014277754128e-07			0.523774	2	2.8e-05	0.0	0.0	0.0	0.0	0.0	0.0	False
+7	minco_current_code_refresh	FN	s__Streptococcus pneumoniae	0.0027472527472527505			0.929174	685	0.21052	0.0	0.0	0.0	0.0	0.0	0.0	False
+7	sylph_gtdb_profile	FP	s__Kineothrix sp000403275		GCA_000403275.2	gtdb_genomes_reps_r226/database/GCA/000/403/275/GCA_000403275.2_genomic.fna.gz	0.9990000000000001	0.0	0.0	0.0	0.0	1.257	0.0	0.0	0.0007099999999999999	True
+7	sylph_gtdb_profile	FN	s__Rhodospira trueperi	6.175014277754128e-07												

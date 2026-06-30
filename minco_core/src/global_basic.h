@@ -305,6 +305,13 @@ typedef struct minco_sketch_qc_stat
 #define MINCO_INFILE_FLAG_MEDIAN_APPROX 0x08u
 #define MINCO_INFILE_FLAG_MIXED_FORMAT 0x10u
 
+#define MINCO_DOMAIN_PROFILE_DEFAULT 0u
+#define MINCO_DOMAIN_PROFILE_SPECIES 0u
+#define MINCO_DOMAIN_PROFILE_AMR 1u
+#define MINCO_DOMAIN_PROFILE_VIRUS 2u
+#define MINCO_DOMAIN_PROFILE_GENE 3u
+#define MINCO_DOMAIN_PROFILE_MAX 3u
+
 /* Per-sample input metadata. One record per sample, in the same order as
  * minco.stat names and minco.ctxobj64.offsets entries. meta_fmt_version == 0 means
  * metadata is unavailable/invalid for this sample.
@@ -551,6 +558,7 @@ extern const char sketch_stat[];
 extern const char sketch_qc_stat[];
 extern const char sketch_anno_stat[];
 extern const char sketch_infile_meta_stat[];
+extern const char sketch_domain_stat[];
 extern const char minco_ctxmeta_bin_stat[];
 extern const char minco_ctxsetmeta_legacy_tsv_stat[];
 extern const char sketch_position_suffix[];

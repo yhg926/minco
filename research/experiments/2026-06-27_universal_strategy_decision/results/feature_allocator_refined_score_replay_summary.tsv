@@ -1,0 +1,4 @@
+evidence_group	profile_count	switched_profiles	mean_F1_delta	min_F1_delta	mean_L1_delta	max_worse_L1_delta	improved_L1_profiles	worsened_L1_profiles	mean_Pearson_delta
+external_exactsplit_diagnostic	6	4	0.0	0.0	-0.004185909080961771	2.220446049250313e-16	4	0	0.0028846528573978256
+selected_cached_wrapper	32	29	0.0	0.0	-0.3114738356868235	0.0	29	0	0.0003671401625940096
+all	38	33	0.0	0.0	-0.26295468938063477	2.220446049250313e-16	33	0	0.0007646421670367174

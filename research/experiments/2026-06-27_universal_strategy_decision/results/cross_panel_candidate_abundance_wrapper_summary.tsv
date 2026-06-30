@@ -1,0 +1,5 @@
+panel	method	samples	sample_count	mean_F1	pooled_F1	pooled_TP	pooled_FP	pooled_FN	official_L1_pp	official_Pearson	candidate_added_rows	nonzero_candidate_rows	candidate_added_abundance_sum	candidate_added_norm_mass_sum
+cami2_toy_mouse_gut	wrapper_candidate_abundance_normalized_depth_alpha2	5,6,7	3	0.8949021318102098	0.8789659224441834	374	10	93	13.53019147920787	0.9882160988462568	1	1	0.0031719069919516	0.003182
+cami3_toy_human_gut_gtdb_source_readmap	wrapper_candidate_abundance_normalized_depth_alpha2	0,1,2	3	0.8257301517275047	0.8243021346469621	251	62	45	57.74723423801299	0.8643207577444599	5	5	0.1094412180692186	0.11395800000000002
+hmp_airskin_gtdb_source_abundance	wrapper_candidate_abundance_normalized_depth_alpha2	0,1,3,4,5,6,7,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,28	24	0.876885081381079	0.8528209321340964	1043	308	52	22.421593609537194	0.9810913152083994	12	12	0.0461740377210354	0.04656
+hmp_gastrooral_gtdb_source_abundance	wrapper_candidate_abundance_normalized_depth_alpha2	0,6	2	0.9328063241106719	0.9285714285714286	78	9	3	46.35794223740334	0.8962811990147186	2	2	0.0665792327970779	0.07039000000000001

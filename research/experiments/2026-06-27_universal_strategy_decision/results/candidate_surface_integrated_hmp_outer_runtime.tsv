@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_integrated_candidate_surface_hmp.py	430.64	433.18	90.33	3821056	0	all cached HMP integrated candidate-surface replay; wrapper subprocesses are timed per sample in candidate_surface_integrated_hmp_runtime.tsv

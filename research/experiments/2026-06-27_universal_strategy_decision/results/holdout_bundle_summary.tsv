@@ -1,0 +1,7 @@
+metric	value
+panels_total	8
+release_grade_panels	4
+diagnostic_grade_panels	0
+informative_panels	4
+release_grade_all_panels	false
+main_blocker	not all panels have clean GTDB_species truth with comparable MinCO/Sylph metrics

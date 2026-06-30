@@ -1,0 +1,27 @@
+sample	gtdb_species	truth_raw_abundance	truth_abundance
+2	s__Amylolactobacillus amylophilus	28.0	0.08484848484849074
+2	s__Bifidobacterium swidsinskii	3.0	0.009090909090909722
+2	s__Bifidobacterium vaginale	7.0	0.021212121212122684
+2	s__Bradyrhizobium diazoefficiens	0.00695487817716	2.1075388415637826e-05
+2	s__Bradyrhizobium sp000026145	0.993045121823	0.0030092276418880876
+2	s__Companilactobacillus ginsenosidimutans	3.0	0.009090909090909722
+2	s__Companilactobacillus heilongjiangensis	3.0	0.009090909090909722
+2	s__Fructilactobacillus sanfranciscensis	0.0339841744557	0.00010298234683546169
+2	s__Hungateiclostridium thermocellum	0.223439614871	0.0006770897420333803
+2	s__Kocuria palustris	2.0	0.006060606060606481
+2	s__Lacticaseibacillus paracasei	11.559402077024	0.0350284911424994
+2	s__Lacticaseibacillus rhamnosus	4.0	0.012121212121212963
+2	s__Lactiplantibacillus plantarum	46.086226611417004	0.1396552321558188
+2	s__Lactobacillus delbrueckii	56.48317965679	0.17116115047513308
+2	s__Lactobacillus helveticus	5.0173345416205	0.015204044065517723
+2	s__Lentilactobacillus buchneri	8.0	0.024242424242425925
+2	s__Ligilactobacillus ruminis	4.0	0.012121212121212963
+2	s__Ligilactobacillus salivarius	100.0	0.3030303030303241
+2	s__Limosilactobacillus mucosae	13.0	0.03939393939394213
+2	s__Limosilactobacillus reuteri	1.95741826619	0.005931570503606472
+2	s__Limosilactobacillus reuteri_L	27.0	0.0818181818181875
+2	s__Luteibacter rhizovicinus	1.0	0.0030303030303032406
+2	s__Paucibacter_A sp001477625	1.0	0.0030303030303032406
+2	s__Secundilactobacillus paracollinoides	1.86245467248	0.005643802037818574
+2	s__Staphylococcus aureus	0.9999999999996999	0.003030303030302331
+2	s__Thermoclostridium stercorarium	0.776560385129	0.0023532132882698605

@@ -1,0 +1,4 @@
+sample	archive	archive_present	max_rows	rows_read	distinct_genome_ids	distinct_taxids	distinct_source_sequence_ids	sequence_accession_rows	assembly_contig_label_rows	assembly_accession_like_rows	other_sequence_id_rows	direct_gtdb_sequence_accession_row_matches	direct_gtdb_core_row_matches	unresolved_transfer_rows	unresolved_distinct_genome_ids	not_in_gold_detail_rows
+3	/tmp/cami2_marine_samples3_5_20260625/data/marmgCAMI2_sample_3_reads.tar.gz	true	2000000	2000000	789	423	12016	0	391440	0	1608560	0	0	117704	51	341720
+4	/tmp/cami2_marine_samples3_5_20260625/data/marmgCAMI2_sample_4_reads.tar.gz	true	2000000	2000000	581	317	9397	0	420678	0	1579322	0	0	87118	37	416338
+5	/tmp/cami2_marine_samples3_5_20260625/data/marmgCAMI2_sample_5_reads.tar.gz	true	2000000	2000000	656	369	9570	0	350608	0	1649392	0	0	109288	45	327994

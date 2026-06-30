@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+external_panels	plant_holdout3-5,strainmadness0-2	cached exact-split current profile tables under /tmp/minco_exactsplit_universal_20260626	diagnostic_nonrelease_stress_test
+baseline_validation	counts=0;F1=5.55e-17;L1=2.22e-16;Pearson=2.22e-16	results/feature_allocator_external_exactsplit_validation.tsv	matches_cached_exactsplit_scores
+candidate_effect	mean_delta_l1=-0.004134;improved_datasets=2;worsened_datasets=0;improved_samples=4;worsened_samples=2;max_sample_worse=0.000249;switched_samples=6;adjusted_rows=130	results/feature_allocator_external_exactsplit_summary.tsv	external_stress_rejects_default
+promotion_decision	keep_feature_allocator_experimental_off_by_default	results/feature_allocator_external_exactsplit_audit.tsv	current_default_unchanged

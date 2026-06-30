@@ -1,0 +1,5 @@
+panel	method	samples	mean_F1	pooled_F1	pooled_TP	pooled_FP	pooled_FN	official_L1_pp	official_Pearson	rescued_rows	zero_mass_violations
+cami2_toy_mouse_gut	wrapper_candidate_rescue_emitted_ani90_xny100_br01_af70	5,6,7	0.8949021318102098	0.8789659224441834	374	10	93	13.690975981820758	0.9881673704508959	1	0
+cami3_toy_human_gut_gtdb_source_readmap	wrapper_candidate_rescue_emitted_ani90_xny100_br01_af70	0,1,2	0.8257301517275047	0.8243021346469621	251	62	45	62.60415694820017	0.8276026158310531	5	0
+hmp_airskin_gtdb_source_abundance	wrapper_candidate_rescue_emitted_ani90_xny100_br01_af70	11,6	0.9771561771561772	0.9795918367346939	48	1	1	22.780570236553928	0.9256139889209761	1	0
+hmp_gastrooral_gtdb_source_abundance	wrapper_candidate_rescue_emitted_ani90_xny100_br01_af70	0,6	0.9195678271308523	0.9156626506024096	76	9	5	48.986991106324496	0.8822766995655476	0	0

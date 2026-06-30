@@ -1,0 +1,7 @@
+method	sample_key	dataset	gold_taxa	pred_taxa	TP	FP	FN	precision	recall	F1	FP_plus_FN	L1	Pearson	tp_abundance_n	raw_unique_fallback	source_file
+minco_universal_exactsplit	plant_holdout3	plant_holdout	85	80	51	29	34	0.6375	0.6	0.6181818181818182	63	1.0469200616844558	0.9921425285240929	51		/tmp/minco_exactsplit_universal_20260626/plant_holdout3_exactsplit_score.tsv
+sylph	plant_holdout3	plant_holdout	85	78	47	31	38	0.6025641025641025	0.5529411764705883	0.5766871165644172	69	1.2549010762416108	0.502593611847573	47		/tmp/minco_exactsplit_universal_20260626/plant_holdout3_exactsplit_score.tsv
+minco_universal_exactsplit	plant_holdout4	plant_holdout	84	78	51	27	33	0.6538461538461539	0.6071428571428571	0.6296296296296297	60	0.473699158818723	0.9981029922806186	51		/tmp/minco_exactsplit_universal_20260626/plant_holdout4_exactsplit_score.tsv
+sylph	plant_holdout4	plant_holdout	84	76	50	26	34	0.6578947368421053	0.5952380952380952	0.625	60	0.7199828174928432	0.9396963582719069	50		/tmp/minco_exactsplit_universal_20260626/plant_holdout4_exactsplit_score.tsv
+minco_universal_exactsplit	plant_holdout5	plant_holdout	55	64	35	29	20	0.546875	0.6363636363636364	0.5882352941176472	49	0.9483396147682904	0.776817125884747	35		/tmp/minco_exactsplit_universal_20260626/plant_holdout5_exactsplit_score.tsv
+sylph	plant_holdout5	plant_holdout	55	62	35	27	20	0.5645161290322581	0.6363636363636364	0.5982905982905983	47	1.2351183609021776	0.39145480126479293	35		/tmp/minco_exactsplit_universal_20260626/plant_holdout5_exactsplit_score.tsv

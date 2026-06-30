@@ -1,0 +1,3 @@
+sample	profile	elapsed	peak_rss_kb	exit_status	output_rows
+6	/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample6/profile.chunked.tsv	3:24.81	27161888	0	18
+11	/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample11/profile.chunked.tsv	3:22.43	27178280	0	33

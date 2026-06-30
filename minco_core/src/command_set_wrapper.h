@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <argp.h>
 #include <argz.h>
@@ -28,6 +29,7 @@ typedef struct set_opt
   uint32_t markerdb_ctx_index_max_ctx_freq;
   uint32_t markerdb_ctx_index_min_votes;
   uint32_t markerdb_ctx_index_sample_step;
+  uint8_t domain_profile;
   int p;
   int P;
 	int show;

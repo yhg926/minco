@@ -1,0 +1,7 @@
+panel	sample	command	elapsed_s	time_log	wall_clock	max_rss_kb	exit_status	status
+cami2_toy_mouse_gut	5	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami2_toy_mouse_gut.sample5.time.log			0	reused
+cami2_toy_mouse_gut	6	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami2_toy_mouse_gut.sample6.time.log			0	reused
+cami2_toy_mouse_gut	7	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami2_toy_mouse_gut.sample7.time.log			0	reused
+cami3_toy_human_gut_gtdb_source_readmap	0	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample0.time.log			0	reused
+cami3_toy_human_gut_gtdb_source_readmap	1	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample1.time.log			0	reused
+cami3_toy_human_gut_gtdb_source_readmap	2	reuse existing emitted wrapper profile	0.000	/tmp/minco_cross_panel_candidate_abundance_wrapper_20260629/cami3_toy_human_gut_gtdb_source_readmap.sample2.time.log			0	reused

@@ -1,0 +1,2 @@
+command	wall_time_s	user_time_s	system_time_s	max_rss_kb	exit_status	notes
+python3 -B research/experiments/2026-06-27_universal_strategy_decision/validate_cross_panel_candidate_abundance_wrapper.py	294.54	280.27	15.73	5479568	0	cross-panel cached wrapper validation for --candidate-abundance-policy normalized-depth-alpha2; emitted Toy/CAMI3 profiles reused on final pass and HMP candidate-surface abundance profiles reused

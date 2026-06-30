@@ -1,0 +1,30 @@
+metric	value
+sylph_binary_exists	true
+sylph_version	sylph 0.6.0
+representative_list	/mnt/new3T/gtdbr220/gtdb232/manifests/r232.reps_fullpath.list
+representative_list_exists	true
+representative_paths_total	199923
+representative_paths_existing	199923
+representative_paths_missing	0
+representative_compressed_bytes	192101751978
+representative_compressed_gib	178.909
+sylph_r226_db_exists	true
+sylph_r226_db_gib	17.149
+sylph_r232_db_path	/mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.syldb
+sylph_r232_db_exists	false
+output_parent_free_gib	91.497
+disk_heuristic_required_gib	51.448
+disk_heuristic_pass	true
+ready_to_build	true
+chunk_size	10000
+chunk_expected_count	20
+chunk_existing_syldb_count	20
+chunk_root	/mnt/new3T/sylph_db/gtdb-r232-c200-dbv1_chunks
+chunk_syldb_list	/mnt/new3T/sylph_db/gtdb-r232-c200-dbv1_chunks/gtdb-r232-c200-dbv1.chunk_syldb.list
+chunk_syldb_list_exists	true
+chunked_output_complete	true
+chunked_ready_to_build	false
+hmp_sample_sketches_ready	true
+hmp_r232_profile_output_dir	/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232
+build_command	/usr/bin/time -v -o /mnt/new3T/sylph_db/gtdb-r232-c200-dbv1.build.time.log /home/ubuntu/yihuiguang/bin/sylph sketch -t 16 -c 200 -k 31 --gl /mnt/new3T/gtdbr220/gtdb232/manifests/r232.reps_fullpath.list -o /mnt/new3T/sylph_db/gtdb-r232-c200-dbv1
+preflight_status	chunked_output_complete

@@ -1,0 +1,3 @@
+panel	sample	comparison_status	offline_scores	TP_delta_vs_offline	FP_delta_vs_offline	FN_delta_vs_offline	F1_delta_vs_offline	L1_delta_vs_offline_pp	Pearson_delta_vs_offline	F1_delta_vs_current	L1_delta_vs_current_pp	Pearson_delta_vs_current	offline_F1_delta_vs_current
+hmp_gastrooral_gtdb_source_abundance	0	compared	/tmp/minco_cross_panel_candidate_rescue_scores.tsv	0	0	0	0.0	-3.552713678800501e-15	0.0	0.015345268542199642	-3.552713678800501e-15	0.0	0.015345268542199642
+hmp_gastrooral_gtdb_source_abundance	6	compared	/tmp/minco_cross_panel_candidate_rescue_scores.tsv	0	0	0	-1.1102230246251565e-16	1.4210854715202004e-14	0.0	0.011131725417439675	1.4210854715202004e-14	0.0	0.011131725417439786

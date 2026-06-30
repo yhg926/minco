@@ -1,0 +1,7 @@
+metric	value	evidence	decision
+baseline_validation_max_abs_delta	1.14930287509e-12	current_selected_abundance vs cached selected score TSV	pass
+switched_samples	30	results/feature_allocator_wrapper_parity_scores.tsv	wrapper_guard_applied
+mean_L1_delta_pp	-0.318866	results/feature_allocator_wrapper_parity_summary.tsv	abundance_delta
+worsened_samples	0	results/feature_allocator_wrapper_parity_summary.tsv	sample_safety
+max_worse_L1_delta_pp	0.000000	results/feature_allocator_wrapper_parity_summary.tsv	sample_safety
+promotion_decision	candidate_needs_independent_holdout	implemented switch on cached selected profiles	candidate_needs_independent_holdout

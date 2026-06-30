@@ -1,0 +1,6 @@
+metric	value	evidence	decision
+model_specs	5	ridge_log_alpha1,ridge_log_alpha10,hgb_log_l2_0.1,hgb_log_l2_1,rf_log_leaf3	leave_one_panel_out_training
+blend_values	4	1.0,0.75,0.5,0.25	blend_model_raw_with_current_raw
+strict_panel_safe_models	3	supervised_abundance_calibrator_overall.tsv	must_be_positive_for_candidate_status
+best_model	lopo_hgb_log_l2_1_blend0.75;mean_delta=-0.090593;worsened_panels=1;max_worse=0.062803	supervised_abundance_calibrator_overall.tsv	held_out_panel_result
+promotion_decision	candidate_requires_independent_holdout	supervised_abundance_calibrator_overall.tsv	do_not_promote_without_independent_holdout

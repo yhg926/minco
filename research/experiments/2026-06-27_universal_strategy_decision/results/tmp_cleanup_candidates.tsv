@@ -1,0 +1,6 @@
+path	bytes	GiB	category	delete_status	rationale
+/tmp/minco_context_em_external_20260624/cami3_s0_edges.tsv	812809155	0.757	old_large_diagnostic_table	manual_review_required	large temporary diagnostic table outside current HMP next-action path
+/tmp/minco_universal_controlled_rescue_20260625/full_panel_hybrid_max_support.tsv	709242382	0.661	old_large_diagnostic_table	manual_review_required	large temporary diagnostic table outside current HMP next-action path
+/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample0/airskinurogenital_sample0.nonzero.fastq.gz.sylsp	120003394	0.112	completed_hmp_sylph_sketch	manual_review_required	profile output is recorded; sketch can be regenerated from FASTQ if needed
+/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample5/airskinurogenital_sample5.nonzero.fastq.gz.sylsp	115368802	0.107	completed_hmp_sylph_sketch	manual_review_required	profile output is recorded; sketch can be regenerated from FASTQ if needed
+/tmp/cami2_hmp_unseen_transfer_20260626/run_sylph_r232/sylph_sample22/airskinurogenital_sample22.nonzero.fastq.gz.sylsp	109767599	0.102	completed_hmp_sylph_sketch	manual_review_required	profile output is recorded; sketch can be regenerated from FASTQ if needed

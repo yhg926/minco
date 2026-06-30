@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+tested_rules	78	raw_default_major plus ANI/XnY/breadth/depth grid	diagnostic_scope
+strict_pass_rules	59	requires no route or sample F1 regression on marine and CAMI3 routes	candidate_found
+best_rule	raw_ani0.95_xny100_breadth0.05	min_route_delta=0.005061405642023398;mean_route_delta=0.030663651222492927;sample_worsen_n=0;added_TP=130;added_FP=53	review_candidate
+promotion_decision	diagnostic_only_not_default	truth-aware raw-side sweep over two completed negative routes only	needs_cross_panel_wrapper_implementation_and_independent_validation

@@ -1,0 +1,951 @@
+sample	gtdb_species	abundance_pct_all	source_taxids	truth_names	truth_transfer_rules	truth_abundance
+3	s__Aciduliprofundum boonei	0.0049	379547	Aciduliprofundum boonei	unique_taxid	0.00016017102342746377
+3	s__Aciduliprofundum sp000327505	0.039	673860	Aciduliprofundum sp. MAR08-339	unique_taxid	0.0012748305946267524
+3	s__Acinetobacter johnsonii	0.0049	40214	Acinetobacter johnsonii	unique_gtdb_binomial	0.00016017102342746377
+3	s__Acinetobacter venetianus	0.039	52133	Acinetobacter venetianus	unique_taxid	0.0012748305946267524
+3	s__Actinoalloteichus_A fjordicus	0.0488	1612552	Actinoalloteichus sp. ADI127-7	unique_taxid	0.00159517264148168
+3	s__Aegicerativicinus sp900104375	0.0146	1250295	Flavobacteriaceae bacterium MAR_2010_188	unique_taxid	0.00047724427388591247
+3	s__Aeromonas salmonicida	0.1073	645	Aeromonas salmonicida	unique_taxid	0.003507418533421809
+3	s__Aeropyrum camini	0.0683	229980	Aeropyrum camini	unique_taxid	0.0022325879387950563
+3	s__Aeropyrum pernix	0.0049	56636	Aeropyrum pernix	unique_taxid	0.00016017102342746377
+3	s__Agarivorans gilvus	0.0488	680279	Agarivorans gilvus	unique_taxid	0.00159517264148168
+3	s__Agrococcus jejuensis	0.0146	399736	Agrococcus jejuensis	unique_gtdb_binomial	0.00047724427388591247
+3	s__Alcanivorax borkumensis	0.0098	59754	Alcanivorax borkumensis	unique_taxid	0.00032034204685492753
+3	s__Aliivibrio fischeri	0.0098	668	Aliivibrio fischeri	unique_gtdb_binomial	0.00032034204685492753
+3	s__Aliivibrio salmonicida	0.7807	40269	Aliivibrio salmonicida	unique_taxid	0.0255194934673104
+3	s__Aliivibrio wodanis	0.3903	80852	Aliivibrio wodanis	unique_taxid	0.01275811233545696
+3	s__Alloalcanivorax dieselolei	0.0098	285091	Alcanivorax dieselolei	unique_taxid	0.00032034204685492753
+3	s__Alteraurantiacibacter gangjinensis	0.0146	502682	Erythrobacter gangjinensis	unique_taxid	0.00047724427388591247
+3	s__Alteriqipengyuania bathyomarina	0.0049	1634516	Citromicrobium sp. JL477	unique_taxid	0.00016017102342746377
+3	s__Alteromonas australica	0.0244	589873	Alteromonas australica	unique_taxid	0.00079758632074084
+3	s__Alteromonas macleodii	0.1464	28108	Alteromonas macleodii	unique_gtdb_binomial	0.00478551792444504
+3	s__Alteromonas mediterranea	0.7755	314275	Alteromonas mediterranea	unique_taxid	0.0253495160546935
+3	s__Aquibium oceanicum	0.0098	1670800	Mesorhizobium sp. B7	unique_taxid	0.00032034204685492753
+3	s__Aquiluna sp900100865	0.0049	1855377	Candidatus Aquiluna sp. UB-MaderosW2red	unique_taxid	0.00016017102342746377
+3	s__Aquipseudomonas pohangensis	0.0049	364197	Pseudomonas pohangensis	unique_taxid	0.00016017102342746377
+3	s__Aquipseudomonas rustica	0.0146	1699311	Pseudomonas sp. P1.31	unique_taxid	0.00047724427388591247
+3	s__Arcanobacterium phocae	0.0049	131112	Arcanobacterium phocae	unique_gtdb_binomial	0.00016017102342746377
+3	s__Archaeoglobus fulgidus	0.1025	2234	Archaeoglobus fulgidus	unique_taxid	0.0033505163063908233
+3	s__Archaeoglobus_B profundus	0.0098	84156	Archaeoglobus profundus	unique_taxid	0.00032034204685492753
+3	s__Atelocyanobacterium thalassae	0.0683	713887	Candidatus Atelocyanobacterium thalassa	strict_source_name_or_assembly_sources_unique	0.0022325879387950563
+3	s__Bacillus pumilus	0.0439	1408	Bacillus pumilus	unique_gtdb_binomial	0.0014350016180542163
+3	s__Bacillus velezensis	0.0098	492670	Bacillus velezensis	unique_gtdb_binomial	0.00032034204685492753
+3	s__Bacillus_AB infantis	0.0488	324767	Bacillus infantis	strict_source_name_or_assembly_sources_unique	0.00159517264148168
+3	s__Bdellovibrio bacteriovorus	0.0537	959	Bdellovibrio bacteriovorus	unique_gtdb_binomial	0.0017553436649091437
+3	s__Belliella baltica	0.0244	232259	Belliella baltica	unique_taxid	0.00079758632074084
+3	s__Bernardetia litoralis	0.039	999	Bernardetia litoralis	unique_taxid	0.0012748305946267524
+3	s__Brucella melitensis	0.0683	120576,120577	Brucella ceti;Brucella pinnipedialis	unique_taxid	0.0022325879387950563
+3	s__Caldithrix abyssi	0.0098	187145	Caldithrix abyssi	unique_gtdb_binomial	0.00032034204685492753
+3	s__Carnobacterium divergens	0.0098	2748	Carnobacterium divergens	unique_gtdb_binomial	0.00032034204685492753
+3	s__Celeribacter indicus	0.0244	1208324	Celeribacter indicus	unique_taxid	0.00079758632074084
+3	s__Celeribacter marinus	0.0244	1397108	Celeribacter marinus	unique_gtdb_binomial	0.00079758632074084
+3	s__Cellulophaga algicola	0.0197	59600	Cellulophaga algicola	unique_taxid	0.0006439528901063338
+3	s__Cellulophaga baltica	0.0377	76594	Cellulophaga baltica	unique_gtdb_binomial	0.0012323362414725272
+3	s__Cellulophaga lytica	0.0683	979	Cellulophaga lytica	unique_gtdb_binomial	0.0022325879387950563
+3	s__Cenarchaeum symbiosum	0.0195	46770	Cenarchaeum symbiosum	unique_taxid	0.0006374152973133762
+3	s__Cereibacter_A sphaeroides	0.0129	1063	Rhodobacter sphaeroides	strict_source_name_or_assembly_sources_unique	0.000421674735145772
+3	s__Chlorobium phaeobacteroides	0.0586	1096	Chlorobium phaeobacteroides	unique_gtdb_binomial	0.0019155146883366074
+3	s__Chlorobium phaeovibrioides	0.0195	1094	Chlorobium phaeovibrioides	unique_gtdb_binomial	0.0006374152973133762
+3	s__Chloroherpeton thalassium	0.0537	100716	Chloroherpeton thalassium	unique_gtdb_binomial	0.0017553436649091437
+3	s__Christiangramia sp900105135	0.001	1250205	Gramella sp. MAR_2010_147	unique_taxid	3.2687963964788526e-05
+3	s__Chromatium violascens	0.0878	73141	Thiocystis violascens	strict_source_name_or_assembly_sources_unique	0.0028700032361084326
+3	s__Chromohalobacter moromii	0.0098	158080	Chromohalobacter salexigens	unique_taxid	0.00032034204685492753
+3	s__Clostridium cagae	0.1952	1491	Clostridium botulinum	strict_source_name_or_assembly_sources_unique	0.00638069056592672
+3	s__Colwellia marinimaniae	0.0537	58049	Colwellia sp. MT41	unique_taxid	0.0017553436649091437
+3	s__Colwellia psychrerythraea_A	0.0829	28229	Colwellia psychrerythraea	strict_source_name_or_assembly_sources_unique	0.0027098322126809684
+3	s__Colwellia_A sp001767295	0.0146	1816218	Colwellia sp. PAMC 20917	unique_taxid	0.00047724427388591247
+3	s__Corynebacterium marinum	0.0098	349751	Corynebacterium marinum	unique_taxid	0.00032034204685492753
+3	s__Corynebacterium maris	0.0049	575200	Corynebacterium maris	unique_taxid	0.00016017102342746377
+3	s__Corynebacterium phocae	0.1025	161895	Corynebacterium phocae	unique_taxid	0.0033505163063908233
+3	s__Corynebacterium stationis	0.039	1705	Corynebacterium stationis	unique_taxid	0.0012748305946267524
+3	s__Croceibacter atlanticus	0.0137	313588	Croceibacter atlanticus	unique_taxid	0.0004478251063176028
+3	s__Croceibacterium_C atlanticum	0.0098	1267766	Altererythrobacter atlanticus	unique_taxid	0.00032034204685492753
+3	s__Croceicoccus naphthovorans	0.0049	1348774	Croceicoccus naphthovorans	unique_taxid	0.00016017102342746377
+3	s__Cyclobacterium amurskyense	0.0146	320787	Cyclobacterium amurskyense	unique_taxid	0.00047724427388591247
+3	s__Cyclobacterium marinum	0.0049	104	Cyclobacterium marinum	unique_taxid	0.00016017102342746377
+3	s__Cycloclasticus pugetii	0.5123	1329899	Cycloclasticus zancles	unique_taxid	0.01674604393916116
+3	s__Denitrovibrio acetiphilus	0.0098	118000	Denitrovibrio acetiphilus	unique_taxid	0.00032034204685492753
+3	s__Desulfobacula toluolica	0.2147	28223	Desulfobacula toluolica	unique_taxid	0.007018105863240096
+3	s__Desulfocapsa sulfexigens	0.0683	65555	Desulfocapsa sulfexigens	unique_gtdb_binomial	0.0022325879387950563
+3	s__Desulfococcus multivorans	0.1317	897	Desulfococcus multivorans	unique_taxid	0.004305004854162649
+3	s__Desulfocurvibacter africanus	0.0829	873	Desulfovibrio africanus	unique_taxid	0.0027098322126809684
+3	s__Desulforapulum autotrophicum	0.1659	2296	Desulfobacterium autotrophicum	strict_source_name_or_assembly_sources_unique	0.005422933221758416
+3	s__Desulfotalea psychrophila	0.2147	84980	Desulfotalea psychrophila	unique_taxid	0.007018105863240096
+3	s__Desulfovibrio desulfuricans	0.0439	876	Desulfovibrio desulfuricans	unique_gtdb_binomial	0.0014350016180542163
+3	s__Dinoroseobacter shibae	0.0049	215813	Dinoroseobacter shibae	unique_taxid	0.00016017102342746377
+3	s__Dokdonia sp000212355	0.0091	983548	Dokdonia sp. 4H-3-7-5	unique_taxid	0.00029746047207957556
+3	s__Draconibacterium orientale	0.0098	1168034	Draconibacterium orientale	unique_gtdb_binomial	0.00032034204685492753
+3	s__Echinicola vietnamensis	0.0098	390884	Echinicola vietnamensis	unique_taxid	0.00032034204685492753
+3	s__Epibacterium sp000014065	0.0116	292414	Ruegeria sp. TM1040	unique_taxid	0.00037918038199154686
+3	s__Erythrobacter epoxidivorans	0.0098	361183	Altererythrobacter epoxidivorans	unique_taxid	0.00032034204685492753
+3	s__Erythrobacter ishigakiensis	0.0146	476157	Altererythrobacter ishigakiensis	unique_taxid	0.00047724427388591247
+3	s__Erythrobacter litoralis	0.3513	39960	Erythrobacter litoralis	unique_gtdb_binomial	0.011483281740830208
+3	s__Filomicrobium insigne	0.0146	1608628	Candidatus Filomicrobium marinum	unique_taxid	0.00047724427388591247
+3	s__Flagellimonas ruestringensis	0.0488	111501	Muricauda ruestringensis	strict_source_name_or_assembly_sources_unique	0.00159517264148168
+3	s__Flagellimonas_A lutaonensis	0.122	516051	Muricauda lutaonensis	unique_taxid	0.0039879316037042
+3	s__Flammeovirga yaeyamensis	0.1513	1191459	Flammeovirga sp. MY04	unique_taxid	0.004945688947872503
+3	s__Flavobacterium crassostreae	0.0195	1763534	Flavobacterium crassostreae	unique_taxid	0.0006374152973133762
+3	s__Flavobacterium frigidarium	0.0049	99286	Flavobacterium frigidarium	unique_taxid	0.00016017102342746377
+3	s__Flavobacterium psychrophilum	0.1382	96345	Flavobacterium psychrophilum	unique_gtdb_binomial	0.004517476619933774
+3	s__Formosa agariphila	0.0098	320324	Formosa agariphila	unique_taxid	0.00032034204685492753
+3	s__Formosa haliotis	0.1513	1555194	Formosa haliotis	unique_taxid	0.004945688947872503
+3	s__Francisella noatunensis	0.0293	657445	Francisella noatunensis	unique_taxid	0.0009577573441683037
+3	s__Francisella uliginis	0.0049	573570	Francisella sp. TX077310	unique_taxid	0.00016017102342746377
+3	s__Geobacillus thermoleovorans	0.0195	1462	Geobacillus kaustophilus	strict_source_name_or_assembly_sources_unique	0.0006374152973133762
+3	s__Geoglobus acetivorans	0.0049	565033	Geoglobus acetivorans	unique_gtdb_binomial	0.00016017102342746377
+3	s__Geoglobus ahangari	0.0049	113653	Geoglobus ahangari	unique_taxid	0.00016017102342746377
+3	s__Glaciecola nitratireducens	0.1366	300231	Glaciecola nitratireducens	unique_taxid	0.004465175877590113
+3	s__Gloeomargarita lithophora	0.0829	1188228	Gloeomargarita lithophora	unique_taxid	0.0027098322126809684
+3	s__Gymnodinialimonas sp000013565	0.0098	290400	Jannaschia sp. CCS1	unique_taxid	0.00032034204685492753
+3	s__Hahella chejuensis	0.0537	158327	Hahella chejuensis	unique_taxid	0.0017553436649091437
+3	s__Haloarcula hispanica	0.0049	51589	Haloarcula hispanica	unique_taxid	0.00016017102342746377
+3	s__Halobacteriovorax marinus	0.0293	97084	Halobacteriovorax marinus	unique_gtdb_binomial	0.0009577573441683037
+3	s__Halodesulfurarchaeum formicicum	0.0146	1873524	haloarchaeon HSR6	unique_taxid	0.00047724427388591247
+3	s__Haloferax mediterranei	0.0195	2252	Haloferax mediterranei	unique_taxid	0.0006374152973133762
+3	s__Halogeometricum borinquense	0.0049	60847	Halogeometricum borinquense	unique_taxid	0.00016017102342746377
+3	s__Halolamina sediminis	0.0049	1480675	Halolamina sediminis	unique_taxid	0.00016017102342746377
+3	s__Halomonas aestuarii	0.122	1897729	Halomonas aestuarii	unique_taxid	0.0039879316037042
+3	s__Halomonas elongata	0.0026	2746	Halomonas elongata	unique_gtdb_binomial	8.498870630845016e-05
+3	s__Halopseudomonas litoralis	0.0146	797277	Pseudomonas litoralis	unique_taxid	0.00047724427388591247
+3	s__Haloquadratum walsbyi	0.039	293091	Haloquadratum walsbyi	unique_gtdb_binomial	0.0012748305946267524
+3	s__Halorhabdus tiamatea	0.039	430914	Halorhabdus tiamatea	unique_taxid	0.0012748305946267524
+3	s__Hel1-33-131 sp001735745	0.001	1336794	Formosa sp. Hel1_33_131	strict_source_name_or_assembly_sources_unique	3.2687963964788526e-05
+3	s__Helicobacter cetorum	0.0098	138563	Helicobacter cetorum	unique_gtdb_binomial	0.00032034204685492753
+3	s__Helicobacter_G enhydrae	0.0195	222136	Helicobacter sp. MIT 01-6242	unique_taxid	0.0006374152973133762
+3	s__Henriciella sp001854405	0.0146	1906738	Hyphomonas sp. Mor2	unique_taxid	0.00047724427388591247
+3	s__Hippea maritima	0.0049	84405	Hippea maritima	unique_taxid	0.00016017102342746377
+3	s__Hirschia baltica	0.0072	2724	Hirschia baltica	unique_taxid	0.00023535334054647735
+3	s__Hoeflea sp001011155	0.0244	1620421	Hoeflea sp. IMCC20628	unique_taxid	0.00079758632074084
+3	s__Hungateiclostridium thermocellum	0.0244	1515	Ruminiclostridium thermocellum	unique_taxid	0.00079758632074084
+3	s__Hydrogenophaga crassostreae	0.0878	1763535	Hydrogenophaga sp. LPB0072	unique_taxid	0.0028700032361084326
+3	s__Hydrogenovibrio crunogenus	0.0195	39765	Thiomicrospira crunogena	unique_taxid	0.0006374152973133762
+3	s__Hyperthermus butylicus	2.103	54248	Hyperthermus butylicus	unique_taxid	0.06874278821795027
+3	s__Hyphomicrobium_C nitrativorans	0.1317	1427356	Hyphomicrobium nitrativorans	unique_taxid	0.004305004854162649
+3	s__Hyphomonas neptunia	0.161	81032	Hyphomonas neptunium	unique_taxid	0.005262762198330952
+3	s__IMCC9063 sp000195085	0.0002	1002672	Candidatus Pelagibacter sp. IMCC9063	unique_taxid	6.537592792957705e-06
+3	s__Idiomarina loihiensis	0.0049	135577	Idiomarina loihiensis	unique_gtdb_binomial	0.00016017102342746377
+3	s__Ignicoccus hospitalis	0.0049	160233	Ignicoccus hospitalis	unique_taxid	0.00016017102342746377
+3	s__Ignicoccus islandicus	0.0098	54259	Ignicoccus islandicus	unique_taxid	0.00032034204685492753
+3	s__Ilumatobacter_A coccineus	0.2049	467094	Ilumatobacter coccineus	strict_source_name_or_assembly_sources_unique	0.0066977638163851685
+3	s__Ilyobacter polytropus	0.0342	167642	Ilyobacter polytropus	unique_gtdb_binomial	0.0011179283675957676
+3	s__Isoalcanivorax pacificus	0.0098	1306787	Alcanivorax pacificus	unique_taxid	0.00032034204685492753
+3	s__JBDGSM01 sp001761425	0.039	1737403	Nanohaloarchaea archaeon SG9	unique_taxid	0.0012748305946267524
+3	s__Kangiella geojedonensis	0.0244	914150	Kangiella geojedonensis	unique_taxid	0.00079758632074084
+3	s__Kangiella koreensis	0.0098	261964	Kangiella koreensis	unique_taxid	0.00032034204685492753
+3	s__Kangiella sediminilitoris	0.0049	1144748	Kangiella sediminilitoris	unique_taxid	0.00016017102342746377
+3	s__Kosmotoga olearia	0.0195	651457	Kosmotoga olearia	unique_taxid	0.0006374152973133762
+3	s__Kytococcus sedentarius	0.0049	1276	Kytococcus sedentarius	unique_gtdb_binomial	0.00016017102342746377
+3	s__Lacimicrobium alkaliphilum	0.0098	1526571	Lacimicrobium alkaliphilum	unique_gtdb_binomial	0.00032034204685492753
+3	s__Lacinutrix sp000211855	0.3562	983544	Lacinutrix sp. 5H-3-7-4	unique_taxid	0.011643452764257673
+3	s__Lactococcus garvieae	0.0293	1363	Lactococcus garvieae	unique_gtdb_binomial	0.0009577573441683037
+3	s__Leisingera methylohalidivorans	0.039	133924	Leisingera methylohalidivorans	unique_taxid	0.0012748305946267524
+3	s__Leuconostoc lactis	0.0195	1246	Leuconostoc lactis	unique_gtdb_binomial	0.0006374152973133762
+3	s__Luteimonas sp001717465	0.0244	1896164	Luteimonas sp. JM171	unique_taxid	0.00079758632074084
+3	s__MONJU sp000801295	0.0146	1248727	endosymbiont of unidentified scaly snail isolate Monju	unique_taxid	0.00047724427388591247
+3	s__MTP4 sp000970045	0.0586	1434100	Methanosarcina sp. MTP4	unique_taxid	0.0019155146883366074
+3	s__Magnetococcus marinus	0.0683	1124597	Magnetococcus marinus	unique_taxid	0.0022325879387950563
+3	s__Magnetospira sp000968135	0.1947	1288970	Magnetospira sp. QH-2	unique_taxid	0.006364346583944326
+3	s__Maribacter dokdonensis	0.0244	1644130	Maribacter sp. 1_2014MBL_MicDiv	unique_taxid	0.00079758632074084
+3	s__Maribacter_A sp000153165	0.0049	313603	Maribacter sp. HTCC2170	unique_taxid	0.00016017102342746377
+3	s__Maricaulis maris	0.0075	74318	Maricaulis maris	unique_gtdb_binomial	0.0002451597297359139
+3	s__Maridesulfovibrio hydrothermalis	0.122	191026	Desulfovibrio hydrothermalis	unique_taxid	0.0039879316037042
+3	s__Marinithermus hydrothermalis	0.0537	186192	Marinithermus hydrothermalis	unique_taxid	0.0017553436649091437
+3	s__Marinitoga piezophila	0.0098	149715	Marinitoga piezophila	unique_taxid	0.00032034204685492753
+3	s__Marinobacter nauticus	0.0298	2743	Marinobacter hydrocarbonoclasticus	strict_source_name_or_assembly_sources_unique	0.000974101326150698
+3	s__Marinobacter psychrophilus	0.0195	490759	Marinobacter sp. BSs20148	unique_taxid	0.0006374152973133762
+3	s__Marinobacter salinus	0.0108	1874317	Marinobacter salinus	unique_taxid	0.00035303001081971605
+3	s__Marinobacter similis	0.0244	1420916	Marinobacter similis	unique_taxid	0.00079758632074084
+3	s__Marinobacterium_A aestuarii	0.023	1821621	Marinobacterium sp. ST58-10	unique_taxid	0.0007518231711901361
+3	s__Marinomonas mediterranea	0.0976	119864	Marinomonas mediterranea	unique_taxid	0.00319034528296336
+3	s__Marinomonas posidonica	0.2488	936476	Marinomonas posidonica	unique_gtdb_binomial	0.008132765434439384
+3	s__Marinovum algicola	0.0042	42444	Marinovum algicola	unique_taxid	0.0001372894486521118
+3	s__Marivirga tractuosa	0.1171	1006	Marivirga tractuosa	unique_gtdb_binomial	0.003827760580276736
+3	s__Marivivens geojensis	0.0012	1920883	Donghicola sp. JLT3646	unique_taxid	3.922555675774623e-05
+3	s__Metabacillus weihaiensis	0.0098	1547283	Bacillus weihaiensis	unique_taxid	0.00032034204685492753
+3	s__Methanocaldococcus bathoardescens	0.0098	1301915	Methanocaldococcus bathoardescens	unique_taxid	0.00032034204685492753
+3	s__Methanocaldococcus jannaschii	0.0244	2190	Methanocaldococcus jannaschii	unique_taxid	0.00079758632074084
+3	s__Methanocaldococcus vulcanius	0.0683	73913	Methanocaldococcus vulcanius	unique_taxid	0.0022325879387950563
+3	s__Methanococcoides methylutens	0.0098	2226	Methanococcoides methylutens	unique_gtdb_binomial	0.00032034204685492753
+3	s__Methanococcus maripaludis	0.0244	39152	Methanococcus maripaludis	unique_gtdb_binomial	0.00079758632074084
+3	s__Methanococcus voltae	0.0098	2188	Methanococcus voltae	unique_gtdb_binomial	0.00032034204685492753
+3	s__Methanohalophilus halophilus	0.0244	2177	Methanohalophilus halophilus	unique_taxid	0.00079758632074084
+3	s__Methanosarcina siciliae	0.1464	38027	Methanosarcina siciliae	unique_taxid	0.00478551792444504
+3	s__Methanosarcina sp000969965	0.0049	1434102	Methanosarcina sp. WH1	unique_taxid	0.00016017102342746377
+3	s__Methanotorris igneus	0.0098	2189	Methanotorris igneus	unique_taxid	0.00032034204685492753
+3	s__Methyloceanibacter caenitepidi	0.1903	1384459	Methyloceanibacter caenitepidi	unique_taxid	0.006220519542499256
+3	s__Methylomonas methanica	0.244	421	Methylomonas methanica	unique_gtdb_binomial	0.0079758632074084
+3	s__Methylophaga nitratireducenticrescens	0.0195	754476	Methylophaga nitratireducenticrescens	unique_taxid	0.0006374152973133762
+3	s__Micrococcus luteus	0.0293	1270	Micrococcus luteus	unique_gtdb_binomial	0.0009577573441683037
+3	s__Micromonospora arenicola	0.0222	168697	Salinispora arenicola	unique_taxid	0.0007256728000183053
+3	s__Micromonospora gifhornensis	0.0236	1003110	Verrucosispora maris	unique_taxid	0.0007714359495690091
+3	s__Micromonospora krabiensis	0.0071	307121	Micromonospora krabiensis	unique_taxid	0.00023208454414999852
+3	s__Micromonospora tropica	0.0593	168695	Salinispora tropica	unique_taxid	0.0019383962631119593
+3	s__Moritella marina	0.0075	90736	Moritella marina	unique_taxid	0.0002451597297359139
+3	s__Moritella viscosa	0.2707	80854	Moritella viscosa	unique_taxid	0.008848631845268254
+3	s__Mycobacterium rhodesiae	0.0049	36814	Mycobacterium rhodesiae	unique_gtdb_binomial	0.00016017102342746377
+3	s__Myxococcus fulvus	0.0146	33	Myxococcus fulvus	unique_taxid	0.00047724427388591247
+3	s__Nanoarchaeum equitans	0.1025	160232	Nanoarchaeum equitans	unique_taxid	0.0033505163063908233
+3	s__Nautilia profundicola	0.0195	244787	Nautilia profundicola	unique_taxid	0.0006374152973133762
+3	s__Nitratifractor salsuginis	0.0146	269261	Nitratifractor salsuginis	unique_taxid	0.00047724427388591247
+3	s__Nitratiruptor sp000010325	0.0146	387092	Nitratiruptor sp. SB155-2	unique_taxid	0.00047724427388591247
+3	s__Nitrosarchaeum limnae	0.0244	1007084	Candidatus Nitrosoarchaeum limnia	unique_taxid	0.00079758632074084
+3	s__Nitrosococcus halophilus	1.9078	133539	Nitrosococcus halophilus	unique_taxid	0.062362097652023545
+3	s__Nitrosococcus oceani	0.444	1229	Nitrosococcus oceani	unique_taxid	0.014513456000366104
+3	s__Nitrosopelagicus brevis	0.0829	1410606	Candidatus Nitrosopelagicus brevis	unique_taxid	0.0027098322126809684
+3	s__Nitrosopumilus koreensis	0.0098	1510466	Candidatus Nitrosopumilus koreensis	unique_taxid	0.00032034204685492753
+3	s__Nitrosopumilus maritimus	0.0049	338192	Nitrosopumilus maritimus	unique_taxid	0.00016017102342746377
+3	s__Nitrosopumilus piranensis	0.0244	1582439	Candidatus Nitrosopumilus piranensis	unique_taxid	0.00079758632074084
+3	s__Nitrosopumilus sediminis	0.122	1229909	Candidatus Nitrosopumilus sediminis	unique_taxid	0.0039879316037042
+3	s__Nodularia spumigena	0.0195	70799	Nodularia spumigena	unique_taxid	0.0006374152973133762
+3	s__Nonlabens dokdonensis	0.0342	328515	Nonlabens dokdonensis	unique_gtdb_binomial	0.0011179283675957676
+3	s__Nonlabens marinus	0.0049	930802	Nonlabens marinus	unique_taxid	0.00016017102342746377
+3	s__Nonlabens sp900101765	0.0439	1336802	Nonlabens sp. Hel1_33_55	unique_taxid	0.0014350016180542163
+3	s__Novosphingobium pentaromativorans	0.0439	205844	Novosphingobium pentaromativorans	unique_gtdb_binomial	0.0014350016180542163
+3	s__Novosphingobium sp000253255	0.0927	702113	Novosphingobium sp. PP1Y	unique_taxid	0.0030301742595358963
+3	s__Oceanithermus profundus	0.0146	187137	Oceanithermus profundus	unique_gtdb_binomial	0.00047724427388591247
+3	s__Oceanobacillus iheyensis	0.0049	182710	Oceanobacillus iheyensis	unique_gtdb_binomial	0.00016017102342746377
+3	s__Octadecabacter antarcticus	0.0683	1217908	Octadecabacter antarcticus	unique_taxid	0.0022325879387950563
+3	s__Octadecabacter arcticus	0.0195	53946	Octadecabacter arcticus	unique_taxid	0.0006374152973133762
+3	s__Octadecabacter temperatus	0.0293	1458307	Octadecabacter temperatus	unique_taxid	0.0009577573441683037
+3	s__Oleispira antarctica	0.0049	188908	Oleispira antarctica	unique_taxid	0.00016017102342746377
+3	s__Ornithinicoccus hydrothermalis	0.0293	1758689	Serinicoccus sp. JLT9	unique_taxid	0.0009577573441683037
+3	s__Oscillibacter valericigenes	0.1415	351091	Oscillibacter valericigenes	unique_gtdb_binomial	0.0046253469010175755
+3	s__Owenweeksia hongkongensis	0.0049	253245	Owenweeksia hongkongensis	unique_gtdb_binomial	0.00016017102342746377
+3	s__Paenibacillus_AQ crassostreae	0.0293	1763538	Paenibacillus sp. LPB0068	unique_taxid	0.0009577573441683037
+3	s__Palaeococcus pacificus	0.5367	971279	Palaeococcus pacificus	unique_taxid	0.017543630259902
+3	s__Paraglaciecola chathamensis	0.0488	983545	Glaciecola sp. 4H-3-7+YE-5	unique_taxid	0.00159517264148168
+3	s__Paraglaciecola psychrophila	0.0229	326544	Paraglaciecola psychrophila	unique_gtdb_binomial	0.0007485543747936572
+3	s__Paraoerskovia marina	0.0683	545619	Paraoerskovia marina	unique_taxid	0.0022325879387950563
+3	s__Parasynechococcus sp000012505	0.0683	316279	Synechococcus sp. CC9902	strict_source_name_or_assembly_sources_unique	0.0022325879387950563
+3	s__Parasynechococcus sp000161795	0.0049	166314	Synechococcus sp. WH 8109	unique_taxid	0.00016017102342746377
+3	s__Parasynechococcus sp000737535	0.0098	1280380	Synechococcus sp. KORDI-100	unique_taxid	0.00032034204685492753
+3	s__Parasynechococcus sp000737595	0.039	585425	Synechococcus sp. KORDI-52	unique_taxid	0.0012748305946267524
+3	s__Paraurantiacibacter namhicola	0.0293	645517	Altererythrobacter namhicola	unique_taxid	0.0009577573441683037
+3	s__Parvularcula bermudensis	0.0439	208216	Parvularcula bermudensis	unique_taxid	0.0014350016180542163
+3	s__Pelagerythrobacter marensis	0.0342	543877	Altererythrobacter marensis	strict_source_name_or_assembly_sources_unique	0.0011179283675957676
+3	s__Pelagibacter sp000299095	0.039	859653	alpha proteobacterium HIMB5	unique_taxid	0.0012748305946267524
+3	s__Pelagibacter ubiqueversans	0.0047	198252	Candidatus Pelagibacter ubique	strict_source_name_or_assembly_sources_unique	0.00015363343063450608
+3	s__Pelagibacterium halotolerans	0.0244	531813	Pelagibacterium halotolerans	unique_gtdb_binomial	0.00079758632074084
+3	s__Persephonella marina	0.0342	309805	Persephonella marina	unique_taxid	0.0011179283675957676
+3	s__Phaeobacter gallaeciensis	0.1153	60890	Phaeobacter gallaeciensis	unique_gtdb_binomial	0.0037689222451401166
+3	s__Phaeobacter inhibens	0.0293	221822	Phaeobacter inhibens	unique_taxid	0.0009577573441683037
+3	s__Photobacterium gaetbulicola	0.039	1295392	Photobacterium gaetbulicola	unique_taxid	0.0012748305946267524
+3	s__Photobacterium phosphoreum	0.0195	659	Photobacterium phosphoreum	unique_taxid	0.0006374152973133762
+3	s__Photobacterium profundum	0.0049	74109	Photobacterium profundum	unique_gtdb_binomial	0.00016017102342746377
+3	s__Phycisphaera mikurensis	0.0342	547188	Phycisphaera mikurensis	unique_gtdb_binomial	0.0011179283675957676
+3	s__Piscirickettsia salmonis	0.2098	1238	Piscirickettsia salmonis	unique_gtdb_binomial	0.006857934839812632
+3	s__Planktomarina temperata	0.0067	1284658	Planktomarina temperata	unique_taxid	0.00021900935856408312
+3	s__Planococcus antarcticus	0.0098	161360	Planococcus antarcticus	unique_taxid	0.00032034204685492753
+3	s__Planococcus donghaensis	0.0098	414778	Planococcus donghaensis	unique_gtdb_binomial	0.00032034204685492753
+3	s__Planococcus kocurii	0.0098	1374	Planococcus kocurii	unique_taxid	0.00032034204685492753
+3	s__Polaribacter todarodis	0.0586	1850252	Tenacibaculum sp. LPB0136	unique_taxid	0.0019155146883366074
+3	s__Polaribacter vadi	0.0342	1774273	Polaribacter vadi	unique_gtdb_binomial	0.0011179283675957676
+3	s__Prochlorococcus_A sp000757845	0.0098	1501268	Prochlorococcus sp. MIT 0604	unique_taxid	0.00032034204685492753
+3	s__Prochlorococcus_B sp000757865	0.0098	1501269	Prochlorococcus sp. MIT 0801	unique_taxid	0.00032034204685492753
+3	s__Prosthecochloris vibrioformis	0.0195	1868325	Prosthecochloris sp. CIB 2401	unique_taxid	0.0006374152973133762
+3	s__Pseudalgibacter alginicilyticus	0.1854	1736674	Algibacter alginolytica	unique_taxid	0.006060348519071793
+3	s__Pseudoalteromonas atlantica	0.0195	288	Pseudoalteromonas atlantica	unique_gtdb_binomial	0.0006374152973133762
+3	s__Pseudoalteromonas haloplanktis	0.0098	228	Pseudoalteromonas haloplanktis	unique_gtdb_binomial	0.00032034204685492753
+3	s__Pseudoalteromonas luteoviolacea	0.0195	43657	Pseudoalteromonas luteoviolacea	unique_gtdb_binomial	0.0006374152973133762
+3	s__Pseudoalteromonas phenolica	0.0342	161398	Pseudoalteromonas phenolica	unique_gtdb_binomial	0.0011179283675957676
+3	s__Pseudoalteromonas piratica	0.0049	1348114	Pseudoalteromonas sp. OCN003	unique_taxid	0.00016017102342746377
+3	s__Pseudoalteromonas rubra	0.0195	43658	Pseudoalteromonas rubra	unique_gtdb_binomial	0.0006374152973133762
+3	s__Pseudoalteromonas tetraodonis	0.0439	234831	Pseudoalteromonas sp. SM9913	unique_taxid	0.0014350016180542163
+3	s__Pseudodesulfovibrio piezophilus	0.0732	879567	Desulfovibrio piezophilus	unique_taxid	0.00239275896222252
+3	s__Pseudothioglobus singularis	0.0244	1427364	Candidatus Thioglobus singularis	strict_source_name_or_assembly_sources_unique	0.00079758632074084
+3	s__Pseudovibrio sp000156235	0.0105	911045	Pseudovibrio sp. FO-BEG1	unique_taxid	0.0003432236216302795
+3	s__Psychrobacter glaciei	0.0098	1112209	Psychrobacter sp. PAMC 21119	unique_taxid	0.00032034204685492753
+3	s__Psychrobacter sp000586415	0.444	1298608	Psychrobacter sp. JCM 18900	unique_taxid	0.014513456000366104
+3	s__Psychromonas ingrahamii	0.0098	357794	Psychromonas ingrahamii	unique_taxid	0.00032034204685492753
+3	s__Psychromonas sp000153405	0.0049	314282	Psychromonas sp. CNPT3	unique_taxid	0.00016017102342746377
+3	s__Pusillimonas_C sp000209655	0.0049	1007105	Pusillimonas sp. T7-7	unique_taxid	0.00016017102342746377
+3	s__Pyrobaculum aerophilum	0.039	13773	Pyrobaculum aerophilum	unique_taxid	0.0012748305946267524
+3	s__Pyrococcus abyssi	0.0049	29292	Pyrococcus abyssi	unique_taxid	0.00016017102342746377
+3	s__Pyrococcus furiosus	0.0293	2261	Pyrococcus furiosus	unique_taxid	0.0009577573441683037
+3	s__Pyrococcus horikoshii	0.0244	53953	Pyrococcus horikoshii	unique_taxid	0.00079758632074084
+3	s__Pyrococcus sp000211475	0.1561	342949	Pyrococcus sp. NA2	unique_taxid	0.0051025911749034885
+3	s__Pyrococcus yayanosii	0.0049	1008460	Pyrococcus yayanosii	unique_taxid	0.00016017102342746377
+3	s__RCC307 sp000063525	0.0878	316278	Synechococcus sp. RCC307	unique_taxid	0.0028700032361084326
+3	s__Rhodobacter xanthinilyticus	0.0067	1850250	Rhodobacter sp. LPB0142	unique_taxid	0.00021900935856408312
+3	s__Rhodococcoides sp000954115	0.039	1564114	Rhodococcus sp. B7740	unique_taxid	0.0012748305946267524
+3	s__Rhodococcus_F erythropolis	0.0049	1833	Rhodococcus erythropolis	strict_source_name_or_assembly_sources_unique	0.00016017102342746377
+3	s__Rhodococcus_F sp001767395	0.0049	679318	Rhodococcus sp. WMMA185	unique_taxid	0.00016017102342746377
+3	s__Rhodoferax ferrireducens	0.0244	192843	Rhodoferax ferrireducens	unique_gtdb_binomial	0.00079758632074084
+3	s__Rhodothermus marinus	0.0634	29549	Rhodothermus marinus	unique_gtdb_binomial	0.002072416915367592
+3	s__Rhodovulum sulfidophilum	0.0195	35806	Rhodovulum sulfidophilum	unique_gtdb_binomial	0.0006374152973133762
+3	s__Rivularia sp000316665	0.0098	373994	Rivularia sp. PCC 7116	unique_taxid	0.00032034204685492753
+3	s__Robiginitalea biformata	0.0195	252307	Robiginitalea biformata	unique_gtdb_binomial	0.0006374152973133762
+3	s__Roseibacterium elongatum	0.0476	159346	Roseibacterium elongatum	unique_taxid	0.0015559470847239338
+3	s__Roseobacter denitrificans	0.0927	2434	Roseobacter denitrificans	unique_taxid	0.0030301742595358963
+3	s__Roseobacter litoralis	0.0098	42443	Roseobacter litoralis	unique_taxid	0.00032034204685492753
+3	s__Ruegeria_B pomeroyi	0.039	89184	Ruegeria pomeroyi	strict_source_name_or_assembly_sources_unique	0.0012748305946267524
+3	s__Ruthia magnifica	0.0146	386487	Candidatus Ruthia magnifica	unique_taxid	0.00047724427388591247
+3	s__Saccharophagus degradans	0.0293	86304	Saccharophagus degradans	unique_taxid	0.0009577573441683037
+3	s__Salinibacter ruber	0.0195	146919	Salinibacter ruber	unique_taxid	0.0006374152973133762
+3	s__Salinispira pacifica	0.0098	1307761	Salinispira pacifica	unique_taxid	0.00032034204685492753
+3	s__Salipiger sp001687105	0.0342	1792508	Yangia sp. CCB-MM3	unique_taxid	0.0011179283675957676
+3	s__Salmonella enterica	0.0049	28901	Salmonella enterica	unique_gtdb_binomial	0.00016017102342746377
+3	s__Saprospira grandis	0.0439	1008	Saprospira grandis	unique_gtdb_binomial	0.0014350016180542163
+3	s__Sedimenticola thiotaurini	0.0049	1543721	Sedimenticola thiotaurini	unique_gtdb_binomial	0.00016017102342746377
+3	s__Sediminicola sp001430825	0.0049	1453352	Sediminicola sp. YIK13	unique_taxid	0.00016017102342746377
+3	s__Shewanella amazonensis	0.0098	60478	Shewanella amazonensis	unique_taxid	0.00032034204685492753
+3	s__Shewanella baltica	0.2049	62322	Shewanella baltica	unique_taxid	0.0066977638163851685
+3	s__Shewanella denitrificans	0.0098	192073	Shewanella denitrificans	unique_taxid	0.00032034204685492753
+3	s__Shewanella halifaxensis	0.1659	271098	Shewanella halifaxensis	unique_gtdb_binomial	0.005422933221758416
+3	s__Shewanella pealeana	0.0049	70864	Shewanella pealeana	unique_taxid	0.00016017102342746377
+3	s__Shewanella piezotolerans	0.0488	404011	Shewanella piezotolerans	unique_taxid	0.00159517264148168
+3	s__Shewanella sediminis	0.0049	271097	Shewanella sediminis	unique_taxid	0.00016017102342746377
+3	s__Shewanella sp029835735	0.161	94122	Shewanella sp. ANA-3	unique_taxid	0.005262762198330952
+3	s__Shewanella woodyi	0.0049	60961	Shewanella woodyi	unique_gtdb_binomial	0.00016017102342746377
+3	s__Siansivirga zeaxanthinifaciens	0.0007	762954	Siansivirga zeaxanthinifaciens	unique_taxid	2.2881574775351968e-05
+3	s__Simiduia agarivorans	0.0098	447471	Simiduia agarivorans	unique_taxid	0.00032034204685492753
+3	s__Spiribacter curvatus	2.5519	1335757	Spiribacter curvatus	unique_taxid	0.08341641524174383
+3	s__Spiribacter salinus	0.8002	1335746	Spiribacter salinus	unique_taxid	0.026156908764623777
+3	s__Spongiibacter sp001010805	0.0244	1620392	Spongiibacter sp. IMCC21906	unique_taxid	0.00079758632074084
+3	s__Staphylococcus epidermidis	0.0488	1282	Staphylococcus epidermidis	unique_gtdb_binomial	0.00159517264148168
+3	s__Staphylococcus equorum	0.039	246432	Staphylococcus equorum	unique_gtdb_binomial	0.0012748305946267524
+3	s__Staphylococcus warneri	1.1027	1292	Staphylococcus warneri	unique_gtdb_binomial	0.0360450178639723
+3	s__Staphylothermus marinus	0.0098	2280	Staphylothermus marinus	unique_taxid	0.00032034204685492753
+3	s__Stappia sp900105595	0.0098	1881061	Stappia sp. ES.058	unique_taxid	0.00032034204685492753
+3	s__Streptococcus agalactiae	0.0098	1311	Streptococcus agalactiae	unique_gtdb_binomial	0.00032034204685492753
+3	s__Streptococcus iniae	0.0293	1346	Streptococcus iniae	unique_taxid	0.0009577573441683037
+3	s__Streptomyces albus	0.0098	1888	Streptomyces albus	unique_gtdb_binomial	0.00032034204685492753
+3	s__Sulfitobacter alexandrii	0.0049	1917485	Sulfitobacter sp. AM1-D1	unique_taxid	0.00016017102342746377
+3	s__Sulfurimonas denitrificans	0.0244	39766	Sulfurimonas denitrificans	unique_taxid	0.00079758632074084
+3	s__Sulfurovum sp000010345	1.2345	387093	Sulfurovum sp. NBC37-1	unique_taxid	0.04035329151453143
+3	s__Synechococcus_C sp000014585	0.0195	64471	Synechococcus sp. CC9311	unique_taxid	0.0006374152973133762
+3	s__Synechococcus_C sp000063505	0.0244	32051	Synechococcus sp. WH 7803	unique_taxid	0.00079758632074084
+3	s__Syntrophotalea acetylenica	1.1423	29542	Pelobacter acetylenicus	unique_taxid	0.037339461236977935
+3	s__Syntrophotalea carbinolica	0.0629	19	Pelobacter carbinolicus	unique_taxid	0.002056072933385198
+3	s__Thalassolituus oleivorans	0.3966	187493	Thalassolituus oleivorans	unique_gtdb_binomial	0.012964046508435129
+3	s__Thalassoporum mexicanum	0.0244	82654	Pseudanabaena sp. PCC 7367	unique_taxid	0.00079758632074084
+3	s__Thalassotalea_A crassostreae	0.0195	1763536	Thalassotalea sp. LPB0090	unique_taxid	0.0006374152973133762
+3	s__Thermaerobacter marianensis	0.0146	73919	Thermaerobacter marianensis	unique_gtdb_binomial	0.00047724427388591247
+3	s__Thermoclostridium stercorarium	0.0244	1510	[Clostridium] stercorarium	unique_taxid	0.00079758632074084
+3	s__Thermococcus eurythermalis	0.0049	1505907	Thermococcus eurythermalis	unique_taxid	0.00016017102342746377
+3	s__Thermococcus gammatolerans	0.0049	187878	Thermococcus gammatolerans	unique_taxid	0.00016017102342746377
+3	s__Thermococcus onnurineus	0.0146	342948	Thermococcus onnurineus	unique_taxid	0.00047724427388591247
+3	s__Thermococcus piezophilus	0.0049	1712654	Thermococcus piezophilus	unique_taxid	0.00016017102342746377
+3	s__Thermococcus sp000151205	0.0049	246969	Thermococcus sp. AM4	unique_taxid	0.00016017102342746377
+3	s__Thermococcus sp000221185	0.0488	1042877	Thermococcus sp. 4557	unique_taxid	0.00159517264148168
+3	s__Thermococcus_A litoralis	0.0098	2265	Thermococcus litoralis	unique_taxid	0.00032034204685492753
+3	s__Thermococcus_B paralvinellae	0.0195	582419	Thermococcus paralvinellae	strict_source_name_or_assembly_sources_unique	0.0006374152973133762
+3	s__Thermodesulfatator indicus	0.0098	171695	Thermodesulfatator indicus	unique_taxid	0.00032034204685492753
+3	s__Thermoplasma volcanium	0.0049	50339	Thermoplasma volcanium	unique_taxid	0.00016017102342746377
+3	s__Thermosediminibacter oceani	0.0049	291990	Thermosediminibacter oceani	unique_taxid	0.00016017102342746377
+3	s__Thermosipho melanesiensis	0.0146	46541	Thermosipho melanesiensis	unique_taxid	0.00047724427388591247
+3	s__Thermotoga maritima	0.1708	126740,2336	Thermotoga maritima;Thermotoga sp. RQ2	unique_taxid	0.0055831042451858805
+3	s__Thermotoga neapolitana	0.0049	2337	Thermotoga neapolitana	unique_taxid	0.00016017102342746377
+3	s__Thermovirga lienii	0.0439	336261	Thermovirga lienii	unique_taxid	0.0014350016180542163
+3	s__Thioflavicoccus mobilis	0.2147	80679	Thioflavicoccus mobilis	unique_taxid	0.007018105863240096
+3	s__Thiolapillus brandeum	0.1269	1076588	Thiolapillus brandeum	unique_gtdb_binomial	0.004148102627131664
+3	s__Tistrella mobilis	0.0616	171437	Tistrella mobilis	unique_gtdb_binomial	0.0020135785802309733
+3	s__Tsuneonella dongtanensis	0.0049	692370	Altererythrobacter dongtanensis	unique_taxid	0.00016017102342746377
+3	s__UBA3537 sp001735715	0.0486	1336795	Formosa sp. Hel3_A1_48	strict_source_name_or_assembly_sources_unique	0.0015886350486887222
+3	s__UJ101 sp001880285	0.0146	1150389	Flavobacteriaceae bacterium UJ101	unique_taxid	0.00047724427388591247
+3	s__Vibrio alginolyticus	0.0195	663	Vibrio alginolyticus	unique_gtdb_binomial	0.0006374152973133762
+3	s__Vibrio anguillarum	0.2342	55601	Vibrio anguillarum	unique_taxid	0.007655521160553472
+3	s__Vibrio breoganii	0.0098	553239	Vibrio breoganii	unique_taxid	0.00032034204685492753
+3	s__Vibrio campbellii	0.0049	680	Vibrio campbellii	unique_gtdb_binomial	0.00016017102342746377
+3	s__Vibrio cholerae	0.1561	666	Vibrio cholerae	unique_gtdb_binomial	0.0051025911749034885
+3	s__Vibrio coralliilyticus	0.2537	190893	Vibrio coralliilyticus	unique_gtdb_binomial	0.008292936457866848
+3	s__Vibrio furnissii	0.0293	29494	Vibrio furnissii	unique_taxid	0.0009577573441683037
+3	s__Vibrio harveyi	0.0439	669	Vibrio harveyi	unique_gtdb_binomial	0.0014350016180542163
+3	s__Vibrio natriegens	0.0098	1116375	Vibrio sp. EJY3	unique_taxid	0.00032034204685492753
+3	s__Vibrio nigripulchritudo	0.0244	28173	Vibrio nigripulchritudo	unique_taxid	0.00079758632074084
+3	s__Vibrio parahaemolyticus	0.0049	670	Vibrio parahaemolyticus	unique_gtdb_binomial	0.00016017102342746377
+3	s__Vibrio scophthalmi	0.1708	45658	Vibrio scophthalmi	unique_gtdb_binomial	0.0055831042451858805
+3	s__Vibrio tasmaniensis	0.0976	212663	Vibrio tasmaniensis	unique_gtdb_binomial	0.00319034528296336
+3	s__Vibrio tubiashii	0.0829	29498	Vibrio tubiashii	unique_gtdb_binomial	0.0027098322126809684
+3	s__Vibrio vulnificus	0.0293	672	Vibrio vulnificus	unique_gtdb_binomial	0.0009577573441683037
+3	s__Vreelandella titanicae	0.0998	1380358	Halomonas sp. 23_GOM-1509m	unique_taxid	0.003262258803685895
+3	s__Wenyingzhuangia fucanilytica	0.0546	1790137	Wenyingzhuangia fucanilytica	unique_taxid	0.0017847628324774536
+3	s__Winmispira thermophila	0.0244	154	Spirochaeta thermophila	strict_source_name_or_assembly_sources_unique	0.00079758632074084
+3	s__Woeseia oceani	0.0732	1548547	Woeseia oceani	unique_taxid	0.00239275896222252
+3	s__Xianfuyuplasma sp000755705	0.0976	1541959	Candidatus Izimaplasma sp. HR1	unique_taxid	0.00319034528296336
+3	s__Yersinia aldovae	0.0195	29483	Yersinia aldovae	unique_taxid	0.0006374152973133762
+3	s__Yersinia ruckeri	0.0195	29486	Yersinia ruckeri	unique_taxid	0.0006374152973133762
+3	s__Zunongwangia profunda	0.0732	398743	Zunongwangia profunda	unique_taxid	0.00239275896222252
+4	s__Aciduliprofundum boonei	0.0192	379547	Aciduliprofundum boonei	unique_taxid	0.0006391605691192234
+4	s__Acinetobacter venetianus	0.0575	52133	Acinetobacter venetianus	unique_taxid	0.0019141527460601743
+4	s__Aegicerativicinus sp900104375	0.0096	1250295	Flavobacteriaceae bacterium MAR_2010_188	unique_taxid	0.0003195802845596117
+4	s__Aeromonas salmonicida	0.0384	645	Aeromonas salmonicida	unique_taxid	0.0012783211382384467
+4	s__Aeropyrum camini	0.0384	229980	Aeropyrum camini	unique_taxid	0.0012783211382384467
+4	s__Alcanivorax borkumensis	0.0096	59754	Alcanivorax borkumensis	unique_taxid	0.0003195802845596117
+4	s__Aliivibrio salmonicida	0.4219	40269	Aliivibrio salmonicida	unique_taxid	0.014044887714135436
+4	s__Aliivibrio wodanis	0.5178	80852	Aliivibrio wodanis	unique_taxid	0.01723736159843406
+4	s__Alteraurantiacibacter atlanticus	0.0288	1648404	Erythrobacter atlanticus	unique_taxid	0.0009587408536788351
+4	s__Alteriqipengyuania bathyomarina	0.0479	1634516	Citromicrobium sp. JL477	unique_taxid	0.0015945724615005624
+4	s__Alteromonas australica	0.0192	589873	Alteromonas australica	unique_taxid	0.0006391605691192234
+4	s__Alteromonas macleodii	0.7959	28108	Alteromonas macleodii	unique_gtdb_binomial	0.02649520296677031
+4	s__Alteromonas mediterranea	1.3162	314275	Alteromonas mediterranea	unique_taxid	0.043815788597641764
+4	s__Aquibium oceanicum	0.0192	1670800	Mesorhizobium sp. B7	unique_taxid	0.0006391605691192234
+4	s__Aquiluna sp900100865	0.0096	1855377	Candidatus Aquiluna sp. UB-MaderosW2red	unique_taxid	0.0003195802845596117
+4	s__Archaeoglobus fulgidus	0.2014	2234	Archaeoglobus fulgidus	unique_taxid	0.0067045280531568534
+4	s__Atelocyanobacterium thalassae	0.0479	713887	Candidatus Atelocyanobacterium thalassa	strict_source_name_or_assembly_sources_unique	0.0015945724615005624
+4	s__Bacillus pumilus	0.0192	1408	Bacillus pumilus	unique_gtdb_binomial	0.0006391605691192234
+4	s__Bacillus_AB infantis	0.0288	324767	Bacillus infantis	strict_source_name_or_assembly_sources_unique	0.0009587408536788351
+4	s__Bdellovibrio bacteriovorus	0.0384	959	Bdellovibrio bacteriovorus	unique_gtdb_binomial	0.0012783211382384467
+4	s__Belliella baltica	0.0192	232259	Belliella baltica	unique_taxid	0.0006391605691192234
+4	s__Bernardetia litoralis	0.0096	999	Bernardetia litoralis	unique_taxid	0.0003195802845596117
+4	s__Brucella melitensis	0.048	120576,120577	Brucella ceti;Brucella pinnipedialis	unique_taxid	0.0015979014227980586
+4	s__Campylobacter_D peloridis	0.0192	488546	Campylobacter peloridis	unique_taxid	0.0006391605691192234
+4	s__Carnobacterium divergens	0.0384	2748	Carnobacterium divergens	unique_gtdb_binomial	0.0012783211382384467
+4	s__Celeribacter marinus	0.0096	1397108	Celeribacter marinus	unique_gtdb_binomial	0.0003195802845596117
+4	s__Cellulophaga algicola	0.0111	59600	Cellulophaga algicola	unique_taxid	0.00036951470402205104
+4	s__Cellulophaga baltica	0.0771	76594	Cellulophaga baltica	unique_gtdb_binomial	0.0025666291603693814
+4	s__Cellulophaga lytica	0.0288	979	Cellulophaga lytica	unique_gtdb_binomial	0.0009587408536788351
+4	s__Cenarchaeum symbiosum	0.0192	46770	Cenarchaeum symbiosum	unique_taxid	0.0006391605691192234
+4	s__Cereibacter_A sphaeroides	0.0126	1063	Rhodobacter sphaeroides	strict_source_name_or_assembly_sources_unique	0.0004194491234844904
+4	s__Chlorobium phaeobacteroides	0.1342	1096	Chlorobium phaeobacteroides	unique_gtdb_binomial	0.004467466061239572
+4	s__Chloroherpeton thalassium	0.0575	100716	Chloroherpeton thalassium	unique_gtdb_binomial	0.0019141527460601743
+4	s__Christiangramia sp900105135	0.0006	1250205	Gramella sp. MAR_2010_147	unique_taxid	1.997376778497573e-05
+4	s__Chromatium violascens	0.0479	73141	Thiocystis violascens	strict_source_name_or_assembly_sources_unique	0.0015945724615005624
+4	s__Clostridium cagae	0.163	1491	Clostridium botulinum	strict_source_name_or_assembly_sources_unique	0.005426206914918407
+4	s__Colwellia psychrerythraea_A	0.0096	28229	Colwellia psychrerythraea	strict_source_name_or_assembly_sources_unique	0.0003195802845596117
+4	s__Corynebacterium maris	0.0096	575200	Corynebacterium maris	unique_taxid	0.0003195802845596117
+4	s__Corynebacterium phocae	0.0671	161895	Corynebacterium phocae	unique_taxid	0.002233733030619786
+4	s__Corynebacterium stationis	0.0192	1705	Corynebacterium stationis	unique_taxid	0.0006391605691192234
+4	s__Croceibacter atlanticus	0.0089	313588	Croceibacter atlanticus	unique_taxid	0.00029627755547714
+4	s__Cyclobacterium amurskyense	0.0192	320787	Cyclobacterium amurskyense	unique_taxid	0.0006391605691192234
+4	s__Cycloclasticus pugetii	0.9014	1329899	Cycloclasticus zancles	unique_taxid	0.03000725713562854
+4	s__Deferribacter desulfuricans	0.0096	197162	Deferribacter desulfuricans	unique_taxid	0.0003195802845596117
+4	s__Denitrovibrio acetiphilus	0.0096	118000	Denitrovibrio acetiphilus	unique_taxid	0.0003195802845596117
+4	s__Desulfobacula toluolica	0.1918	28223	Desulfobacula toluolica	unique_taxid	0.0063849477685972425
+4	s__Desulfocapsa sulfexigens	0.0288	65555	Desulfocapsa sulfexigens	unique_gtdb_binomial	0.0009587408536788351
+4	s__Desulfococcus multivorans	0.1055	897	Desulfococcus multivorans	unique_taxid	0.0035120541688582326
+4	s__Desulfocurvibacter africanus	0.0863	873	Desulfovibrio africanus	unique_taxid	0.0028728935997390094
+4	s__Desulforapulum autotrophicum	0.0288	2296	Desulfobacterium autotrophicum	strict_source_name_or_assembly_sources_unique	0.0009587408536788351
+4	s__Desulfotalea psychrophila	0.0671	84980	Desulfotalea psychrophila	unique_taxid	0.002233733030619786
+4	s__Desulfovibrio desulfuricans	0.0384	876	Desulfovibrio desulfuricans	unique_gtdb_binomial	0.0012783211382384467
+4	s__Dinoroseobacter shibae	0.0192	215813	Dinoroseobacter shibae	unique_taxid	0.0006391605691192234
+4	s__Dokdonia sp000212355	0.1878	983548	Dokdonia sp. 4H-3-7-5	unique_taxid	0.006251789316697404
+4	s__Dokdonia sp947496725	0.0192	313590	Dokdonia sp. MED134	unique_taxid	0.0006391605691192234
+4	s__Draconibacterium orientale	0.0192	1168034	Draconibacterium orientale	unique_gtdb_binomial	0.0006391605691192234
+4	s__Epibacterium sp000014065	0.0069	292414	Ruegeria sp. TM1040	unique_taxid	0.0002296983295272209
+4	s__Erythrobacter epoxidivorans	0.0096	361183	Altererythrobacter epoxidivorans	unique_taxid	0.0003195802845596117
+4	s__Erythrobacter ishigakiensis	0.0096	476157	Altererythrobacter ishigakiensis	unique_taxid	0.0003195802845596117
+4	s__Erythrobacter litoralis	0.2493	39960	Erythrobacter litoralis	unique_gtdb_binomial	0.008299100514657416
+4	s__Filomicrobium insigne	0.0192	1608628	Candidatus Filomicrobium marinum	unique_taxid	0.0006391605691192234
+4	s__Flagellimonas ruestringensis	0.0384	111501	Muricauda ruestringensis	strict_source_name_or_assembly_sources_unique	0.0012783211382384467
+4	s__Flagellimonas_A lutaonensis	0.0096	516051	Muricauda lutaonensis	unique_taxid	0.0003195802845596117
+4	s__Flammeovirga yaeyamensis	0.5657	1191459	Flammeovirga sp. MY04	unique_taxid	0.018831934059934618
+4	s__Flavobacterium psychrophilum	0.2117	96345	Flavobacterium psychrophilum	unique_gtdb_binomial	0.007047411066798937
+4	s__Flexistipes sinusarabici	0.0096	2352	Flexistipes sinusarabici	unique_taxid	0.0003195802845596117
+4	s__Francisella noatunensis	0.0288	657445	Francisella noatunensis	unique_taxid	0.0009587408536788351
+4	s__Francisella uliginis	0.0096	573570	Francisella sp. TX077310	unique_taxid	0.0003195802845596117
+4	s__Glaciecola nitratireducens	0.0575	300231	Glaciecola nitratireducens	unique_taxid	0.0019141527460601743
+4	s__Gloeomargarita lithophora	0.0192	1188228	Gloeomargarita lithophora	unique_taxid	0.0006391605691192234
+4	s__Gymnodinialimonas sp000013565	0.0384	290400	Jannaschia sp. CCS1	unique_taxid	0.0012783211382384467
+4	s__Hahella chejuensis	0.0192	158327	Hahella chejuensis	unique_taxid	0.0006391605691192234
+4	s__Halanaeroarchaeum sulfurireducens	0.0096	1604004	Halanaeroarchaeum sulfurireducens	unique_taxid	0.0003195802845596117
+4	s__Halolamina sediminis	0.0096	1480675	Halolamina sediminis	unique_taxid	0.0003195802845596117
+4	s__Halomonas aestuarii	0.1342	1897729	Halomonas aestuarii	unique_taxid	0.004467466061239572
+4	s__Halomonas elongata	0.002	2746	Halomonas elongata	unique_gtdb_binomial	6.657922594991911e-05
+4	s__Halorhabdus tiamatea	0.0575	430914	Halorhabdus tiamatea	unique_taxid	0.0019141527460601743
+4	s__Hel1-33-131 sp001735745	0.0063	1336794	Formosa sp. Hel1_33_131	strict_source_name_or_assembly_sources_unique	0.0002097245617422452
+4	s__Hungateiclostridium thermocellum	0.0575	1515	Ruminiclostridium thermocellum	unique_taxid	0.0019141527460601743
+4	s__Hydrogenovibrio crunogenus	0.0192	39765	Thiomicrospira crunogena	unique_taxid	0.0006391605691192234
+4	s__Hyperthermus butylicus	1.6013	54248	Hyperthermus butylicus	unique_taxid	0.05330665725680273
+4	s__Hyphomicrobium_C nitrativorans	0.326	1427356	Hyphomicrobium nitrativorans	unique_taxid	0.010852413829836814
+4	s__Hyphomonas neptunia	0.1342	81032	Hyphomonas neptunium	unique_taxid	0.004467466061239572
+4	s__Idiomarina loihiensis	0.0096	135577	Idiomarina loihiensis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Ignicoccus hospitalis	0.0192	160233	Ignicoccus hospitalis	unique_taxid	0.0006391605691192234
+4	s__Ilumatobacter_A coccineus	0.4123	467094	Ilumatobacter coccineus	strict_source_name_or_assembly_sources_unique	0.013725307429575824
+4	s__Ilyobacter polytropus	0.0096	167642	Ilyobacter polytropus	unique_gtdb_binomial	0.0003195802845596117
+4	s__Isoalcanivorax pacificus	0.0096	1306787	Alcanivorax pacificus	unique_taxid	0.0003195802845596117
+4	s__Kangiella geojedonensis	0.0192	914150	Kangiella geojedonensis	unique_taxid	0.0006391605691192234
+4	s__Kangiella koreensis	0.0288	261964	Kangiella koreensis	unique_taxid	0.0009587408536788351
+4	s__Lacinutrix sp000211855	0.0959	983544	Lacinutrix sp. 5H-3-7-4	unique_taxid	0.0031924738842986212
+4	s__Lactococcus garvieae	0.0096	1363	Lactococcus garvieae	unique_gtdb_binomial	0.0003195802845596117
+4	s__Leisingera methylohalidivorans	0.0096	133924	Leisingera methylohalidivorans	unique_taxid	0.0003195802845596117
+4	s__Leuconostoc lactis	0.0096	1246	Leuconostoc lactis	unique_gtdb_binomial	0.0003195802845596117
+4	s__MONJU sp000801295	0.0096	1248727	endosymbiont of unidentified scaly snail isolate Monju	unique_taxid	0.0003195802845596117
+4	s__MRBY01 sp001693275	0.0192	32049	Synechococcus sp. PCC 7002	unique_taxid	0.0006391605691192234
+4	s__MTP4 sp000970045	0.0192	1434100	Methanosarcina sp. MTP4	unique_taxid	0.0006391605691192234
+4	s__Magnetospira sp000968135	0.1731	1288970	Magnetospira sp. QH-2	unique_taxid	0.0057624320059654986
+4	s__Maribacter dokdonensis	0.0096	1644130	Maribacter sp. 1_2014MBL_MicDiv	unique_taxid	0.0003195802845596117
+4	s__Maribacter_A sp000153165	0.0384	313603	Maribacter sp. HTCC2170	unique_taxid	0.0012783211382384467
+4	s__Marinitoga piezophila	0.0192	149715	Marinitoga piezophila	unique_taxid	0.0006391605691192234
+4	s__Marinobacter adhaerens	0.0096	1033846	Marinobacter adhaerens	unique_gtdb_binomial	0.0003195802845596117
+4	s__Marinobacter nauticus	0.0357	2743	Marinobacter hydrocarbonoclasticus	strict_source_name_or_assembly_sources_unique	0.0011884391832060561
+4	s__Marinobacter psychrophilus	0.0959	490759	Marinobacter sp. BSs20148	unique_taxid	0.0031924738842986212
+4	s__Marinobacter salinus	0.0141	1874317	Marinobacter salinus	unique_taxid	0.0004693835429469297
+4	s__Marinobacter similis	0.0479	1420916	Marinobacter similis	unique_taxid	0.0015945724615005624
+4	s__Marinobacterium_A aestuarii	0.0306	1821621	Marinobacterium sp. ST58-10	unique_taxid	0.0010186621570337623
+4	s__Marinomonas mediterranea	0.0096	119864	Marinomonas mediterranea	unique_taxid	0.0003195802845596117
+4	s__Marinomonas posidonica	0.7192	936476	Marinomonas posidonica	unique_gtdb_binomial	0.023941889651590907
+4	s__Marinovum algicola	0.0027	42444	Marinovum algicola	unique_taxid	8.988195503239079e-05
+4	s__Marivirga tractuosa	0.0288	1006	Marivirga tractuosa	unique_gtdb_binomial	0.0009587408536788351
+4	s__Marivivens geojensis	0.0037	1920883	Donghicola sp. JLT3646	unique_taxid	0.00012317156800735035
+4	s__Metabacillus weihaiensis	0.0192	1547283	Bacillus weihaiensis	unique_taxid	0.0006391605691192234
+4	s__Methanocaldococcus sp000025525	0.0096	644281	Methanocaldococcus sp. FS406-22	unique_taxid	0.0003195802845596117
+4	s__Methanocaldococcus vulcanius	0.0288	73913	Methanocaldococcus vulcanius	unique_taxid	0.0009587408536788351
+4	s__Methanococcus maripaludis	0.0671	39152	Methanococcus maripaludis	unique_gtdb_binomial	0.002233733030619786
+4	s__Methanococcus voltae	0.0192	2188	Methanococcus voltae	unique_gtdb_binomial	0.0006391605691192234
+4	s__Methanoculleus marisnigri	0.0384	2198	Methanoculleus marisnigri	unique_gtdb_binomial	0.0012783211382384467
+4	s__Methanosarcina siciliae	0.1726	38027	Methanosarcina siciliae	unique_taxid	0.005745787199478019
+4	s__Methyloceanibacter caenitepidi	0.5945	1384459	Methyloceanibacter caenitepidi	unique_taxid	0.019790674913613453
+4	s__Methylomonas methanica	0.0767	421	Methylomonas methanica	unique_gtdb_binomial	0.002553313315179398
+4	s__Micrococcus luteus	0.0384	1270	Micrococcus luteus	unique_gtdb_binomial	0.0012783211382384467
+4	s__Micromonospora arenicola	0.0726	168697	Salinispora arenicola	unique_taxid	0.0024168259019820633
+4	s__Micromonospora gifhornensis	0.0164	1003110	Verrucosispora maris	unique_taxid	0.0005459496527893367
+4	s__Micromonospora krabiensis	0.0233	307121	Micromonospora krabiensis	unique_taxid	0.0007756479823165576
+4	s__Micromonospora tropica	0.0412	168695	Salinispora tropica	unique_taxid	0.0013715320545683335
+4	s__Moritella marina	0.0102	90736	Moritella marina	unique_taxid	0.0003395540523445875
+4	s__Moritella viscosa	0.3159	80854	Moritella viscosa	unique_taxid	0.010516188738789723
+4	s__Myxococcus fulvus	0.0096	33	Myxococcus fulvus	unique_taxid	0.0003195802845596117
+4	s__Nanoarchaeum equitans	0.0288	160232	Nanoarchaeum equitans	unique_taxid	0.0009587408536788351
+4	s__Nautilia profundicola	0.0096	244787	Nautilia profundicola	unique_taxid	0.0003195802845596117
+4	s__Nitratifractor salsuginis	0.0096	269261	Nitratifractor salsuginis	unique_taxid	0.0003195802845596117
+4	s__Nitrosarchaeum limnae	0.1342	1007084	Candidatus Nitrosoarchaeum limnia	unique_taxid	0.004467466061239572
+4	s__Nitrosococcus halophilus	0.6712	133539	Nitrosococcus halophilus	unique_taxid	0.02234398822879285
+4	s__Nitrosococcus oceani	0.0288	1229	Nitrosococcus oceani	unique_taxid	0.0009587408536788351
+4	s__Nitrosopelagicus brevis	0.0671	1410606	Candidatus Nitrosopelagicus brevis	unique_taxid	0.002233733030619786
+4	s__Nitrosopumilus maritimus	0.0096	338192	Nitrosopumilus maritimus	unique_taxid	0.0003195802845596117
+4	s__Nitrosopumilus piranensis	0.0096	1582439	Candidatus Nitrosopumilus piranensis	unique_taxid	0.0003195802845596117
+4	s__Nitrosopumilus sediminis	0.0959	1229909	Candidatus Nitrosopumilus sediminis	unique_taxid	0.0031924738842986212
+4	s__Nocardia seriolae	0.0192	37332	Nocardia seriolae	unique_taxid	0.0006391605691192234
+4	s__Nonlabens dokdonensis	0.0767	328515	Nonlabens dokdonensis	unique_gtdb_binomial	0.002553313315179398
+4	s__Nonlabens sp900101765	0.0096	1336802	Nonlabens sp. Hel1_33_55	unique_taxid	0.0003195802845596117
+4	s__Novosphingobium pentaromativorans	0.0288	205844	Novosphingobium pentaromativorans	unique_gtdb_binomial	0.0009587408536788351
+4	s__Novosphingobium sp000253255	0.0863	702113	Novosphingobium sp. PP1Y	unique_taxid	0.0028728935997390094
+4	s__Octadecabacter antarcticus	0.0384	1217908	Octadecabacter antarcticus	unique_taxid	0.0012783211382384467
+4	s__Octadecabacter temperatus	0.0192	1458307	Octadecabacter temperatus	unique_taxid	0.0006391605691192234
+4	s__Oleispira antarctica	0.0959	188908	Oleispira antarctica	unique_taxid	0.0031924738842986212
+4	s__Oscillibacter valericigenes	0.0671	351091	Oscillibacter valericigenes	unique_gtdb_binomial	0.002233733030619786
+4	s__Owenweeksia hongkongensis	0.1055	253245	Owenweeksia hongkongensis	unique_gtdb_binomial	0.0035120541688582326
+4	s__Paenibacillus_AQ crassostreae	0.0096	1763538	Paenibacillus sp. LPB0068	unique_taxid	0.0003195802845596117
+4	s__Palaeococcus pacificus	0.1726	971279	Palaeococcus pacificus	unique_taxid	0.005745787199478019
+4	s__Paraglaciecola chathamensis	0.0192	983545	Glaciecola sp. 4H-3-7+YE-5	unique_taxid	0.0006391605691192234
+4	s__Paraglaciecola psychrophila	0.027	326544	Paraglaciecola psychrophila	unique_gtdb_binomial	0.0008988195503239079
+4	s__Paraoerskovia marina	0.0192	545619	Paraoerskovia marina	unique_taxid	0.0006391605691192234
+4	s__Parasynechococcus marisnigri	0.0288	84588	Synechococcus sp. WH 8102	unique_taxid	0.0009587408536788351
+4	s__Parasynechococcus sp000012505	0.0288	316279	Synechococcus sp. CC9902	strict_source_name_or_assembly_sources_unique	0.0009587408536788351
+4	s__Parasynechococcus sp000161795	0.0096	166314	Synechococcus sp. WH 8109	unique_taxid	0.0003195802845596117
+4	s__Parasynechococcus sp000737595	0.0096	585425	Synechococcus sp. KORDI-52	unique_taxid	0.0003195802845596117
+4	s__Paraurantiacibacter namhicola	0.0288	645517	Altererythrobacter namhicola	unique_taxid	0.0009587408536788351
+4	s__Pelagerythrobacter marensis	0.0096	543877	Altererythrobacter marensis	strict_source_name_or_assembly_sources_unique	0.0003195802845596117
+4	s__Pelagibacter sp000299095	0.0192	859653	alpha proteobacterium HIMB5	unique_taxid	0.0006391605691192234
+4	s__Pelagibacterium halotolerans	0.1247	531813	Pelagibacterium halotolerans	unique_gtdb_binomial	0.004151214737977456
+4	s__Persephonella marina	0.0096	309805	Persephonella marina	unique_taxid	0.0003195802845596117
+4	s__Phaeobacter gallaeciensis	0.085	60890	Phaeobacter gallaeciensis	unique_gtdb_binomial	0.0028296171028715624
+4	s__Photobacterium profundum	0.0288	74109	Photobacterium profundum	unique_gtdb_binomial	0.0009587408536788351
+4	s__Phycisphaera mikurensis	0.0096	547188	Phycisphaera mikurensis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Piscirickettsia salmonis	0.1534	1238	Piscirickettsia salmonis	unique_gtdb_binomial	0.005106626630358796
+4	s__Planktomarina temperata	0.0065	1284658	Planktomarina temperata	unique_taxid	0.00021638248433723708
+4	s__Planococcus donghaensis	0.0096	414778	Planococcus donghaensis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Planococcus maritimus	0.0288	192421	Planococcus maritimus	unique_gtdb_binomial	0.0009587408536788351
+4	s__Polaribacter todarodis	0.0192	1850252	Tenacibaculum sp. LPB0136	unique_taxid	0.0006391605691192234
+4	s__Polaribacter vadi	0.0288	1774273	Polaribacter vadi	unique_gtdb_binomial	0.0009587408536788351
+4	s__Prochlorococcus_B sp000757865	0.0192	1501269	Prochlorococcus sp. MIT 0801	unique_taxid	0.0006391605691192234
+4	s__Prosthecochloris vibrioformis	0.0384	1868325	Prosthecochloris sp. CIB 2401	unique_taxid	0.0012783211382384467
+4	s__Pseudalgibacter alginicilyticus	0.0671	1736674	Algibacter alginolytica	unique_taxid	0.002233733030619786
+4	s__Pseudoalteromonas haloplanktis	0.0096	228	Pseudoalteromonas haloplanktis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Pseudoalteromonas rubra	0.0096	43658	Pseudoalteromonas rubra	unique_gtdb_binomial	0.0003195802845596117
+4	s__Pseudoalteromonas tetraodonis	0.0384	234831	Pseudoalteromonas sp. SM9913	unique_taxid	0.0012783211382384467
+4	s__Pseudodesulfovibrio piezophilus	0.0096	879567	Desulfovibrio piezophilus	unique_taxid	0.0003195802845596117
+4	s__Pseudothioglobus singularis	0.0096	1427364	Candidatus Thioglobus singularis	strict_source_name_or_assembly_sources_unique	0.0003195802845596117
+4	s__Pseudovibrio sp000156235	0.0069	911045	Pseudovibrio sp. FO-BEG1	unique_taxid	0.0002296983295272209
+4	s__Psychrobacter glaciei	0.0096	1112209	Psychrobacter sp. PAMC 21119	unique_taxid	0.0003195802845596117
+4	s__Psychrobacter sp000586415	0.4507	1298608	Psychrobacter sp. JCM 18900	unique_taxid	0.01500362856781427
+4	s__Psychromonas ingrahamii	0.0096	357794	Psychromonas ingrahamii	unique_taxid	0.0003195802845596117
+4	s__Psychromonas sp000153405	0.0096	314282	Psychromonas sp. CNPT3	unique_taxid	0.0003195802845596117
+4	s__Pyrobaculum aerophilum	0.0288	13773	Pyrobaculum aerophilum	unique_taxid	0.0009587408536788351
+4	s__Pyrococcus furiosus	0.0384	2261	Pyrococcus furiosus	unique_taxid	0.0012783211382384467
+4	s__Pyrococcus horikoshii	0.0096	53953	Pyrococcus horikoshii	unique_taxid	0.0003195802845596117
+4	s__Pyrococcus sp000211475	0.1918	342949	Pyrococcus sp. NA2	unique_taxid	0.0063849477685972425
+4	s__Pyrococcus yayanosii	0.0192	1008460	Pyrococcus yayanosii	unique_taxid	0.0006391605691192234
+4	s__Pyrolobus fumarii	0.0096	54252	Pyrolobus fumarii	unique_taxid	0.0003195802845596117
+4	s__RCC307 sp000063525	0.0863	316278	Synechococcus sp. RCC307	unique_taxid	0.0028728935997390094
+4	s__Rhodobacter xanthinilyticus	0.0013	1850250	Rhodobacter sp. LPB0142	unique_taxid	4.327649686744742e-05
+4	s__Rhodococcoides sp000954115	0.0192	1564114	Rhodococcus sp. B7740	unique_taxid	0.0006391605691192234
+4	s__Rhodococcus_F erythropolis	0.0192	1833	Rhodococcus erythropolis	strict_source_name_or_assembly_sources_unique	0.0006391605691192234
+4	s__Rhodococcus_F qingshengii	0.0192	1723645	Rhodococcus sp. 008	unique_taxid	0.0006391605691192234
+4	s__Rhodococcus_F sp001767395	0.0096	679318	Rhodococcus sp. WMMA185	unique_taxid	0.0003195802845596117
+4	s__Rhodothermus marinus	0.0767	29549	Rhodothermus marinus	unique_gtdb_binomial	0.002553313315179398
+4	s__Roseibacterium elongatum	0.1497	159346	Roseibacterium elongatum	unique_taxid	0.004983455062351445
+4	s__Roseobacter denitrificans	0.0384	2434	Roseobacter denitrificans	unique_taxid	0.0012783211382384467
+4	s__Roseobacter litoralis	0.0288	42443	Roseobacter litoralis	unique_taxid	0.0009587408536788351
+4	s__Ruegeria_B pomeroyi	0.0384	89184	Ruegeria pomeroyi	strict_source_name_or_assembly_sources_unique	0.0012783211382384467
+4	s__Saccharophagus degradans	0.0288	86304	Saccharophagus degradans	unique_taxid	0.0009587408536788351
+4	s__Saprospira grandis	0.0096	1008	Saprospira grandis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Shewanella amazonensis	0.0096	60478	Shewanella amazonensis	unique_taxid	0.0003195802845596117
+4	s__Shewanella baltica	0.1726	62322	Shewanella baltica	unique_taxid	0.005745787199478019
+4	s__Shewanella halifaxensis	0.0959	271098	Shewanella halifaxensis	unique_gtdb_binomial	0.0031924738842986212
+4	s__Shewanella piezotolerans	0.0192	404011	Shewanella piezotolerans	unique_taxid	0.0006391605691192234
+4	s__Shewanella sediminis	0.0096	271097	Shewanella sediminis	unique_taxid	0.0003195802845596117
+4	s__Shewanella sp029835735	1.0164	94122	Shewanella sp. ANA-3	unique_taxid	0.03383556262774889
+4	s__Shewanella woodyi	0.0288	60961	Shewanella woodyi	unique_gtdb_binomial	0.0009587408536788351
+4	s__Siansivirga zeaxanthinifaciens	0.0136	762954	Siansivirga zeaxanthinifaciens	unique_taxid	0.0004527387364594499
+4	s__Sphingopyxis alaskensis	0.0096	117207	Sphingopyxis alaskensis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Spiribacter curvatus	1.9178	1335757	Spiribacter curvatus	unique_taxid	0.06384281976337743
+4	s__Spiribacter salinus	0.7863	1335746	Spiribacter salinus	unique_taxid	0.026175622682210697
+4	s__Spongiibacter sp001010805	0.0096	1620392	Spongiibacter sp. IMCC21906	unique_taxid	0.0003195802845596117
+4	s__Staphylococcus epidermidis	0.0096	1282	Staphylococcus epidermidis	unique_gtdb_binomial	0.0003195802845596117
+4	s__Staphylococcus equorum	0.0384	246432	Staphylococcus equorum	unique_gtdb_binomial	0.0012783211382384467
+4	s__Staphylococcus warneri	1.4767	1292	Staphylococcus warneri	unique_gtdb_binomial	0.049158771480122765
+4	s__Staphylothermus marinus	0.0096	2280	Staphylothermus marinus	unique_taxid	0.0003195802845596117
+4	s__Stappia sp900105595	0.0096	1881061	Stappia sp. ES.058	unique_taxid	0.0003195802845596117
+4	s__Streptococcus agalactiae	0.0192	1311	Streptococcus agalactiae	unique_gtdb_binomial	0.0006391605691192234
+4	s__Streptococcus iniae	0.0575	1346	Streptococcus iniae	unique_taxid	0.0019141527460601743
+4	s__Sulfurimonas denitrificans	0.0096	39766	Sulfurimonas denitrificans	unique_taxid	0.0003195802845596117
+4	s__Sulfurovum sp000010345	1.1123	387093	Sulfurovum sp. NBC37-1	unique_taxid	0.037028036512047516
+4	s__Synechococcus_C sp000063505	0.0192	32051	Synechococcus sp. WH 7803	unique_taxid	0.0006391605691192234
+4	s__Syntrophotalea acetylenica	2.79	29542	Pelobacter acetylenicus	unique_taxid	0.09287802020013715
+4	s__Syntrophotalea carbinolica	0.1537	19	Pelobacter carbinolicus	unique_taxid	0.005116613514251283
+4	s__Teredinibacter turnerae	0.0192	2426	Teredinibacter turnerae	unique_gtdb_binomial	0.0006391605691192234
+4	s__Thalassolituus oleivorans	0.6598	187493	Thalassolituus oleivorans	unique_gtdb_binomial	0.021964486640878314
+4	s__Thalassoporum mexicanum	0.0096	82654	Pseudanabaena sp. PCC 7367	unique_taxid	0.0003195802845596117
+4	s__Thalassotalea_A crassostreae	0.0096	1763536	Thalassotalea sp. LPB0090	unique_taxid	0.0003195802845596117
+4	s__Thermaerobacter marianensis	0.0288	73919	Thermaerobacter marianensis	unique_gtdb_binomial	0.0009587408536788351
+4	s__Thermoclostridium stercorarium	0.0096	1510	[Clostridium] stercorarium	unique_taxid	0.0003195802845596117
+4	s__Thermococcus eurythermalis	0.0096	1505907	Thermococcus eurythermalis	unique_taxid	0.0003195802845596117
+4	s__Thermococcus onnurineus	0.0096	342948	Thermococcus onnurineus	unique_taxid	0.0003195802845596117
+4	s__Thermococcus piezophilus	0.0096	1712654	Thermococcus piezophilus	unique_taxid	0.0003195802845596117
+4	s__Thermococcus sp000221185	0.0288	1042877	Thermococcus sp. 4557	unique_taxid	0.0009587408536788351
+4	s__Thermococcus_B paralvinellae	0.0096	582419	Thermococcus paralvinellae	strict_source_name_or_assembly_sources_unique	0.0003195802845596117
+4	s__Thermodesulfatator indicus	0.0096	171695	Thermodesulfatator indicus	unique_taxid	0.0003195802845596117
+4	s__Thermosipho melanesiensis	0.0096	46541	Thermosipho melanesiensis	unique_taxid	0.0003195802845596117
+4	s__Thermotoga maritima	0.1822	126740,2336	Thermotoga maritima;Thermotoga sp. RQ2	unique_taxid	0.006065367484037631
+4	s__Thermotoga neapolitana	0.0096	2337	Thermotoga neapolitana	unique_taxid	0.0003195802845596117
+4	s__Thermovirga lienii	0.0096	336261	Thermovirga lienii	unique_taxid	0.0003195802845596117
+4	s__Thioflavicoccus mobilis	0.2685	80679	Thioflavicoccus mobilis	unique_taxid	0.00893826108377664
+4	s__Thiolapillus brandeum	0.1726	1076588	Thiolapillus brandeum	unique_gtdb_binomial	0.005745787199478019
+4	s__Tistrella mobilis	0.0662	171437	Tistrella mobilis	unique_gtdb_binomial	0.002203772378942322
+4	s__UBA3537 sp001735715	0.0273	1336795	Formosa sp. Hel3_A1_48	strict_source_name_or_assembly_sources_unique	0.0009088064342163959
+4	s__UJ101 sp001880285	0.0767	1150389	Flavobacteriaceae bacterium UJ101	unique_taxid	0.002553313315179398
+4	s__Vibrio alginolyticus	0.0192	663	Vibrio alginolyticus	unique_gtdb_binomial	0.0006391605691192234
+4	s__Vibrio anguillarum	0.1918	55601	Vibrio anguillarum	unique_taxid	0.0063849477685972425
+4	s__Vibrio campbellii	0.0096	680	Vibrio campbellii	unique_gtdb_binomial	0.0003195802845596117
+4	s__Vibrio cholerae	0.163	666	Vibrio cholerae	unique_gtdb_binomial	0.005426206914918407
+4	s__Vibrio coralliilyticus	0.3164	190893	Vibrio coralliilyticus	unique_gtdb_binomial	0.010532833545277204
+4	s__Vibrio nigripulchritudo	0.0096	28173	Vibrio nigripulchritudo	unique_taxid	0.0003195802845596117
+4	s__Vibrio scophthalmi	0.0575	45658	Vibrio scophthalmi	unique_gtdb_binomial	0.0019141527460601743
+4	s__Vibrio tasmaniensis	0.0479	212663	Vibrio tasmaniensis	unique_gtdb_binomial	0.0015945724615005624
+4	s__Vibrio tubiashii	0.0959	29498	Vibrio tubiashii	unique_gtdb_binomial	0.0031924738842986212
+4	s__Vreelandella titanicae	0.0747	1380358	Halomonas sp. 23_GOM-1509m	unique_taxid	0.002486734089229479
+4	s__Weissella ceti	0.0192	759620	Weissella ceti	unique_gtdb_binomial	0.0006391605691192234
+4	s__Wenyingzhuangia fucanilytica	0.0358	1790137	Wenyingzhuangia fucanilytica	unique_taxid	0.0011917681445035519
+4	s__Winogradskyella sp000828715	0.0096	754409	Winogradskyella sp. PG-2	unique_taxid	0.0003195802845596117
+4	s__Woeseia oceani	0.1151	1548547	Woeseia oceani	unique_taxid	0.0038316344534178445
+4	s__Xianfuyuplasma sp000755705	0.0479	1541959	Candidatus Izimaplasma sp. HR1	unique_taxid	0.0015945724615005624
+4	s__Zunongwangia profunda	0.0288	398743	Zunongwangia profunda	unique_taxid	0.0009587408536788351
+5	s__Aciduliprofundum boonei	0.0085	379547	Aciduliprofundum boonei	unique_taxid	0.00023345811898673683
+5	s__Acinetobacter johnsonii	0.0085	40214	Acinetobacter johnsonii	unique_gtdb_binomial	0.00023345811898673683
+5	s__Acinetobacter venetianus	0.0341	52133	Acinetobacter venetianus	unique_taxid	0.0009365790420526735
+5	s__Actinoalloteichus_A hymeniacidonis	0.017	340345	Actinoalloteichus hymeniacidonis	unique_taxid	0.00046691623797347366
+5	s__Aegicerativicinus sp900104375	0.017	1250295	Flavobacteriaceae bacterium MAR_2010_188	unique_taxid	0.00046691623797347366
+5	s__Aeromonas salmonicida	0.1022	645	Aeromonas salmonicida	unique_taxid	0.0028069905600522946
+5	s__Aeropyrum camini	0.0852	229980	Aeropyrum camini	unique_taxid	0.002340074322078821
+5	s__Agarivorans gilvus	0.0085	680279	Agarivorans gilvus	unique_taxid	0.00023345811898673683
+5	s__Agrococcus jejuensis	0.0256	399736	Agrococcus jejuensis	unique_gtdb_binomial	0.0007031209230659368
+5	s__Aliivibrio fischeri	0.0085	668	Aliivibrio fischeri	unique_gtdb_binomial	0.00023345811898673683
+5	s__Aliivibrio salmonicida	0.5709	40269	Aliivibrio salmonicida	unique_taxid	0.015680145897591535
+5	s__Aliivibrio wodanis	0.3408	80852	Aliivibrio wodanis	unique_taxid	0.009360297288315283
+5	s__Alteraurantiacibacter gangjinensis	0.0085	502682	Erythrobacter gangjinensis	unique_taxid	0.00023345811898673683
+5	s__Alteriqipengyuania bathyomarina	0.017	1634516	Citromicrobium sp. JL477	unique_taxid	0.00046691623797347366
+5	s__Alteromonas australica	0.0341	589873	Alteromonas australica	unique_taxid	0.0009365790420526735
+5	s__Alteromonas macleodii	0.2852	28108	Alteromonas macleodii	unique_gtdb_binomial	0.007833206533531452
+5	s__Alteromonas mediterranea	1.3717	314275	Alteromonas mediterranea	unique_taxid	0.03767464727224787
+5	s__Aquibium oceanicum	0.0256	1670800	Mesorhizobium sp. B7	unique_taxid	0.0007031209230659368
+5	s__Aquiluna sp900100865	0.0085	1855377	Candidatus Aquiluna sp. UB-MaderosW2red	unique_taxid	0.00023345811898673683
+5	s__Aquipseudomonas pohangensis	0.0256	364197	Pseudomonas pohangensis	unique_taxid	0.0007031209230659368
+5	s__Aquipseudomonas rustica	0.017	1699311	Pseudomonas sp. P1.31	unique_taxid	0.00046691623797347366
+5	s__Arcanobacterium phocae	0.0341	131112	Arcanobacterium phocae	unique_gtdb_binomial	0.0009365790420526735
+5	s__Archaeoglobus fulgidus	0.0937	2234	Archaeoglobus fulgidus	unique_taxid	0.0025735324410655577
+5	s__Archaeoglobus_C veneficus	0.0341	58290	Archaeoglobus veneficus	unique_taxid	0.0009365790420526735
+5	s__Atelocyanobacterium thalassae	0.0085	713887	Candidatus Atelocyanobacterium thalassa	strict_source_name_or_assembly_sources_unique	0.00023345811898673683
+5	s__Bacillus pumilus	0.0341	1408	Bacillus pumilus	unique_gtdb_binomial	0.0009365790420526735
+5	s__Bacillus velezensis	0.0085	492670	Bacillus velezensis	unique_gtdb_binomial	0.00023345811898673683
+5	s__Bacillus_AB infantis	0.0426	324767	Bacillus infantis	strict_source_name_or_assembly_sources_unique	0.0011700371610394104
+5	s__Belliella baltica	0.0085	232259	Belliella baltica	unique_taxid	0.00023345811898673683
+5	s__Bernardetia litoralis	0.0085	999	Bernardetia litoralis	unique_taxid	0.00023345811898673683
+5	s__Brucella melitensis	0.0767	120576,120577	Brucella ceti;Brucella pinnipedialis	unique_taxid	0.002106616203092084
+5	s__Caldithrix abyssi	0.0767	187145	Caldithrix abyssi	unique_gtdb_binomial	0.002106616203092084
+5	s__Celeribacter indicus	0.0426	1208324	Celeribacter indicus	unique_taxid	0.0011700371610394104
+5	s__Cellulophaga algicola	0.0221	59600	Cellulophaga algicola	unique_taxid	0.0006069911093655158
+5	s__Cellulophaga baltica	0.2929	76594	Cellulophaga baltica	unique_gtdb_binomial	0.008044692123672379
+5	s__Cellulophaga lytica	0.0596	979	Cellulophaga lytica	unique_gtdb_binomial	0.001636953399012884
+5	s__Cenarchaeum symbiosum	0.0256	46770	Cenarchaeum symbiosum	unique_taxid	0.0007031209230659368
+5	s__Cereibacter_A sphaeroides	0.0056	1063	Rhodobacter sphaeroides	strict_source_name_or_assembly_sources_unique	0.00015380770192067366
+5	s__Chlorobium phaeobacteroides	0.017	1096	Chlorobium phaeobacteroides	unique_gtdb_binomial	0.00046691623797347366
+5	s__Chloroherpeton thalassium	0.0085	100716	Chloroherpeton thalassium	unique_gtdb_binomial	0.00023345811898673683
+5	s__Christiangramia salexigens	0.017	1913577	Gramella sp. LPB0144	unique_taxid	0.00046691623797347366
+5	s__Christiangramia sp900105135	0.0006	1250205	Gramella sp. MAR_2010_147	unique_taxid	1.647939663435789e-05
+5	s__Chromatium violascens	0.0596	73141	Thiocystis violascens	strict_source_name_or_assembly_sources_unique	0.001636953399012884
+5	s__Chromohalobacter moromii	0.017	158080	Chromohalobacter salexigens	unique_taxid	0.00046691623797347366
+5	s__Clostridium cagae	0.0767	1491	Clostridium botulinum	strict_source_name_or_assembly_sources_unique	0.002106616203092084
+5	s__Colwellia marinimaniae	0.017	58049	Colwellia sp. MT41	unique_taxid	0.00046691623797347366
+5	s__Colwellia psychrerythraea_A	0.017	28229	Colwellia psychrerythraea	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Colwellia_A sp001767295	0.0256	1816218	Colwellia sp. PAMC 20917	unique_taxid	0.0007031209230659368
+5	s__Corynebacterium maris	0.0085	575200	Corynebacterium maris	unique_taxid	0.00023345811898673683
+5	s__Corynebacterium phocae	0.1363	161895	Corynebacterium phocae	unique_taxid	0.0037435696021049683
+5	s__Corynebacterium stationis	0.0085	1705	Corynebacterium stationis	unique_taxid	0.00023345811898673683
+5	s__Croceibacter atlanticus	0.0079	313588	Croceibacter atlanticus	unique_taxid	0.00021697872235237894
+5	s__Croceibacterium_C atlanticum	0.0085	1267766	Altererythrobacter atlanticus	unique_taxid	0.00023345811898673683
+5	s__Crocosphaera subtropica	0.0426	43989	Cyanothece sp. ATCC 51142	unique_taxid	0.0011700371610394104
+5	s__Cyclobacterium amurskyense	0.0085	320787	Cyclobacterium amurskyense	unique_taxid	0.00023345811898673683
+5	s__Cycloclasticus pugetii	0.6987	1329899	Cycloclasticus zancles	unique_taxid	0.019190257380709765
+5	s__Deferribacter desulfuricans	0.0085	197162	Deferribacter desulfuricans	unique_taxid	0.00023345811898673683
+5	s__Denitrovibrio acetiphilus	0.0085	118000	Denitrovibrio acetiphilus	unique_taxid	0.00023345811898673683
+5	s__Desulfobacula toluolica	0.5283	28223	Desulfobacula toluolica	unique_taxid	0.014510108736552124
+5	s__Desulfocapsa sulfexigens	0.2215	65555	Desulfocapsa sulfexigens	unique_gtdb_binomial	0.006083643924183789
+5	s__Desulfococcus multivorans	0.1193	897	Desulfococcus multivorans	unique_taxid	0.0032766533641314945
+5	s__Desulfocurvibacter africanus	0.0596	873	Desulfovibrio africanus	unique_taxid	0.001636953399012884
+5	s__Desulforapulum autotrophicum	0.4175	2296	Desulfobacterium autotrophicum	strict_source_name_or_assembly_sources_unique	0.011466913491407367
+5	s__Desulfotalea psychrophila	0.7242	84980	Desulfotalea psychrophila	unique_taxid	0.019890631737669976
+5	s__Desulfovibrio desulfuricans	0.0341	876	Desulfovibrio desulfuricans	unique_gtdb_binomial	0.0009365790420526735
+5	s__Dinoroseobacter shibae	0.0511	215813	Dinoroseobacter shibae	unique_taxid	0.0014034952800261473
+5	s__Dokdonia sp000212355	0.1589	983548	Dokdonia sp. 4H-3-7-5	unique_taxid	0.004364293541999116
+5	s__Dokdonia sp947496725	0.0256	313590	Dokdonia sp. MED134	unique_taxid	0.0007031209230659368
+5	s__Draconibacterium orientale	0.213	1168034	Draconibacterium orientale	unique_gtdb_binomial	0.005850185805197052
+5	s__Echinicola vietnamensis	0.0256	390884	Echinicola vietnamensis	unique_taxid	0.0007031209230659368
+5	s__Epibacterium sp000014065	0.0041	292414	Ruegeria sp. TM1040	unique_taxid	0.00011260921033477895
+5	s__Erythrobacter ishigakiensis	0.0085	476157	Altererythrobacter ishigakiensis	unique_taxid	0.00023345811898673683
+5	s__Erythrobacter litoralis	0.4175	39960	Erythrobacter litoralis	unique_gtdb_binomial	0.011466913491407367
+5	s__Ferrimonas balearica	0.0511	44012	Ferrimonas balearica	unique_gtdb_binomial	0.0014034952800261473
+5	s__Fibrella aestuarina	0.017	651143	Fibrella aestuarina	unique_taxid	0.00046691623797347366
+5	s__Filomicrobium insigne	0.017	1608628	Candidatus Filomicrobium marinum	unique_taxid	0.00046691623797347366
+5	s__Flagellimonas ruestringensis	0.0341	111501	Muricauda ruestringensis	strict_source_name_or_assembly_sources_unique	0.0009365790420526735
+5	s__Flagellimonas_A lutaonensis	0.017	516051	Muricauda lutaonensis	unique_taxid	0.00046691623797347366
+5	s__Flammeovirga yaeyamensis	0.4857	1191459	Flammeovirga sp. MY04	unique_taxid	0.013340071575512716
+5	s__Flavobacterium frigidarium	0.0426	99286	Flavobacterium frigidarium	unique_taxid	0.0011700371610394104
+5	s__Flavobacterium psychrophilum	0.6411	96345	Flavobacterium psychrophilum	unique_gtdb_binomial	0.01760823530381141
+5	s__Formosa haliotis	0.0511	1555194	Formosa haliotis	unique_taxid	0.0014034952800261473
+5	s__Francisella noatunensis	0.0511	657445	Francisella noatunensis	unique_taxid	0.0014034952800261473
+5	s__Francisella uliginis	0.017	573570	Francisella sp. TX077310	unique_taxid	0.00046691623797347366
+5	s__Geobacillus thermoleovorans	0.017	1462	Geobacillus kaustophilus	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Geoglobus ahangari	0.0085	113653	Geoglobus ahangari	unique_taxid	0.00023345811898673683
+5	s__Glaciecola nitratireducens	0.0682	300231	Glaciecola nitratireducens	unique_taxid	0.001873158084105347
+5	s__Gloeomargarita lithophora	0.0426	1188228	Gloeomargarita lithophora	unique_taxid	0.0011700371610394104
+5	s__Gymnodinialimonas sp000013565	0.0341	290400	Jannaschia sp. CCS1	unique_taxid	0.0009365790420526735
+5	s__Hahella chejuensis	0.0767	158327	Hahella chejuensis	unique_taxid	0.002106616203092084
+5	s__Haloarcula hispanica	0.017	1592728,51589	Haloarcula hispanica;Haloarcula sp. CBA1115	unique_taxid	0.00046691623797347366
+5	s__Halobacteriovorax marinus	0.0256	97084	Halobacteriovorax marinus	unique_gtdb_binomial	0.0007031209230659368
+5	s__Haloferax gibbonsii	0.017	35746	Haloferax gibbonsii	unique_taxid	0.00046691623797347366
+5	s__Haloferax mediterranei	0.0256	2252	Haloferax mediterranei	unique_taxid	0.0007031209230659368
+5	s__Halogeometricum borinquense	0.0085	60847	Halogeometricum borinquense	unique_taxid	0.00023345811898673683
+5	s__Halomonas aestuarii	0.1704	1897729	Halomonas aestuarii	unique_taxid	0.004680148644157642
+5	s__Halomonas elongata	0.0024	2746	Halomonas elongata	unique_gtdb_binomial	6.591758653743157e-05
+5	s__Haloquadratum walsbyi	0.0085	293091	Haloquadratum walsbyi	unique_gtdb_binomial	0.00023345811898673683
+5	s__Halorhabdus tiamatea	0.0426	430914	Halorhabdus tiamatea	unique_taxid	0.0011700371610394104
+5	s__Hel1-33-131 sp001735745	0.0022	1336794	Formosa sp. Hel1_33_131	strict_source_name_or_assembly_sources_unique	6.042445432597895e-05
+5	s__Hirschia baltica	0.0042	2724	Hirschia baltica	unique_taxid	0.00011535577644050524
+5	s__Hoeflea sp001011155	0.0085	1620421	Hoeflea sp. IMCC20628	unique_taxid	0.00023345811898673683
+5	s__Hungateiclostridium thermocellum	0.0596	1515	Ruminiclostridium thermocellum	unique_taxid	0.001636953399012884
+5	s__Hydrogenovibrio crunogenus	0.017	39765	Thiomicrospira crunogena	unique_taxid	0.00046691623797347366
+5	s__Hyperthermus butylicus	1.8575	54248	Hyperthermus butylicus	unique_taxid	0.05101746541386631
+5	s__Hyphomicrobium_C nitrativorans	0.1193	1427356	Hyphomicrobium nitrativorans	unique_taxid	0.0032766533641314945
+5	s__Hyphomonas neptunia	0.0596	81032	Hyphomonas neptunium	unique_taxid	0.001636953399012884
+5	s__IMCC9063 sp000195085	0.0014	1002672	Candidatus Pelagibacter sp. IMCC9063	unique_taxid	3.8451925480168414e-05
+5	s__Ignicoccus hospitalis	0.0085	160233	Ignicoccus hospitalis	unique_taxid	0.00023345811898673683
+5	s__Ignicoccus islandicus	0.0085	54259	Ignicoccus islandicus	unique_taxid	0.00023345811898673683
+5	s__Ilumatobacter_A coccineus	0.2812	467094	Ilumatobacter coccineus	strict_source_name_or_assembly_sources_unique	0.0077233438893024
+5	s__Ilyobacter polytropus	0.1363	167642	Ilyobacter polytropus	unique_gtdb_binomial	0.0037435696021049683
+5	s__Isoalcanivorax pacificus	0.017	1306787	Alcanivorax pacificus	unique_taxid	0.00046691623797347366
+5	s__JBDGSM01 sp001761425	0.0085	1737403	Nanohaloarchaea archaeon SG9	unique_taxid	0.00023345811898673683
+5	s__Kangiella geojedonensis	0.0767	914150	Kangiella geojedonensis	unique_taxid	0.002106616203092084
+5	s__Kangiella koreensis	0.0341	261964	Kangiella koreensis	unique_taxid	0.0009365790420526735
+5	s__Lacimicrobium alkaliphilum	0.0085	1526571	Lacimicrobium alkaliphilum	unique_gtdb_binomial	0.00023345811898673683
+5	s__Lacinutrix sp000211855	0.0852	983544	Lacinutrix sp. 5H-3-7-4	unique_taxid	0.002340074322078821
+5	s__Lactococcus garvieae	0.0085	1363	Lactococcus garvieae	unique_gtdb_binomial	0.00023345811898673683
+5	s__Leisingera methylohalidivorans	0.0085	133924	Leisingera methylohalidivorans	unique_taxid	0.00023345811898673683
+5	s__MONJU sp000801295	0.0085	1248727	endosymbiont of unidentified scaly snail isolate Monju	unique_taxid	0.00023345811898673683
+5	s__MTP4 sp000970045	0.0085	1434100	Methanosarcina sp. MTP4	unique_taxid	0.00023345811898673683
+5	s__Magnetococcus marinus	0.0085	1124597	Magnetococcus marinus	unique_taxid	0.00023345811898673683
+5	s__Magnetospira sp000968135	0.1376	1288970	Magnetospira sp. QH-2	unique_taxid	0.00377927496147941
+5	s__Maribacter dokdonensis	0.1193	1644130	Maribacter sp. 1_2014MBL_MicDiv	unique_taxid	0.0032766533641314945
+5	s__Maribacter_A sp000153165	0.017	313603	Maribacter sp. HTCC2170	unique_taxid	0.00046691623797347366
+5	s__Maricaulis maris	0.0043	74318	Maricaulis maris	unique_gtdb_binomial	0.00011810234254623156
+5	s__Maridesulfovibrio hydrothermalis	0.2982	191026	Desulfovibrio hydrothermalis	unique_taxid	0.008190260127275873
+5	s__Marinithermus hydrothermalis	0.017	186192	Marinithermus hydrothermalis	unique_taxid	0.00046691623797347366
+5	s__Marinitoga piezophila	0.017	149715	Marinitoga piezophila	unique_taxid	0.00046691623797347366
+5	s__Marinobacter adhaerens	0.017	1033846	Marinobacter adhaerens	unique_gtdb_binomial	0.00046691623797347366
+5	s__Marinobacter nauticus	0.0792	2743	Marinobacter hydrocarbonoclasticus	strict_source_name_or_assembly_sources_unique	0.002175280355735242
+5	s__Marinobacter psychrophilus	0.0682	490759	Marinobacter sp. BSs20148	unique_taxid	0.001873158084105347
+5	s__Marinobacter salinus	0.0063	1874317	Marinobacter salinus	unique_taxid	0.0001730336646607579
+5	s__Marinobacter similis	0.0511	1420916	Marinobacter similis	unique_taxid	0.0014034952800261473
+5	s__Marinobacterium_A aestuarii	0.0285	1821621	Marinobacterium sp. ST58-10	unique_taxid	0.000782771340132
+5	s__Marinomonas mediterranea	0.1022	119864	Marinomonas mediterranea	unique_taxid	0.0028069905600522946
+5	s__Marinomonas posidonica	0.5368	936476	Marinomonas posidonica	unique_gtdb_binomial	0.014743566855538863
+5	s__Marinovum algicola	0.0121	42444	Marinovum algicola	unique_taxid	0.00033233449879288416
+5	s__Marivirga tractuosa	0.0767	1006	Marivirga tractuosa	unique_gtdb_binomial	0.002106616203092084
+5	s__Marivivens geojensis	0.0027	1920883	Donghicola sp. JLT3646	unique_taxid	7.415728485461052e-05
+5	s__Methanocaldococcus fervens	0.017	83171	Methanocaldococcus fervens	unique_taxid	0.00046691623797347366
+5	s__Methanocaldococcus infernus	0.0256	67760	Methanocaldococcus infernus	unique_taxid	0.0007031209230659368
+5	s__Methanocaldococcus jannaschii	0.017	2190	Methanocaldococcus jannaschii	unique_taxid	0.00046691623797347366
+5	s__Methanocaldococcus sp000025525	0.0256	644281	Methanocaldococcus sp. FS406-22	unique_taxid	0.0007031209230659368
+5	s__Methanocaldococcus vulcanius	0.017	73913	Methanocaldococcus vulcanius	unique_taxid	0.00046691623797347366
+5	s__Methanococcoides methylutens	0.0085	2226	Methanococcoides methylutens	unique_gtdb_binomial	0.00023345811898673683
+5	s__Methanococcus maripaludis	0.0426	39152	Methanococcus maripaludis	unique_gtdb_binomial	0.0011700371610394104
+5	s__Methanoculleus marisnigri	0.0085	2198	Methanoculleus marisnigri	unique_gtdb_binomial	0.00023345811898673683
+5	s__Methanofervidicoccus okinawensis	0.017	155863	Methanothermococcus okinawensis	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Methanohalobium evestigatum	0.017	2322	Methanohalobium evestigatum	unique_taxid	0.00046691623797347366
+5	s__Methanolacinia petrolearia	0.0085	54120	Methanolacinia petrolearia	unique_taxid	0.00023345811898673683
+5	s__Methanosarcina siciliae	0.0937	38027	Methanosarcina siciliae	unique_taxid	0.0025735324410655577
+5	s__Methanosarcina sp000969965	0.017	1434102	Methanosarcina sp. WH1	unique_taxid	0.00046691623797347366
+5	s__Methyloceanibacter caenitepidi	0.2897	1384459	Methyloceanibacter caenitepidi	unique_taxid	0.007956802008289136
+5	s__Methylomonas methanica	0.1534	421	Methylomonas methanica	unique_gtdb_binomial	0.004213232406184168
+5	s__Micrococcus luteus	0.017	1270	Micrococcus luteus	unique_gtdb_binomial	0.00046691623797347366
+5	s__Micromonospora arenicola	0.0194	168697	Salinispora arenicola	unique_taxid	0.0005328338245109052
+5	s__Micromonospora gifhornensis	0.0048	1003110	Verrucosispora maris	unique_taxid	0.00013183517307486313
+5	s__Micromonospora krabiensis	0.0062	307121	Micromonospora krabiensis	unique_taxid	0.00017028709855503154
+5	s__Micromonospora tropica	0.0122	168695	Salinispora tropica	unique_taxid	0.0003350810648986105
+5	s__Moritella marina	0.004	90736	Moritella marina	unique_taxid	0.00010986264422905262
+5	s__Moritella viscosa	0.5243	80854	Moritella viscosa	unique_taxid	0.014400246092323071
+5	s__Myxococcus fulvus	0.0256	33	Myxococcus fulvus	unique_taxid	0.0007031209230659368
+5	s__Nanoarchaeum equitans	0.0596	160232	Nanoarchaeum equitans	unique_taxid	0.001636953399012884
+5	s__Nautilia profundicola	0.0085	244787	Nautilia profundicola	unique_taxid	0.00023345811898673683
+5	s__Nitratifractor salsuginis	0.0341	269261	Nitratifractor salsuginis	unique_taxid	0.0009365790420526735
+5	s__Nitrosarchaeum limnae	0.5027	1007084	Candidatus Nitrosoarchaeum limnia	unique_taxid	0.01380698781348619
+5	s__Nitrosococcus halophilus	1.0992	133539	Nitrosococcus halophilus	unique_taxid	0.030190254634143657
+5	s__Nitrosococcus oceani	0.0511	1229	Nitrosococcus oceani	unique_taxid	0.0014034952800261473
+5	s__Nitrosopelagicus brevis	0.0341	1410606	Candidatus Nitrosopelagicus brevis	unique_taxid	0.0009365790420526735
+5	s__Nitrosopumilus maritimus	0.0256	338192	Nitrosopumilus maritimus	unique_taxid	0.0007031209230659368
+5	s__Nitrosopumilus piranensis	0.0085	1582439	Candidatus Nitrosopumilus piranensis	unique_taxid	0.00023345811898673683
+5	s__Nitrosopumilus sediminis	0.0767	1229909	Candidatus Nitrosopumilus sediminis	unique_taxid	0.002106616203092084
+5	s__Nocardia seriolae	0.0085	37332	Nocardia seriolae	unique_taxid	0.00023345811898673683
+5	s__Nonlabens dokdonensis	0.1278	328515	Nonlabens dokdonensis	unique_gtdb_binomial	0.003510111483118231
+5	s__Nonlabens marinus	0.0085	930802	Nonlabens marinus	unique_taxid	0.00023345811898673683
+5	s__Nonlabens sp900101765	0.0426	1336802	Nonlabens sp. Hel1_33_55	unique_taxid	0.0011700371610394104
+5	s__Novosphingobium sp000253255	0.1022	702113	Novosphingobium sp. PP1Y	unique_taxid	0.0028069905600522946
+5	s__Octadecabacter antarcticus	0.1022	1217908	Octadecabacter antarcticus	unique_taxid	0.0028069905600522946
+5	s__Octadecabacter arcticus	0.0341	53946	Octadecabacter arcticus	unique_taxid	0.0009365790420526735
+5	s__Octadecabacter temperatus	0.0085	1458307	Octadecabacter temperatus	unique_taxid	0.00023345811898673683
+5	s__Oleispira antarctica	0.0341	188908	Oleispira antarctica	unique_taxid	0.0009365790420526735
+5	s__Ornithinicoccus hydrothermalis	0.017	1758689	Serinicoccus sp. JLT9	unique_taxid	0.00046691623797347366
+5	s__Oscillibacter valericigenes	0.017	351091	Oscillibacter valericigenes	unique_gtdb_binomial	0.00046691623797347366
+5	s__Owenweeksia hongkongensis	0.0682	253245	Owenweeksia hongkongensis	unique_gtdb_binomial	0.001873158084105347
+5	s__Paenibacillus_AQ crassostreae	0.0085	1763538	Paenibacillus sp. LPB0068	unique_taxid	0.00023345811898673683
+5	s__Palaeococcus pacificus	0.2812	971279	Palaeococcus pacificus	unique_taxid	0.0077233438893024
+5	s__Paraglaciecola chathamensis	0.0852	983545	Glaciecola sp. 4H-3-7+YE-5	unique_taxid	0.002340074322078821
+5	s__Paraglaciecola psychrophila	0.0679	326544	Paraglaciecola psychrophila	unique_gtdb_binomial	0.0018649183857881683
+5	s__Paraoerskovia marina	0.0341	545619	Paraoerskovia marina	unique_taxid	0.0009365790420526735
+5	s__Parasynechococcus sp000012505	0.0426	316279	Synechococcus sp. CC9902	strict_source_name_or_assembly_sources_unique	0.0011700371610394104
+5	s__Parasynechococcus sp000161795	0.0085	166314	Synechococcus sp. WH 8109	unique_taxid	0.00023345811898673683
+5	s__Parasynechococcus sp000737575	0.0085	585423	Synechococcus sp. KORDI-49	unique_taxid	0.00023345811898673683
+5	s__Parasynechococcus sp000737595	0.0085	585425	Synechococcus sp. KORDI-52	unique_taxid	0.00023345811898673683
+5	s__Paraurantiacibacter namhicola	0.0426	645517	Altererythrobacter namhicola	unique_taxid	0.0011700371610394104
+5	s__Parvularcula bermudensis	0.017	208216	Parvularcula bermudensis	unique_taxid	0.00046691623797347366
+5	s__Pelagibacter sp000299095	0.0256	859653	alpha proteobacterium HIMB5	unique_taxid	0.0007031209230659368
+5	s__Pelagibacter ubiqueversans	0.0412	198252	Candidatus Pelagibacter ubique	strict_source_name_or_assembly_sources_unique	0.001131585235559242
+5	s__Persephonella marina	0.017	309805	Persephonella marina	unique_taxid	0.00046691623797347366
+5	s__Phaeobacter gallaeciensis	0.0561	60890	Phaeobacter gallaeciensis	unique_gtdb_binomial	0.001540823585312463
+5	s__Photobacterium gaetbulicola	0.0085	1295392	Photobacterium gaetbulicola	unique_taxid	0.00023345811898673683
+5	s__Photobacterium profundum	0.0511	74109	Photobacterium profundum	unique_gtdb_binomial	0.0014034952800261473
+5	s__Piscirickettsia salmonis	0.213	1238	Piscirickettsia salmonis	unique_gtdb_binomial	0.005850185805197052
+5	s__Planktomarina temperata	0.0029	1284658	Planktomarina temperata	unique_taxid	7.965041706606315e-05
+5	s__Planococcus antarcticus	0.0085	161360	Planococcus antarcticus	unique_taxid	0.00023345811898673683
+5	s__Planococcus donghaensis	0.1022	414778	Planococcus donghaensis	unique_gtdb_binomial	0.0028069905600522946
+5	s__Planococcus kocurii	0.0256	1374	Planococcus kocurii	unique_taxid	0.0007031209230659368
+5	s__Planococcus maritimus	0.0085	192421	Planococcus maritimus	unique_gtdb_binomial	0.00023345811898673683
+5	s__Polaribacter todarodis	0.0341	1850252	Tenacibaculum sp. LPB0136	unique_taxid	0.0009365790420526735
+5	s__Polaribacter vadi	0.0085	1774273	Polaribacter vadi	unique_gtdb_binomial	0.00023345811898673683
+5	s__Prochlorococcus_A sp000757845	0.017	1501268	Prochlorococcus sp. MIT 0604	unique_taxid	0.00046691623797347366
+5	s__Prochlorococcus_B sp000757865	0.0256	1501269	Prochlorococcus sp. MIT 0801	unique_taxid	0.0007031209230659368
+5	s__Pseudalgibacter alginicilyticus	0.2386	1736674	Algibacter alginolytica	unique_taxid	0.006553306728262989
+5	s__Pseudoalteromonas haloplanktis	0.0256	228	Pseudoalteromonas haloplanktis	unique_gtdb_binomial	0.0007031209230659368
+5	s__Pseudoalteromonas luteoviolacea	0.0256	43657	Pseudoalteromonas luteoviolacea	unique_gtdb_binomial	0.0007031209230659368
+5	s__Pseudoalteromonas phenolica	0.017	161398	Pseudoalteromonas phenolica	unique_gtdb_binomial	0.00046691623797347366
+5	s__Pseudoalteromonas rubra	0.0256	43658	Pseudoalteromonas rubra	unique_gtdb_binomial	0.0007031209230659368
+5	s__Pseudoalteromonas tetraodonis	0.0256	234831	Pseudoalteromonas sp. SM9913	unique_taxid	0.0007031209230659368
+5	s__Pseudodesulfovibrio piezophilus	0.0511	879567	Desulfovibrio piezophilus	unique_taxid	0.0014034952800261473
+5	s__Pseudothioglobus singularis	0.017	1427364	Candidatus Thioglobus singularis	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Pseudovibrio sp000156235	0.0305	911045	Pseudovibrio sp. FO-BEG1	unique_taxid	0.0008377026622465262
+5	s__Psychrobacter sp000586415	0.8776	1298608	Psychrobacter sp. JCM 18900	unique_taxid	0.024103864143854146
+5	s__Psychroflexus torquis	0.017	57029	Psychroflexus torquis	unique_taxid	0.00046691623797347366
+5	s__Psychromonas ingrahamii	0.0596	357794	Psychromonas ingrahamii	unique_taxid	0.001636953399012884
+5	s__Psychromonas sp000153405	0.0682	314282	Psychromonas sp. CNPT3	unique_taxid	0.001873158084105347
+5	s__Puniceispirillum marinum	0.017	767892	Candidatus Puniceispirillum marinum	unique_taxid	0.00046691623797347366
+5	s__Pusillimonas_C sp000209655	0.0085	1007105	Pusillimonas sp. T7-7	unique_taxid	0.00023345811898673683
+5	s__Pyrococcus abyssi	0.0085	29292	Pyrococcus abyssi	unique_taxid	0.00023345811898673683
+5	s__Pyrococcus furiosus	0.0426	2261	Pyrococcus furiosus	unique_taxid	0.0011700371610394104
+5	s__Pyrococcus horikoshii	0.0341	53953	Pyrococcus horikoshii	unique_taxid	0.0009365790420526735
+5	s__Pyrococcus sp000211475	0.2045	342949	Pyrococcus sp. NA2	unique_taxid	0.0056167276862103144
+5	s__Pyrococcus sp000263735	0.017	1183377	Pyrococcus sp. ST04	unique_taxid	0.00046691623797347366
+5	s__Pyrococcus yayanosii	0.0085	1008460	Pyrococcus yayanosii	unique_taxid	0.00023345811898673683
+5	s__Pyrolobus fumarii	0.017	54252	Pyrolobus fumarii	unique_taxid	0.00046691623797347366
+5	s__RCC307 sp000063525	0.0426	316278	Synechococcus sp. RCC307	unique_taxid	0.0011700371610394104
+5	s__Renibacterium salmoninarum	0.017	1646	Renibacterium salmoninarum	unique_gtdb_binomial	0.00046691623797347366
+5	s__Rhodobacter xanthinilyticus	0.0035	1850250	Rhodobacter sp. LPB0142	unique_taxid	9.612981370042105e-05
+5	s__Rhodococcoides sp000954115	0.0085	1564114	Rhodococcus sp. B7740	unique_taxid	0.00023345811898673683
+5	s__Rhodococcus_F erythropolis	0.0085	1833	Rhodococcus erythropolis	strict_source_name_or_assembly_sources_unique	0.00023345811898673683
+5	s__Rhodococcus_F qingshengii	0.0085	1723645	Rhodococcus sp. 008	unique_taxid	0.00023345811898673683
+5	s__Rhodoferax ferrireducens	0.017	192843	Rhodoferax ferrireducens	unique_gtdb_binomial	0.00046691623797347366
+5	s__Rhodothermus marinus	0.0426	29549	Rhodothermus marinus	unique_gtdb_binomial	0.0011700371610394104
+5	s__Robiginitalea biformata	0.017	252307	Robiginitalea biformata	unique_gtdb_binomial	0.00046691623797347366
+5	s__Roseibacterium elongatum	0.1081	159346	Roseibacterium elongatum	unique_taxid	0.002969037960290147
+5	s__Roseobacter denitrificans	0.0426	2434	Roseobacter denitrificans	unique_taxid	0.0011700371610394104
+5	s__Roseobacter litoralis	0.0511	42443	Roseobacter litoralis	unique_taxid	0.0014034952800261473
+5	s__Ruegeria_B pomeroyi	0.017	89184	Ruegeria pomeroyi	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Ruthia magnifica	0.017	386487	Candidatus Ruthia magnifica	unique_taxid	0.00046691623797347366
+5	s__Saccharophagus degradans	0.0256	86304	Saccharophagus degradans	unique_taxid	0.0007031209230659368
+5	s__Salinibacter ruber	0.0426	146919	Salinibacter ruber	unique_taxid	0.0011700371610394104
+5	s__Salinispira pacifica	0.017	1307761	Salinispira pacifica	unique_taxid	0.00046691623797347366
+5	s__Salipiger sp001687105	0.0085	1792508	Yangia sp. CCB-MM3	unique_taxid	0.00023345811898673683
+5	s__Salmonella enterica	0.017	28901	Salmonella enterica	unique_gtdb_binomial	0.00046691623797347366
+5	s__Saprospira grandis	0.0256	1008	Saprospira grandis	unique_gtdb_binomial	0.0007031209230659368
+5	s__Sediminicola sp001430825	0.0341	1453352	Sediminicola sp. YIK13	unique_taxid	0.0009365790420526735
+5	s__Shewanella amazonensis	0.017	60478	Shewanella amazonensis	unique_taxid	0.00046691623797347366
+5	s__Shewanella baltica	0.8095	62322	Shewanella baltica	unique_taxid	0.022233452625854525
+5	s__Shewanella halifaxensis	0.0767	271098	Shewanella halifaxensis	unique_gtdb_binomial	0.002106616203092084
+5	s__Shewanella loihica	0.0085	359303	Shewanella loihica	unique_taxid	0.00023345811898673683
+5	s__Shewanella piezotolerans	0.0256	404011	Shewanella piezotolerans	unique_taxid	0.0007031209230659368
+5	s__Shewanella sp029835735	0.4516	94122	Shewanella sp. ANA-3	unique_taxid	0.01240349253346004
+5	s__Shewanella woodyi	0.0256	60961	Shewanella woodyi	unique_gtdb_binomial	0.0007031209230659368
+5	s__Siansivirga zeaxanthinifaciens	0.0115	762954	Siansivirga zeaxanthinifaciens	unique_taxid	0.0003158551021585263
+5	s__Simiduia agarivorans	0.0085	447471	Simiduia agarivorans	unique_taxid	0.00023345811898673683
+5	s__Spiribacter curvatus	2.1216	1335757	Spiribacter curvatus	unique_taxid	0.05827114649908951
+5	s__Spiribacter salinus	1.048	1335746	Spiribacter salinus	unique_taxid	0.02878401278801179
+5	s__Staphylococcus equorum	0.0085	246432	Staphylococcus equorum	unique_gtdb_binomial	0.00023345811898673683
+5	s__Staphylococcus warneri	0.5198	1292	Staphylococcus warneri	unique_gtdb_binomial	0.01427665061756539
+5	s__Staphylothermus marinus	0.0085	2280	Staphylothermus marinus	unique_taxid	0.00023345811898673683
+5	s__Stappia sp900105595	0.017	1881061	Stappia sp. ES.058	unique_taxid	0.00046691623797347366
+5	s__Streptococcus agalactiae	0.1022	1311	Streptococcus agalactiae	unique_gtdb_binomial	0.0028069905600522946
+5	s__Streptococcus iniae	0.1193	1346	Streptococcus iniae	unique_taxid	0.0032766533641314945
+5	s__Sulfurimonas autotrophica	0.017	202747	Sulfurimonas autotrophica	unique_gtdb_binomial	0.00046691623797347366
+5	s__Sulfurimonas denitrificans	0.017	39766	Sulfurimonas denitrificans	unique_taxid	0.00046691623797347366
+5	s__Sulfurovum sp000010345	0.8521	387093	Sulfurovum sp. NBC37-1	unique_taxid	0.023403489786893935
+5	s__Synechococcus_C sp000063505	0.0085	32051	Synechococcus sp. WH 7803	unique_taxid	0.00023345811898673683
+5	s__Synechococcus_C sp001040845	0.017	32052	Synechococcus sp. WH 8020	unique_taxid	0.00046691623797347366
+5	s__Syntrophotalea acetylenica	5.0149	29542	Pelobacter acetylenicus	unique_taxid	0.137737543636069
+5	s__Syntrophotalea carbinolica	0.2763	19	Pelobacter carbinolicus	unique_taxid	0.00758876215012181
+5	s__Thalassolituus oleivorans	0.4487	187493	Thalassolituus oleivorans	unique_gtdb_binomial	0.012323842116393978
+5	s__Thalassoporum mexicanum	0.017	82654	Pseudanabaena sp. PCC 7367	unique_taxid	0.00046691623797347366
+5	s__Thalassotalea_A crassostreae	0.0085	1763536	Thalassotalea sp. LPB0090	unique_taxid	0.00023345811898673683
+5	s__Thermococcus cleftensis	0.017	163003	Thermococcus cleftensis	unique_taxid	0.00046691623797347366
+5	s__Thermococcus gammatolerans	0.0085	187878	Thermococcus gammatolerans	unique_taxid	0.00023345811898673683
+5	s__Thermococcus onnurineus	0.017	342948	Thermococcus onnurineus	unique_taxid	0.00046691623797347366
+5	s__Thermococcus piezophilus	0.0085	1712654	Thermococcus piezophilus	unique_taxid	0.00023345811898673683
+5	s__Thermococcus sp000221185	0.017	1042877	Thermococcus sp. 4557	unique_taxid	0.00046691623797347366
+5	s__Thermococcus_A litoralis	0.0085	2265	Thermococcus litoralis	unique_taxid	0.00023345811898673683
+5	s__Thermococcus_B barophilus	0.0256	55802	Thermococcus barophilus	unique_taxid	0.0007031209230659368
+5	s__Thermoplasma volcanium	0.0341	50339	Thermoplasma volcanium	unique_taxid	0.0009365790420526735
+5	s__Thermotoga maritima	0.1789	126740,2336	Thermotoga maritima;Thermotoga sp. RQ2	unique_taxid	0.0049136067631443785
+5	s__Thermovirga lienii	0.0596	336261	Thermovirga lienii	unique_taxid	0.001636953399012884
+5	s__Thioflavicoccus mobilis	0.1278	80679	Thioflavicoccus mobilis	unique_taxid	0.003510111483118231
+5	s__Thioglobus_A autotrophicus	0.017	1705394	Candidatus Thioglobus autotrophicus	strict_source_name_or_assembly_sources_unique	0.00046691623797347366
+5	s__Thiolapillus brandeum	0.1108	1076588	Thiolapillus brandeum	unique_gtdb_binomial	0.0030431952451447576
+5	s__Tistrella mobilis	0.0304	171437	Tistrella mobilis	unique_gtdb_binomial	0.0008349560961407999
+5	s__Tsuneonella dongtanensis	0.0085	692370	Altererythrobacter dongtanensis	unique_taxid	0.00023345811898673683
+5	s__UBA3537 sp001735715	0.0546	1336795	Formosa sp. Hel3_A1_48	strict_source_name_or_assembly_sources_unique	0.0014996250937265683
+5	s__UJ101 sp001880285	0.0511	1150389	Flavobacteriaceae bacterium UJ101	unique_taxid	0.0014034952800261473
+5	s__Vibrio alginolyticus	0.0256	663	Vibrio alginolyticus	unique_gtdb_binomial	0.0007031209230659368
+5	s__Vibrio anguillarum	0.2471	55601	Vibrio anguillarum	unique_taxid	0.006786764847249725
+5	s__Vibrio cholerae	0.0767	666	Vibrio cholerae	unique_gtdb_binomial	0.002106616203092084
+5	s__Vibrio coralliilyticus	0.2556	190893	Vibrio coralliilyticus	unique_gtdb_binomial	0.007020222966236462
+5	s__Vibrio natriegens	0.017	1116375	Vibrio sp. EJY3	unique_taxid	0.00046691623797347366
+5	s__Vibrio parahaemolyticus	0.017	670	Vibrio parahaemolyticus	unique_gtdb_binomial	0.00046691623797347366
+5	s__Vibrio scophthalmi	0.1193	45658	Vibrio scophthalmi	unique_gtdb_binomial	0.0032766533641314945
+5	s__Vibrio tubiashii	0.0596	29498	Vibrio tubiashii	unique_gtdb_binomial	0.001636953399012884
+5	s__Vreelandella titanicae	0.0913	1380358	Halomonas sp. 23_GOM-1509m	unique_taxid	0.0025076148545281262
+5	s__Weissella ceti	0.0085	759620	Weissella ceti	unique_gtdb_binomial	0.00023345811898673683
+5	s__Wenyingzhuangia fucanilytica	0.1272	1790137	Wenyingzhuangia fucanilytica	unique_taxid	0.0034936320864838734
+5	s__Wenzhouxiangella marina	0.0085	1579979	Wenzhouxiangella marina	unique_taxid	0.00023345811898673683
+5	s__Winmispira thermophila	0.0426	154	Spirochaeta thermophila	strict_source_name_or_assembly_sources_unique	0.0011700371610394104
+5	s__Winogradskyella sp000828715	0.0256	754409	Winogradskyella sp. PG-2	unique_taxid	0.0007031209230659368
+5	s__Woeseia oceani	0.1789	1548547	Woeseia oceani	unique_taxid	0.0049136067631443785
+5	s__Xianfuyuplasma sp000755705	0.2215	1541959	Candidatus Izimaplasma sp. HR1	unique_taxid	0.006083643924183789
+5	s__Yersinia aldovae	0.0085	29483	Yersinia aldovae	unique_taxid	0.00023345811898673683
+5	s__Zunongwangia profunda	0.0341	398743	Zunongwangia profunda	unique_taxid	0.0009365790420526735

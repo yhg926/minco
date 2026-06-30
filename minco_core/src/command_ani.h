@@ -126,6 +126,13 @@ typedef struct ani_opt
 	char cami_sample_id[PATHLEN];
 	char readwise_track[PATHLEN];
 	char readwise_track_summary[PATHLEN];
+	char readwise_unique_out[PATHLEN];
+	char readwise_exact_split_out[PATHLEN];
+	char readwise_edge_out[PATHLEN];
+	uint64_t readwise_edge_max;
+	uint32_t readwise_edge_max_candidates;
+	bool readwise_edge_ambiguous_only;
+	bool readwise_edge_selected_only;
 	char gtdb_taxmap[PATHLEN];
 	char ncbi_taxmap[PATHLEN];
 	char outf[PATHLEN];
@@ -206,6 +213,8 @@ typedef struct
 } ctx_mut2_t;
 
 int cmd_ani(struct argp_state *state);
+extern ani_opt_t ani_opt;
+int run_ani_configured(ani_opt_t *opt);
 int compute_ani(ani_opt_t *ani_opt);
 int mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt);
 int sparse_mem_eff_sorted_ctxgidobj_arrXcomb_sortedsketch64(ani_opt_t *ani_opt);

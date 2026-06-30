@@ -1,0 +1,6 @@
+panel	sample_count	mean_selected_minus_sylph_L1_pp	mean_selected_oracle_minus_sylph_L1_pp	mean_allocation_headroom_L1_pp	mean_truth_mass_detected_pct	selected_l1_not_worse_samples	allocation_only_can_close_samples	call_recovery_required_samples	residual_required_samples
+cami2_toy_mouse_gut	3	6.798668533430786	-3.896733529180955	10.69540206261174	98.58260529170194	0	3	0	0
+cami3_toy_human_gut_gtdb_source_readmap	3	25.1143935070275	-16.28127739278996	41.39567089981746	91.82421833090223	0	3	0	0
+hmp_airskin_gtdb_source_abundance	24	17.064848549935814	-3.543929086147616	20.60877763608343	99.09359201327312	0	23	1	0
+hmp_gastrooral_gtdb_source_abundance	2	41.29481283103018	-5.058279323124611	46.35309215415479	99.99757495837574	0	2	0	0
+all	32	18.371411780684213	-4.8657777962407724	23.237189576924983	98.42068215947246	0	31	1	0

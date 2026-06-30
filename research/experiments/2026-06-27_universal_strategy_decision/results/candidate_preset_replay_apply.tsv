@@ -1,0 +1,2 @@
+source	profiles	path	reference_scores
+default_candidate_preset	32	/tmp/minco_candidate_preset_replay_20260629	/home/ubuntu/yihuiguang/tools/KSSD3mini/research/experiments/2026-06-27_universal_strategy_decision/results/cross_panel_candidate_abundance_wrapper_scores.tsv

@@ -1,0 +1,6 @@
+method	samples	F1	TP	FP	FN	L1_union_pp	L1_truth_only_pp	Pearson_union	Pearson_truth_only	wall_time	max_rss_kb	decision
+sylph_gtdb_r232_gastrooral_source_abundance	1	0.9382716049382716	38	4	1	8.099610014595344	5.3344127797925776	0.9986541312423596	0.9996871507410113	4:18.02	27186576	external_baseline_best_on_holdout
+minco_current_raw_default_gastrooral_sample1_source_abundance	1	0.8860759493670887	35	5	4	18.244592279569463	11.753068276340969	0.9857779355439723	0.9931132868012117	3:38.76	4000660	current_default_not_sylph_beating_on_holdout
+minco_current_surface_accession_taxmap_gastrooral_sample1_source_abundance	1	0.9	36	5	3	17.45540282178018	11.003812363710699	0.9863959534066656	0.9936496524877283	3:55.53	4000660	selected_candidate_preset_requires_accession_surface_taxmap
+minco_guarded_candidate_gastrooral_sample1_source_abundance	1	0.888888888888889	36	6	3	18.564654915842187	10.943897057261974	0.9857895244430693	0.9936496524877283	3:55.13	4000660	opt_in_candidate_not_promoted_f1_gain_but_l1_worse
+minco_guarded_candidate_zero_gastrooral_sample1_source_abundance	1	0.888888888888889	36	6	3	18.585816400529993	12.077219689172997	0.985647746301886	0.9929554027290614	3:55.59	4000660	opt_in_candidate_not_promoted_zero_mass_not_better

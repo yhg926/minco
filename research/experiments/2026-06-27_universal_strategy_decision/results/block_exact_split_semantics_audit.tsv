@@ -1,0 +1,5 @@
+metric	value	evidence	decision
+evaluated_pairs	3	block_exact_split_semantics.tsv	cached_real_tables
+not_interchangeable_pairs	3/3	block_exact_split_semantics.tsv	do_not_synthesize_block_split_from_exact_per_read
+max_shared_normalized_abundance_abs_delta	0.871858999999	block_exact_split_semantics.tsv	grouping_changes_abundance_evidence
+speed_optimization_boundary	exact sidecar can replace exact rerun, but exact per-read rows cannot replace block split rows	block_exact_split_semantics.tsv; command_ani.c density-unit grouping	next_speed_fix_must_preserve_both_evidence_channels_or_predict_exact_need

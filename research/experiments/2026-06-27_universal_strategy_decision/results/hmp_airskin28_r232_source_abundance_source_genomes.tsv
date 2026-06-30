@@ -1,0 +1,26 @@
+sample	source_genome_id	source_accession	raw_abundance	gtdb_species	mapping_method
+28	OTU_97.18938.0	GCA_000307185.1	1.0	s__Streptococcus dysgalactiae	exact_accession
+28	OTU_97.544.0	GCA_001278715.1	1.0	s__Acinetobacter albensis	exact_accession
+28	OTU_97.45365.1	GCA_000211075.1	0.920459959208	s__Streptococcus pneumoniae	exact_accession
+28	OTU_97.44585.0	GCA_000009645.1	4.0	s__Staphylococcus aureus	exact_accession
+28	OTU_97.270.0	GCA_000023205.1	1.0	s__Micrococcus luteus	exact_accession
+28	OTU_97.24656.0	GCA_000010705.1	1.0	s__Streptococcus dysgalactiae	exact_accession
+28	OTU_97.34494.0	GCA_000010465.1	2.0	s__Staphylococcus aureus	exact_accession
+28	OTU_97.44237.0	GCA_000091725.1	1.0	s__Propionibacterium freudenreichii	exact_accession
+28	OTU_97.16297.0	GCA_001549675.1	1.0	s__Staphylococcus aureus	exact_accession
+28	OTU_97.37297.1	GCA_001548415.1	0.994637821593	s__Staphylococcus aureus	exact_accession
+28	OTU_97.37297.0	GCA_001611345.1	1.00536217841	s__Staphylococcus aureus	exact_accession
+28	OTU_97.39526.0	GCA_001640865.1	1.0	s__Phocaeicola dorei	exact_accession
+28	OTU_97.35048.0	GCA_000007645.1	1.0	s__Staphylococcus epidermidis	exact_accession
+28	OTU_97.29637.0	GCA_001611425.1	0.0808254004801	s__Staphylococcus aureus	exact_accession
+28	OTU_97.29637.1	GCA_001188855.1	0.91917459952	s__Staphylococcus coagulans	exact_accession
+28	OTU_97.35920.0	GCA_000011525.1	1.0	s__Staphylococcus aureus	exact_accession
+28	OTU_97.10273.0	GCA_001548255.1	1.0	s__Staphylococcus coagulans	exact_accession
+28	OTU_97.35712.0	GCA_001975005.1	1.0	s__Staphylococcus aureus	exact_accession
+28	OTU_97.32002.0	GCA_000302475.2	0.0368797123111		unmapped
+28	OTU_97.32002.1	GCA_001572685.1	0.963120287689	s__Streptococcus suis	exact_accession
+28	OTU_97.6382.0	GCA_000785495.1	1.0	s__Nocardioides simplex	exact_accession
+28	OTU_97.34382.0	GCA_000332735.1	1.0	s__Staphylococcus warneri	exact_accession
+28	OTU_97.45365.0	GCA_000019025.1	0.0795400407919	s__Streptococcus pneumoniae	exact_accession
+28	OTU_97.35249.0	GCA_001515765.1	0.87627645016	s__Staphylococcus aureus	exact_accession
+28	OTU_97.35249.1	GCA_900096745.1	0.12372354984	s__Staphylococcus aureus	exact_accession

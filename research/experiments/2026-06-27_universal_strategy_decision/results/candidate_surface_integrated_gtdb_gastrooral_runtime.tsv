@@ -1,0 +1,4 @@
+command	wall_time_s	max_rss_kb	exit_status	notes
+python3 -B scripts/minco_profile_calibrated.py sample0 cached table replay with --candidate-surface-switch accession-ani90-xny100-br01-af70 --candidate-surface-taxmap /tmp/cami2_toymouse_current_default_20260626/gtdb_r232_species.taxmap.tsv	16.41	3385392	0	used saved unique table and saved exact split table
+python3 -B scripts/minco_profile_calibrated.py sample6 cached table replay with --candidate-surface-switch accession-ani90-xny100-br01-af70 --candidate-surface-taxmap /tmp/cami2_toymouse_current_default_20260626/gtdb_r232_species.taxmap.tsv	14.23	3078136	0	used saved unique table and saved normal split table
+python3 -B score_hmp_gastrooral_gtdb_source_abundance.py --output-prefix candidate_surface_integrated_gtdb_gastrooral	30.97	unknown	0	scored focused integrated replay against the existing GTDB source-abundance panel

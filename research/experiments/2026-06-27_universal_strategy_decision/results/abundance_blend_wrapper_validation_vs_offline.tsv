@@ -1,0 +1,11 @@
+panel	sample	offline_method	wrapper_method	TP_delta	FP_delta	FN_delta	F1_delta	official_L1_delta_pp	official_Pearson_delta
+cami2_toy_mouse_gut	5	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	-4.796163466380676e-14	-3.3306690738754696e-16
+cami2_toy_mouse_gut	6	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	-0.23643766336901706	0.0005771501901733478
+cami2_toy_mouse_gut	7	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	1.1102230246251565e-16	-0.01642586674992952	-4.389726986686604e-06
+hmp_airskin_gtdb_source_abundance	6	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	0.0	-1.1102230246251565e-16
+hmp_airskin_gtdb_source_abundance	11	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	-1.1102230246251565e-16	-1.4210854715202004e-13	2.220446049250313e-16
+hmp_gastrooral_gtdb_source_abundance	0	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	1.1102230246251565e-16	0.0	3.5345803239827944e-06
+hmp_gastrooral_gtdb_source_abundance	6	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	0.21741085035041863	-0.00022003697226724572
+cami3_toy_human_gut_gtdb_source_readmap	0	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	3.819980557697491	-0.014338534001825276
+cami3_toy_human_gut_gtdb_source_readmap	1	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	0.3029755643659371	-0.004239457748416053
+cami3_toy_human_gut_gtdb_source_readmap	2	blend_current_genus_realloc_xny_a0.25	wrapper_genus_xny_blend_a0.25	0	0	0	0.0	-5.422792216381488	0.029475245928454852
