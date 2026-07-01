@@ -15,3 +15,5 @@ large_output_root	/tmp/minco_profile_default_rescue_productization_validation_20
 raw_smoke_root	/tmp/minco_default_raw_smoke_20260701
 raw_smoke_sketch_size	100
 raw_smoke_model_cache	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib
+packaged_preflight_ref	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno
+packaged_preflight_reads	/tmp/minco_default_raw_smoke_20260701/reads.fq

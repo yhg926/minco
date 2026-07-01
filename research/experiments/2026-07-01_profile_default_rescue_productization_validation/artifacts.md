@@ -8,5 +8,6 @@
 - `results/default_profile_overall_summary.tsv`: overall rollup copied to `summary.tsv`.
 - `results/default_profile_added.tsv`: rows added by the default rescue.
 - `results/raw_default_smoke_summary.tsv`: raw-input smoke pass/fail, default switches, and runtime.
+- `results/packaged_ref_preflight.tsv`: `--check-ref` output for a packaged GTDB reference with sidecar discovery.
 - `/tmp/minco_profile_default_rescue_productization_validation_20260701`: temporary large profile outputs.
 - `/tmp/minco_default_raw_smoke_20260701`: temporary raw-input smoke fixture and profile output.

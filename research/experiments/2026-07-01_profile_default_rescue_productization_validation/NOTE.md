@@ -90,6 +90,22 @@ C source validation after adding the readwise density-cache replay support:
   density-cache replay parity against a separate exact pass
 - `bash tests/full_cli.sh`: passed
 
+Packaged-reference preflight:
+
+- command: `scripts/minco_profile --check-ref -r /mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno --reads /tmp/minco_default_raw_smoke_20260701/reads.fq`
+- status: `pass`
+- packaged defaults sidecar: found, `scope=bacteria`
+- species taxmap sidecar: found
+- model cache sidecar: found, metadata matches scope/train-pool
+- candidate surface taxmap sidecar: found
+- delegated candidate rescue switch:
+  `split-p002-x300-ani095-af06-b025-d1-top1`
+- delegated abundance guards:
+  `--abundance-ani-floor 0.90`,
+  `--abundance-sparse-depth-cap poisson-breadth`,
+  `--abundance-sparse-breadth-max 0.15`,
+  `--abundance-sparse-depth-ratio-min 200`
+
 ## Conclusion
 
 The user-facing `scripts/minco_profile` default now exposes the validated strict

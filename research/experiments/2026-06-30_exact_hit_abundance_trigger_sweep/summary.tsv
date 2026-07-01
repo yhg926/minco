@@ -1,0 +1,5 @@
+scope	method	mean_official_L1_pp	mean_delta_current_L1_pp	max_worse_current_L1_pp	improved_panel_count	worsened_panel_count	mean_official_Pearson	mean_delta_current_Pearson	decision
+validated_panel	validated_current_no_exact	35.7601472375	0.0000000000	0.0000000000	0	0	0.9288744627	0.0000000000	baseline_before_abundance_exact_sidecar
+validated_panel	validated_exact_hit_ge_0.10	32.9937132918	-2.7664339457	19.8688514908	2	1	0.9307867899	0.0019123273	reject_raw_cami3_regression
+validated_panel	validated_exact_hit_ge_0.30	28.2354741413	-7.5246730961	0.0000000000	1	0	0.9517012264	0.0228267638	promote_default_candidate
+validated_panel	sylph_external_baseline	12.4460595357	NA	NA	NA	NA	0.9842058135	NA	external_abundance_baseline_still_better

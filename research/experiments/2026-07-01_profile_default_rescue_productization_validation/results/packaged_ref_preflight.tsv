@@ -1,0 +1,21 @@
+MinCO profile preflight
+status	pass
+check	status	source	path_or_value	detail
+profile_preset	pass	wrapper	candidate	selected wrapper preset
+profile_rescue	pass	wrapper	default	--no-profile-rescue opt-out
+profile_defaults	pass	sidecar	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_defaults.tsv	packaged profile defaults
+default_scope	pass	sidecar	bacteria	applied packaged default
+strategy	pass	default	universal-auto-exact	delegated strategy
+scope	pass	sidecar	bacteria	taxonomic output scope
+train_pool	pass	default	train12	calibration training pool
+filter_training_scope	pass	default	false	model-cache metadata setting
+ref	pass	explicit	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno	directory exists
+reads	pass	explicit	/tmp/minco_default_raw_smoke_20260701/reads.fq	file exists
+species_taxmap	pass	sidecar	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/species_taxmap.tsv	file exists
+model_cache	pass	sidecar	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib	file exists
+model_cache_metadata	pass	sidecar	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib	metadata matches scope/train-pool
+candidate_rescue_switch	pass	preset	split-p002-x300-ani095-af06-b025-d1-top1	profile rescue mode
+candidate_surface_switch	pass	preset	accession-ani90-xny100-br01-af70	candidate surface mode
+candidate_surface_taxmap	pass	sidecar	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/candidate_surface_taxmap.tsv	file exists
+minco_binary	pass	default	/home/ubuntu/yihuiguang/tools/KSSD3mini/bin/minco	executable
+delegated_argv	-r /mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno --reads /tmp/minco_default_raw_smoke_20260701/reads.fq --scope bacteria --strategy universal-auto-exact --taxmap /mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/species_taxmap.tsv --model-cache /mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib --candidate-rescue-switch split-p002-x300-ani095-af06-b025-d1-top1 --candidate-surface-switch accession-ani90-xny100-br01-af70 --candidate-abundance-policy normalized-depth-alpha2 --abundance-ani-floor 0.90 --abundance-sparse-depth-cap poisson-breadth --abundance-sparse-breadth-max 0.15 --abundance-sparse-depth-ratio-min 200 --candidate-surface-taxmap /mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/candidate_surface_taxmap.tsv

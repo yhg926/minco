@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-07-01
+
+### Added
+
+- Added hidden C readwise density-cache replay support:
+  `--readwise-density-cache-out` writes retained per-read density vectors and
+  `--readwise-density-cache-in` replays them for exact split evaluation without
+  rereading raw input. The Python default wrapper uses this for lazy exact
+  split abundance/call replay.
+- Added `--no-profile-rescue` to the user-facing `scripts/minco_profile`
+  launcher. It keeps the candidate preset but disables profile-rescue
+  additions for audit/replay runs.
+
+### Changed
+
+- Promoted the calibrated `scripts/minco_profile` candidate preset to the
+  strict split-evidence rescue switch
+  `split-p002-x300-ani095-af06-b025-d1-top1`.
+- `universal-auto-exact` now also has an abundance-only exact split trigger at
+  `--exact-split-abundance-trigger 0.30`, selected to avoid the raw validation
+  regression observed at `0.10`.
+- The candidate preset now injects the validated abundance-only reliability
+  guards: ANI floor `0.90`, sparse-depth cap `poisson-breadth`, sparse breadth
+  max `0.15`, and sparse depth-ratio min `200`.
+- Strict rescued rows keep native profile raw abundance mass. Normalized-depth
+  candidate mass is still used for older loose candidate additions and
+  candidate-surface rows.
+
+### Validation
+
+- `make minco`, `bash tests/smoke.sh`, `bash tests/full_cli.sh`, and the
+  Python raw default smoke passed after adding density-cache replay.
+- `scripts/minco_profile --check-ref` passed on the packaged GTDB reference
+  sidecars, confirming default scope, species taxmap, model cache metadata,
+  candidate-surface taxmap, strict rescue switch, and abundance guards are
+  discovered without expert options.
+
 ## 2026-06-26
 
 ### Added
