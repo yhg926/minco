@@ -1,0 +1,17 @@
+parameter	value
+entrypoint	scripts/minco_profile
+default_profile_preset	candidate
+default_rescue_switch	split-p002-x300-ani095-af06-b025-d1-top1
+opt_out	--no-profile-rescue
+candidate_abundance_policy	normalized-depth-alpha2
+abundance_ani_floor	0.90
+abundance_sparse_depth_cap	poisson-breadth
+abundance_sparse_breadth_max	0.15
+abundance_sparse_depth_ratio_min	200
+baseline	default_candidate_no_profile_rescue
+scope	bacteria
+source_saved_tables	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/work
+large_output_root	/tmp/minco_profile_default_rescue_productization_validation_20260701
+raw_smoke_root	/tmp/minco_default_raw_smoke_20260701
+raw_smoke_sketch_size	100
+raw_smoke_model_cache	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib

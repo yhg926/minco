@@ -119,12 +119,15 @@ species default. `scripts/minco_profile` is a short launcher over
 the `candidate` preset unless the caller explicitly chooses another preset.
 Existing scripts can continue to call `scripts/minco_profile_default.py`
 directly.
-The candidate preset enables the validated candidate rescue/surface switches
-and `normalized-depth-alpha2` candidate abundance as one default path. Use
-`--profile-preset current` or `MINCO_PROFILE_PRESET=current` to reproduce the
-previous calibrated default without those candidate additions. Packaged species
-databases can ship `species_taxmap.tsv` and `joined_feature_training/` beside
-`ref.minco`, so the command above has no strategy or calibration-path flags.
+The candidate preset enables strict split-evidence profile rescue, candidate
+surface calls, abundance-only ANI/sparse-depth guards, and
+`normalized-depth-alpha2` candidate abundance as one default path. Use
+`--no-profile-rescue` to keep the candidate preset but disable profile-rescue
+additions. Use `--profile-preset current` or
+`MINCO_PROFILE_PRESET=current` to reproduce the previous calibrated default
+without candidate additions. Packaged species databases can ship
+`species_taxmap.tsv` and `joined_feature_training/` beside `ref.minco`, so the
+command above has no strategy or calibration-path flags.
 For unpackaged layouts, pass `--taxmap` and `--train-features`, or set
 `MINCO_PROFILE_TAXMAP` and `MINCO_PROFILE_TRAIN_FEATURES`. A packaged database
 can also ship a fitted RF/HGB model cache such as
@@ -183,12 +186,15 @@ the high-uAF/raw-unique guard passes. By default it skips that exact rerun when
 the block-mode low-extra split rescue already added candidates; pass
 `--exact-split-low-extra-mode allow` to keep the older exact behavior. This is
 the current best documented MinCO F1-priority default, at the cost of variable
-runtime. The default launcher also applies the candidate preset: candidate
-rescue/surface calls plus normalized-depth candidate abundance. This should not
-be read as a general Sylph-beating abundance/default claim; Sylph remains
-stronger on some held-out panels. Use `--profile-preset current` to reproduce
-the previous MinCO default, and use `--strategy probability` only to reproduce
-the legacy RF/HGB threshold-only wrapper output.
+runtime. The default launcher also applies the candidate preset: strict
+split-evidence profile rescue, candidate-surface calls, abundance-only
+ANI/sparse-depth guards, plus normalized-depth candidate abundance. This should
+not be read as a general Sylph-beating abundance/default claim; Sylph remains
+stronger on some held-out panels. Use `--no-profile-rescue` to disable only the
+strict rescue, use
+`--profile-preset current` to reproduce the previous MinCO default, and use
+`--strategy probability` only to reproduce the legacy RF/HGB threshold-only
+wrapper output.
 
 For speed-priority calibrated screening, use `--strategy universal` with a
 model cache and leave `--report-all` off. This always skips the exact split

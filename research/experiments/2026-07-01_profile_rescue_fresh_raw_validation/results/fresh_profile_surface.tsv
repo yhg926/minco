@@ -1,0 +1,5 @@
+panel	sample	label	profile	profile_rows	mapped_rows	mapped_species	called_rows	called_species	uncalled_rows	uncalled_species
+cami3_toy_human_gut_gtdb_source_readmap	0	cami3_sample0	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/profiles/cami3_sample0.profile.tsv	18254	18254	18254	94	94	18160	18160
+cami3_toy_human_gut_gtdb_source_readmap	1	cami3_sample1	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/profiles/cami3_sample1.profile.tsv	20059	20059	20059	99	99	19960	19960
+cami3_toy_human_gut_gtdb_source_readmap	2	cami3_sample2	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/profiles/cami3_sample2.profile.tsv	18066	18066	18066	115	115	17951	17951
+hmp_airskin_gtdb_source_abundance	13	hmp_airskin13	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/profiles/hmp_airskin13.profile.tsv	29890	29890	29890	40	40	29850	29850

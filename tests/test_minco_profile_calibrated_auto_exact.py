@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import math
 import tempfile
 from pathlib import Path
 import sys
@@ -132,6 +133,38 @@ def read_output(path: Path) -> pd.DataFrame:
 def assert_bool_column(df: pd.DataFrame, col: str, expected: bool) -> None:
     values = {str(v).lower() for v in df[col].unique()}
     assert values == {str(expected).lower()}, (col, values, expected)
+
+
+def test_exact_split_abundance_trigger_default_and_opt_out(work: Path) -> None:
+    args = wrapper.parse_args(
+        [
+            "--unique-table",
+            str(work / "unique.tsv"),
+            "--split-table",
+            str(work / "split.tsv"),
+            "--taxmap",
+            str(work / "taxmap.tsv"),
+            "-o",
+            str(work / "out.tsv"),
+        ]
+    )
+    assert args.exact_split_abundance_trigger == pytest.approx(0.30)
+
+    disabled = wrapper.parse_args(
+        [
+            "--unique-table",
+            str(work / "unique.tsv"),
+            "--split-table",
+            str(work / "split.tsv"),
+            "--taxmap",
+            str(work / "taxmap.tsv"),
+            "--exact-split-abundance-trigger",
+            "inf",
+            "-o",
+            str(work / "out.tsv"),
+        ]
+    )
+    assert math.isinf(disabled.exact_split_abundance_trigger)
 
 
 def adaptive_fixture(base_af: float) -> tuple[pd.DataFrame, dict[str, str]]:
@@ -304,6 +337,46 @@ def test_panel_abundance_uses_max_split_unique_zip_depth_and_tail_exception() ->
     assert np.allclose(raw, [4.0, 6.0, 10.0])
 
 
+def test_exact_hit_abundance_uses_split_hit_depth_with_panel_fallback() -> None:
+    features = pd.DataFrame(
+        {
+            "s_Ref_hit_mean_depth_max": [7.0, 0.0],
+            "s_Ref_mean_depth_max": [2.0, 2.0],
+            "s_Ref_zip_af_max": [0.5, 0.5],
+            "u_Ref_mean_depth_max": [1.0, 3.0],
+            "u_Ref_zip_af_max": [0.5, 0.5],
+        }
+    )
+    raw, details = wrapper.exact_hit_abundance_raw(features)
+    assert np.allclose(raw, [7.0, 6.0])
+    assert details["abundance_exact_hit_applied"] is True
+    assert details["abundance_exact_hit_fallback_n"] == 1
+    assert details["abundance_rule"] == "auto_exact_split_ref_hit_mean_depth"
+
+
+def test_exact_hit_abundance_sidecar_maps_by_accession_before_taxid() -> None:
+    features = pd.DataFrame(
+        {
+            "taxid": ["1", "1"],
+            "s_best_accession": ["GCF_A", "GCF_B"],
+            "s_Ref_mean_depth_max": [2.0, 2.0],
+            "s_Ref_zip_af_max": [0.5, 0.5],
+            "u_Ref_mean_depth_max": [0.0, 0.0],
+            "u_Ref_zip_af_max": [1.0, 1.0],
+        }
+    )
+    exact_features = pd.DataFrame(
+        {
+            "taxid": ["1", "1"],
+            "s_best_accession": ["GCF_A", "GCF_B"],
+            "s_Ref_hit_mean_depth_max": [3.0, 11.0],
+        }
+    )
+    raw, details = wrapper.exact_hit_abundance_raw(features, exact_features)
+    assert np.allclose(raw, [3.0, 11.0])
+    assert details["abundance_exact_hit_fallback_n"] == 0
+
+
 def test_genus_xny_abundance_blend_is_disabled_at_alpha_zero() -> None:
     features = pd.DataFrame(
         {
@@ -356,6 +429,49 @@ def test_guarded_feature_allocator_default_off_preserves_raw_abundance() -> None
     assert np.allclose(adjusted, raw)
     assert details["abundance_feature_allocator_applied"] is False
     assert details["abundance_feature_allocator_switch"] == wrapper.ABUNDANCE_FEATURE_ALLOCATOR_SWITCH_OFF
+
+
+def test_abundance_ani_floor_keeps_calls_but_zeros_low_ani_mass() -> None:
+    features = pd.DataFrame(
+        {
+            "calibrated_call": [True, True, False, True],
+            "reported_ani": [0.89, 0.95, 0.70, 0.90],
+        }
+    )
+    raw = np.array([10.0, 5.0, 20.0, 3.0])
+    adjusted, details = wrapper.abundance_ani_floor_raw(features, raw, 0.90)
+
+    assert np.allclose(adjusted, [0.0, 5.0, 20.0, 3.0])
+    assert features["calibrated_call"].tolist() == [True, True, False, True]
+    assert details["abundance_ani_floor_applied"] is True
+    assert details["abundance_ani_floor_zeroed_rows_n"] == 1
+    assert details["abundance_ani_floor_zeroed_raw_mass"] == pytest.approx(10.0)
+
+
+def test_sparse_depth_cap_targets_sparse_high_depth_only() -> None:
+    features = pd.DataFrame(
+        {
+            "calibrated_call": [True, True, False, True],
+            "s_Ref_breadth_max": [0.01, 0.01, 0.01, 0.50],
+            "u_Ref_breadth_max": [0.0, 0.0, 0.0, 0.0],
+        }
+    )
+    raw = np.array([5.0, 0.02, 5.0, 100.0])
+    adjusted, details = wrapper.abundance_sparse_depth_cap_raw(
+        features,
+        raw,
+        wrapper.ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH,
+        breadth_max=0.15,
+        depth_ratio_min=100.0,
+    )
+
+    assert adjusted[0] == pytest.approx(-math.log1p(-0.01))
+    assert adjusted[1] == pytest.approx(0.02)
+    assert adjusted[2] == pytest.approx(5.0)
+    assert adjusted[3] == pytest.approx(100.0)
+    assert details["abundance_sparse_depth_cap_applied"] is True
+    assert details["abundance_sparse_depth_cap_rows_n"] == 1
+    assert details["abundance_sparse_depth_cap_raw_mass_before"] == pytest.approx(5.0)
 
 
 def test_guarded_feature_allocator_requires_multi_genus_mass_guard() -> None:
@@ -645,6 +761,77 @@ def test_candidate_rescue_switch_uses_zip_ani_not_saturated_raw_ani() -> None:
     assert np.allclose(rescued_abundance, [3.0])
     assert details["candidate_rescue_added_n"] == 0
     assert details["candidate_rescue_ani_source_rule"] == "max(s_Ref_zip_aaf_ani_max,u_Ref_zip_aaf_ani_max)"
+
+
+def test_candidate_rescue_strict_split_rule_keeps_native_mass_and_top1_per_genus() -> None:
+    features = pd.DataFrame(
+        {
+            "taxid": ["1", "2", "3", "4", "5"],
+            "calibrated_probability": [0.9, 0.10, 0.12, 0.50, 0.50],
+            "s_ANI_max": [0.99, 0.96, 0.97, 0.96, 0.96],
+            "u_ANI_max": [0.99, 0.99, 0.99, 0.99, 0.99],
+            "s_XnY_ctx_max": [500.0, 350.0, 360.0, 250.0, 350.0],
+            "u_XnY_ctx_max": [500.0, 800.0, 800.0, 800.0, 800.0],
+            "s_Real_min_align_fraction_max": [0.8, 0.70, 0.72, 0.80, 0.80],
+            "u_Real_min_align_fraction_max": [0.8, 0.90, 0.90, 0.90, 0.90],
+            "s_Ref_breadth_max": [0.5, 0.30, 0.35, 0.50, 0.50],
+            "u_Ref_breadth_max": [0.5, 0.90, 0.90, 0.90, 0.90],
+            "s_Ref_mean_depth_max": [2.0, 2.0, 8.0, 8.0, 0.5],
+            "u_Ref_mean_depth_max": [2.0, 8.0, 8.0, 8.0, 8.0],
+        }
+    )
+    names = {
+        "1": "Called alpha",
+        "2": "Genus species_low",
+        "3": "Genus species_high",
+        "4": "Other species_unique_only",
+        "5": "Thin species_low_depth",
+    }
+    rescued, rescued_abundance, details = wrapper.apply_candidate_rescue_switch(
+        features,
+        np.array([True, False, False, False, False]),
+        np.array([10.0, 5.0, 7.0, 11.0, 13.0]),
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1,
+        wrapper.CANDIDATE_ABUNDANCE_POLICY_ZERO,
+        names,
+    )
+    assert rescued.tolist() == [True, False, True, False, False]
+    assert features["candidate_rescue_added"].tolist() == [False, False, True, False, False]
+    assert np.allclose(rescued_abundance, [10.0, 5.0, 7.0, 11.0, 13.0])
+    assert details["candidate_rescue_applied"] is True
+    assert details["candidate_rescue_added_n"] == 1
+    assert details["candidate_rescue_zero_mass"] is False
+    assert details["candidate_rescue_ani_source_rule"] == "s_ANI_max"
+    assert details["candidate_rescue_topn_per_genus"] == 1
+
+
+def test_candidate_rescue_strict_split_rule_keeps_native_mass_with_normalized_policy() -> None:
+    features = pd.DataFrame(
+        {
+            "taxid": ["1", "2"],
+            "calibrated_probability": [0.9, 0.10],
+            "s_ANI_max": [0.99, 0.96],
+            "s_XnY_ctx_max": [500.0, 350.0],
+            "s_Real_min_align_fraction_max": [0.8, 0.70],
+            "s_Ref_breadth_max": [0.5, 0.30],
+            "s_Ref_mean_depth_max": [2.0, 2.0],
+            "s_Normalized_abundance_depth_max": [1.0, 0.01],
+            "u_Normalized_abundance_depth_max": [1.0, 0.01],
+        }
+    )
+    rescued, rescued_abundance, details = wrapper.apply_candidate_rescue_switch(
+        features,
+        np.array([True, False]),
+        np.array([10.0, 5.0]),
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1,
+        wrapper.CANDIDATE_ABUNDANCE_POLICY_NORMALIZED_DEPTH_ALPHA2,
+        {"1": "Called alpha", "2": "Genus species"},
+    )
+    assert rescued.tolist() == [True, True]
+    assert np.allclose(rescued_abundance, [10.0, 5.0])
+    assert features["candidate_rescue_native_mass"].tolist() == [False, True]
+    assert np.allclose(features["candidate_abundance_norm_mass"], [0.0, 0.0])
+    assert details["candidate_rescue_zero_mass"] is False
 
 
 def accession_surface_taxmap() -> dict[str, dict[str, str]]:
@@ -1424,7 +1611,7 @@ def test_default_launcher_candidate_preset_runs_table_mode(work: Path) -> None:
     df = read_output(out)
     assert set(df["profile_strategy"]) == {"universal-auto-exact"}
     assert set(df["candidate_rescue_switch"]) == {
-        wrapper.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
     }
     assert set(df["candidate_surface_switch"]) == {
         wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
@@ -1530,7 +1717,7 @@ def test_raw_mode_trigger_runs_exact(work: Path) -> None:
     old_run = wrapper.run_minco_pass
     old_initial = wrapper.run_initial_minco_passes
 
-    def fake_initial(_args, unique_out, split_out):
+    def fake_initial(_args, unique_out, split_out, exact_split_sidecar_out=None, density_cache_out=None):
         calls.append(("best-diff-unique", None, Path(unique_out).name))
         calls.append(("best-diff-split", None, Path(split_out).name))
         unique, split = minco_rows(extra_mass=1.0)
@@ -1547,6 +1734,9 @@ def test_raw_mode_trigger_runs_exact(work: Path) -> None:
         _pipecmd,
         density_block_ctx=None,
         unique_sidecar_out=None,
+        exact_split_sidecar_out=None,
+        density_cache_out=None,
+        density_cache_in=None,
     ):
         calls.append((assign_mode, density_block_ctx, Path(out_path).name))
         if assign_mode == "best-diff-unique":
@@ -1587,6 +1777,92 @@ def test_raw_mode_trigger_runs_exact(work: Path) -> None:
     assert_bool_column(df, "auto_exact_split_requested", True)
     assert_bool_column(df, "auto_exact_split_used", True)
     assert set(df["auto_exact_split_path"]) == {str(run_dir / "minco.best_diff_split.exact.unfiltered.tsv")}
+    assert_bool_column(df, "abundance_exact_hit_applied", True)
+    assert set(df["abundance_rule"]) == {"auto_exact_split_ref_hit_mean_depth"}
+    row = df.loc[df["taxid"].astype(str) == "1001"].iloc[0]
+    assert float(row["calibrated_abundance_raw"]) == pytest.approx(2.0)
+
+
+def test_raw_mode_abundance_trigger_uses_exact_as_sidecar_only(work: Path) -> None:
+    work.mkdir(parents=True, exist_ok=True)
+    taxmap = work / "taxmap.tsv"
+    reads = work / "reads.fq"
+    ref = work / "ref.minco"
+    out = work / "raw_abundance_exact.tsv"
+    run_dir = work / "raw_abundance_exact_work"
+    run_dir.mkdir()
+    reads.write_text("@r1\nACGT\n+\n!!!!\n")
+    ref.mkdir()
+    write_taxmap(taxmap)
+    calls: list[tuple[str, int | None, str]] = []
+    old_run = wrapper.run_minco_pass
+    old_initial = wrapper.run_initial_minco_passes
+
+    def fake_initial(_args, unique_out, split_out, exact_split_sidecar_out=None, density_cache_out=None):
+        calls.append(("best-diff-unique", None, Path(unique_out).name))
+        calls.append(("best-diff-split", None, Path(split_out).name))
+        unique, split = minco_rows(extra_mass=3.0)
+        unique.to_csv(unique_out, sep="\t", index=False)
+        split.to_csv(split_out, sep="\t", index=False)
+
+    def fake_run(
+        _minco,
+        _ref,
+        _reads,
+        out_path,
+        assign_mode,
+        _threads,
+        _pipecmd,
+        density_block_ctx=None,
+        unique_sidecar_out=None,
+        exact_split_sidecar_out=None,
+        density_cache_out=None,
+        density_cache_in=None,
+    ):
+        calls.append((assign_mode, density_block_ctx, Path(out_path).name))
+        unique, split = minco_rows(extra_mass=3.0)
+        split.loc[split["Ref"].astype(str).str.contains(accession(1)), "Ref_hit_mean_depth"] = 9.0
+        (unique if assign_mode == "best-diff-unique" else split).to_csv(out_path, sep="\t", index=False)
+
+    wrapper.run_initial_minco_passes = fake_initial
+    wrapper.run_minco_pass = fake_run
+    try:
+        rc = wrapper.main(
+            [
+                "-r",
+                str(ref),
+                "--reads",
+                str(reads),
+                "--taxmap",
+                str(taxmap),
+                "--train-table",
+                str(work / "unused.tsv"),
+                "--strategy",
+                "universal-auto-exact",
+                "--exact-split-abundance-trigger",
+                "0.1",
+                "--workdir",
+                str(run_dir),
+                "--report-all",
+                "-o",
+                str(out),
+            ]
+        )
+    finally:
+        wrapper.run_initial_minco_passes = old_initial
+        wrapper.run_minco_pass = old_run
+    assert rc == 0
+    assert ("best-diff-split", 0, "minco.best_diff_split.exact.unfiltered.tsv") in calls
+    df = read_output(out)
+    assert_bool_column(df, "auto_exact_split_requested", True)
+    assert_bool_column(df, "auto_exact_split_used", True)
+    assert_bool_column(df, "auto_exact_split_call_requested", False)
+    assert_bool_column(df, "auto_exact_split_call_used", False)
+    assert_bool_column(df, "auto_exact_split_abundance_requested", True)
+    assert_bool_column(df, "auto_exact_split_abundance_used", True)
+    assert_bool_column(df, "abundance_exact_hit_applied", True)
+    row = df.loc[df["taxid"].astype(str) == "1001"].iloc[0]
+    assert float(row["calibrated_abundance_raw"]) == pytest.approx(9.0)
 
 
 def test_raw_mode_low_extra_rescue_skips_exact_by_default(work: Path) -> None:
@@ -1604,7 +1880,7 @@ def test_raw_mode_low_extra_rescue_skips_exact_by_default(work: Path) -> None:
     old_run = wrapper.run_minco_pass
     old_initial = wrapper.run_initial_minco_passes
 
-    def fake_initial(_args, unique_out, split_out):
+    def fake_initial(_args, unique_out, split_out, exact_split_sidecar_out=None, density_cache_out=None):
         calls.append(("best-diff-unique", None, Path(unique_out).name))
         calls.append(("best-diff-split", None, Path(split_out).name))
         unique, split = minco_rows_low_extra()
@@ -1622,6 +1898,8 @@ def test_raw_mode_low_extra_rescue_skips_exact_by_default(work: Path) -> None:
         density_block_ctx=None,
         unique_sidecar_out=None,
         exact_split_sidecar_out=None,
+        density_cache_out=None,
+        density_cache_in=None,
     ):
         calls.append((assign_mode, density_block_ctx, Path(out_path).name))
         unique, split = minco_rows_low_extra()
@@ -1678,7 +1956,7 @@ def test_raw_mode_low_extra_rescue_allow_runs_exact(work: Path) -> None:
     old_run = wrapper.run_minco_pass
     old_initial = wrapper.run_initial_minco_passes
 
-    def fake_initial(_args, unique_out, split_out):
+    def fake_initial(_args, unique_out, split_out, exact_split_sidecar_out=None, density_cache_out=None):
         calls.append(("best-diff-unique", None, Path(unique_out).name))
         calls.append(("best-diff-split", None, Path(split_out).name))
         unique, split = minco_rows_low_extra()
@@ -1696,6 +1974,8 @@ def test_raw_mode_low_extra_rescue_allow_runs_exact(work: Path) -> None:
         density_block_ctx=None,
         unique_sidecar_out=None,
         exact_split_sidecar_out=None,
+        density_cache_out=None,
+        density_cache_in=None,
     ):
         calls.append((assign_mode, density_block_ctx, Path(out_path).name))
         unique, split = minco_rows_low_extra()
@@ -1752,7 +2032,7 @@ def test_raw_mode_trigger_off_skips_exact(work: Path) -> None:
     old_run = wrapper.run_minco_pass
     old_initial = wrapper.run_initial_minco_passes
 
-    def fake_initial(_args, unique_out, split_out):
+    def fake_initial(_args, unique_out, split_out, exact_split_sidecar_out=None, density_cache_out=None):
         calls.append(("best-diff-unique", None, Path(unique_out).name))
         calls.append(("best-diff-split", None, Path(split_out).name))
         unique, split = minco_rows(extra_mass=3.0)
@@ -1769,6 +2049,9 @@ def test_raw_mode_trigger_off_skips_exact(work: Path) -> None:
         _pipecmd,
         density_block_ctx=None,
         unique_sidecar_out=None,
+        exact_split_sidecar_out=None,
+        density_cache_out=None,
+        density_cache_in=None,
     ):
         calls.append((assign_mode, density_block_ctx, Path(out_path).name))
         if assign_mode == "best-diff-unique":
@@ -1867,7 +2150,7 @@ def test_default_launcher_injects_universal_autoexact_and_env_defaults() -> None
     assert args[args.index("--train-features") + 1] == "joined_training"
     assert args[args.index("--minco") + 1] == "bin/minco"
     assert args[args.index("--candidate-rescue-switch") + 1] == (
-        wrapper.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
     )
     assert args[args.index("--candidate-surface-switch") + 1] == (
         wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
@@ -1875,6 +2158,12 @@ def test_default_launcher_injects_universal_autoexact_and_env_defaults() -> None
     assert args[args.index("--candidate-abundance-policy") + 1] == (
         wrapper.CANDIDATE_ABUNDANCE_POLICY_NORMALIZED_DEPTH_ALPHA2
     )
+    assert args[args.index("--abundance-ani-floor") + 1] == "0.90"
+    assert args[args.index("--abundance-sparse-depth-cap") + 1] == (
+        wrapper.ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH
+    )
+    assert args[args.index("--abundance-sparse-breadth-max") + 1] == "0.15"
+    assert args[args.index("--abundance-sparse-depth-ratio-min") + 1] == "200"
 
 
 def test_default_launcher_constants_match_current_strategy_manifest() -> None:
@@ -1889,7 +2178,7 @@ def test_default_launcher_constants_match_current_strategy_manifest() -> None:
     assert default_wrapper.DEFAULT_PRESET == default_wrapper.CANDIDATE_PRESET
     assert manifest["base_strategy"] == default_wrapper.DEFAULT_STRATEGY
     assert manifest["candidate_rescue_switch"] == (
-        wrapper.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
     )
     assert manifest["candidate_surface_switch"] == (
         wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
@@ -1928,6 +2217,35 @@ def test_default_launcher_current_preset_reproduces_previous_default() -> None:
     assert "--candidate-rescue-switch" not in args
     assert "--candidate-surface-switch" not in args
     assert "--candidate-abundance-policy" not in args
+    assert "--abundance-ani-floor" not in args
+    assert "--abundance-sparse-depth-cap" not in args
+
+
+def test_default_launcher_no_profile_rescue_keeps_candidate_surface() -> None:
+    args = default_wrapper.build_calibrated_argv(
+        [
+            "--no-profile-rescue",
+            "-r",
+            "ref.minco",
+            "--reads",
+            "reads.fq.gz",
+            "-o",
+            "out.tsv",
+        ],
+        {
+            default_wrapper.ENV_TAXMAP: "ref.species.taxmap.tsv",
+            default_wrapper.ENV_TRAIN_FEATURES: "joined_training",
+        },
+    )
+    assert "--no-profile-rescue" not in args
+    assert args[args.index("--candidate-rescue-switch") + 1] == "off"
+    assert args[args.index("--candidate-surface-switch") + 1] == (
+        wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
+    )
+    assert args[args.index("--candidate-abundance-policy") + 1] == (
+        wrapper.CANDIDATE_ABUNDANCE_POLICY_NORMALIZED_DEPTH_ALPHA2
+    )
+    assert args[args.index("--abundance-ani-floor") + 1] == "0.90"
 
 
 def test_default_launcher_discovers_packaged_ref_sidecars(work: Path) -> None:
@@ -1948,7 +2266,7 @@ def test_default_launcher_discovers_packaged_ref_sidecars(work: Path) -> None:
     assert args[args.index("--taxmap") + 1] == str(taxmap)
     assert args[args.index("--train-features") + 1] == str(training)
     assert args[args.index("--candidate-rescue-switch") + 1] == (
-        wrapper.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
     )
 
 
@@ -2037,7 +2355,7 @@ def test_default_launcher_candidate_preset_injects_candidate_switches_and_sideca
     assert "--profile-preset" not in args
     assert args[args.index("--strategy") + 1] == "universal-auto-exact"
     assert args[args.index("--candidate-rescue-switch") + 1] == (
-        wrapper.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70
+        wrapper.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
     )
     assert args[args.index("--candidate-surface-switch") + 1] == (
         wrapper.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
@@ -2269,6 +2587,8 @@ def test_default_launcher_help_banner_names_strategy_and_boundary() -> None:
     assert default_wrapper.ENV_PROFILE_PRESET in text
     assert default_wrapper.ENV_CANDIDATE_SURFACE_TAXMAP in text
     assert "--profile-preset current|candidate" in text
+    assert "--no-profile-rescue" in text
+    assert "strict split-evidence profile" in text
     assert "sidecar beside --ref" in text
     assert "AMR/gene/virus/mixed-domain profiling" in text
     assert "minco profile" in text
@@ -2317,6 +2637,8 @@ def main() -> int:
             test_default_launcher_requires_taxmap_or_env_unless_help()
             test_default_launcher_help_banner_names_strategy_and_boundary()
             test_panel_abundance_uses_max_split_unique_zip_depth_and_tail_exception()
+            test_abundance_ani_floor_keeps_calls_but_zeros_low_ani_mass()
+            test_sparse_depth_cap_targets_sparse_high_depth_only()
     finally:
         restore_model_hooks(old_hooks)
     return 0

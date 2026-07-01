@@ -1,0 +1,5 @@
+panel	method	samples	mean_F1	pooled_F1	pooled_TP	pooled_FP	pooled_FN	mean_L1_union_pp	mean_L1_truth_only_pp	mean_Pearson_union	mean_Pearson_truth_only	official_L1_pp	official_Pearson	current_official_L1_pp	current_official_Pearson	delta_current_L1_pp	delta_current_Pearson
+cami3_toy_human_gut_gtdb_source_readmap	default_candidate	0,1,2	0.8276881296790656	0.8262295081967213	252	62	44	39.70892047371459	31.887614417130635	0.9161785153528643	0.9280008691962106	39.70892047371459	0.9161785153528643	NA	NA	NA	NA
+cami3_toy_human_gut_gtdb_source_readmap	default_candidate_no_profile_rescue	0,1,2	0.8159567931704953	0.8145695364238409	246	62	50	58.15518561014705	49.51606200728835	0.843750147437328	0.8557772292949414	58.15518561014705	0.843750147437328	NA	NA	NA	NA
+hmp_airskin_gtdb_source_abundance	default_candidate	13	0.925	0.925	37	3	3	54.7479840444765	54.192298858512444	0.9105244185423924	0.9100458154509377	54.7479840444765	0.9105244185423924	NA	NA	NA	NA
+hmp_airskin_gtdb_source_abundance	default_candidate_no_profile_rescue	13	0.925	0.925	37	3	3	54.7479840444765	54.192298858512444	0.9105244185423924	0.9100458154509377	54.7479840444765	0.9105244185423924	NA	NA	NA	NA

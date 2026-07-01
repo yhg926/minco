@@ -43,6 +43,7 @@ ENV_MINCO = "MINCO_PROFILE_MINCO"
 ENV_PROFILE_PRESET = "MINCO_PROFILE_PRESET"
 ENV_CANDIDATE_SURFACE_TAXMAP = "MINCO_PROFILE_CANDIDATE_SURFACE_TAXMAP"
 WRAPPER_PROFILE_PRESET_OPT = "--profile-preset"
+WRAPPER_NO_PROFILE_RESCUE_OPT = "--no-profile-rescue"
 WRAPPER_PREFLIGHT_OPTS = ("--check-ref", "--preflight")
 VALID_PROFILE_PRESETS = {CURRENT_PRESET, CANDIDATE_PRESET}
 MODEL_CACHE_NAMES = [
@@ -97,10 +98,13 @@ Optional deployment default:
 
 Optional wrapper preset:
   {WRAPPER_PROFILE_PRESET_OPT} current|candidate, or {ENV_PROFILE_PRESET}
-  candidate is the selected default. It enables candidate rescue/surface calls
-  plus normalized-depth candidate abundance. current reproduces the previous
-  calibrated default without those candidate additions. The candidate preset
-  can discover candidate_surface_taxmap.tsv beside --ref, or use
+  candidate is the selected default. It enables strict split-evidence profile
+  rescue, candidate-surface calls, abundance-only reliability guards, plus
+  normalized-depth candidate abundance. current reproduces the previous
+  calibrated default without those candidate additions. Use
+  {WRAPPER_NO_PROFILE_RESCUE_OPT} to keep the candidate preset but disable
+  profile-rescue additions. The candidate preset can discover
+  candidate_surface_taxmap.tsv beside --ref, or use
   {ENV_CANDIDATE_SURFACE_TAXMAP}.
 
 For direct AMR/gene/virus/mixed-domain profiling and read tracking, use the C
@@ -495,6 +499,7 @@ def run_preflight(argv: Sequence[str], env: Optional[Mapping[str, str]] = None) 
 
     try:
         preset_arg, args = extract_wrapper_option(argv, WRAPPER_PROFILE_PRESET_OPT)
+        no_profile_rescue, args = extract_wrapper_flags(args, (WRAPPER_NO_PROFILE_RESCUE_OPT,))
     except SystemExit as exc:
         print("MinCO profile preflight")
         print("status\tfail")
@@ -505,6 +510,15 @@ def run_preflight(argv: Sequence[str], env: Optional[Mapping[str, str]] = None) 
     if preset not in VALID_PROFILE_PRESETS:
         errors.append(f"{WRAPPER_PROFILE_PRESET_OPT} must be one of: {', '.join(sorted(VALID_PROFILE_PRESETS))}")
     rows.append(("profile_preset", "pass" if preset in VALID_PROFILE_PRESETS else "fail", "wrapper", preset, "selected wrapper preset"))
+    rows.append(
+        (
+            "profile_rescue",
+            "pass",
+            "wrapper",
+            "off" if no_profile_rescue else "default",
+            f"{WRAPPER_NO_PROFILE_RESCUE_OPT} opt-out",
+        )
+    )
 
     explicit_scope = has_option(args, ["--scope"])
     explicit_train_pool = has_option(args, ["--train-pool"])
@@ -600,6 +614,25 @@ def run_preflight(argv: Sequence[str], env: Optional[Mapping[str, str]] = None) 
             )
 
     surface_switch = option_value(args, ["--candidate-surface-switch"])
+    rescue_switch = option_value(args, ["--candidate-rescue-switch"])
+    if rescue_switch is None:
+        if preset == CANDIDATE_PRESET:
+            rescue_switch = (
+                calibrated.CANDIDATE_RESCUE_SWITCH_OFF
+                if no_profile_rescue
+                else calibrated.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
+            )
+        else:
+            rescue_switch = calibrated.CANDIDATE_RESCUE_SWITCH_OFF
+    rows.append(
+        (
+            "candidate_rescue_switch",
+            "pass",
+            "explicit" if has_option(args, ["--candidate-rescue-switch"]) else "preset",
+            rescue_switch,
+            "profile rescue mode",
+        )
+    )
     if surface_switch is None:
         surface_switch = (
             calibrated.CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70
@@ -653,6 +686,7 @@ def apply_profile_preset(
     args: list[str],
     preset: str,
     env: Mapping[str, str],
+    no_profile_rescue: bool = False,
 ) -> list[str]:
     if preset not in VALID_PROFILE_PRESETS:
         raise SystemExit(
@@ -662,10 +696,15 @@ def apply_profile_preset(
         return args
 
     if not has_option(args, ["--candidate-rescue-switch"]):
+        rescue_switch = (
+            calibrated.CANDIDATE_RESCUE_SWITCH_OFF
+            if no_profile_rescue
+            else calibrated.CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1
+        )
         args.extend(
             [
                 "--candidate-rescue-switch",
-                calibrated.CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70,
+                rescue_switch,
             ]
         )
     if not has_option(args, ["--candidate-surface-switch"]):
@@ -682,6 +721,19 @@ def apply_profile_preset(
                 calibrated.CANDIDATE_ABUNDANCE_POLICY_NORMALIZED_DEPTH_ALPHA2,
             ]
         )
+    if not has_option(args, ["--abundance-ani-floor"]):
+        args.extend(["--abundance-ani-floor", "0.90"])
+    if not has_option(args, ["--abundance-sparse-depth-cap"]):
+        args.extend(
+            [
+                "--abundance-sparse-depth-cap",
+                calibrated.ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH,
+            ]
+        )
+    if not has_option(args, ["--abundance-sparse-breadth-max"]):
+        args.extend(["--abundance-sparse-breadth-max", "0.15"])
+    if not has_option(args, ["--abundance-sparse-depth-ratio-min"]):
+        args.extend(["--abundance-sparse-depth-ratio-min", "200"])
     surface_switch = option_value(args, ["--candidate-surface-switch"]) or ""
     surface_enabled = surface_switch != calibrated.CANDIDATE_SURFACE_SWITCH_OFF
     if surface_enabled and not has_option(args, ["--candidate-surface-taxmap"]):
@@ -700,6 +752,7 @@ def build_calibrated_argv(
 ) -> list[str]:
     args = list(sys.argv[1:] if argv is None else argv)
     preset_arg, args = extract_wrapper_option(args, WRAPPER_PROFILE_PRESET_OPT)
+    no_profile_rescue, args = extract_wrapper_flags(args, (WRAPPER_NO_PROFILE_RESCUE_OPT,))
     if help_requested(args):
         return args
 
@@ -752,7 +805,7 @@ def build_calibrated_argv(
         if minco:
             args.extend(["--minco", minco])
 
-    args = apply_profile_preset(args, preset, env_map)
+    args = apply_profile_preset(args, preset, env_map, no_profile_rescue)
     return args
 
 

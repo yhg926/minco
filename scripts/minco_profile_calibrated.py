@@ -44,6 +44,7 @@ from calibrate_multisample_calls import (  # noqa: E402
 DEFAULT_THRESHOLD = 0.35
 ZIP_POWER = 1.0
 EXACT_SPLIT_TRIGGER = 0.10
+EXACT_SPLIT_ABUNDANCE_TRIGGER = 0.30
 EXACT_SPLIT_MEDIAN_UAF_GUARD = 0.35
 EXACT_SPLIT_RAW_UNIQUE_RATIO_GUARD = 0.80
 EXACT_SPLIT_LOW_EXTRA_MODE = "skip"
@@ -54,6 +55,12 @@ LOW_EXTRA_SPLIT_RESCUE_PROBABILITY_THRESHOLD = 0.20
 LOW_EXTRA_SPLIT_RESCUE_TOPN_PER_GENUS = 1
 MODEL_CACHE_VERSION = 1
 DEFAULT_ABUNDANCE_GENUS_XNY_BLEND_ALPHA = 0.0
+DEFAULT_ABUNDANCE_ANI_FLOOR = 0.0
+ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_OFF = "off"
+ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH = "poisson-breadth"
+DEFAULT_ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH = ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_OFF
+DEFAULT_ABUNDANCE_SPARSE_BREADTH_MAX = 0.15
+DEFAULT_ABUNDANCE_SPARSE_DEPTH_RATIO_MIN = 200.0
 ABUNDANCE_GENUS_XNY_BLEND_STRATEGIES = {"universal", "universal-auto-exact"}
 ABUNDANCE_FEATURE_ALLOCATOR_SWITCH_OFF = "off"
 ABUNDANCE_FEATURE_ALLOCATOR_SWITCH_GUARDED_GENUS_HIT_BREADTH_A002 = "guarded-genus-hit-breadth-a002"
@@ -67,10 +74,20 @@ ADAPTIVE_CALL_FILTER_MAX_XNY_MEDIAN_THRESHOLD = 253.0
 ADAPTIVE_CALL_FILTER_MIN_XNY_THRESHOLD = 25.0
 CANDIDATE_RESCUE_SWITCH_OFF = "off"
 CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70 = "emitted-ani90-xny100-br01-af70"
+CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1 = (
+    "split-p002-x300-ani095-af06-b025-d1-top1"
+)
 CANDIDATE_RESCUE_ANI_MIN = 0.90
 CANDIDATE_RESCUE_XNY_MIN = 100.0
 CANDIDATE_RESCUE_BREADTH_MIN = 0.01
 CANDIDATE_RESCUE_REAL_AF_MIN = 0.70
+CANDIDATE_RESCUE_STRICT_PROB_MIN = 0.02
+CANDIDATE_RESCUE_STRICT_SPLIT_XNY_MIN = 300.0
+CANDIDATE_RESCUE_STRICT_SPLIT_ANI_MIN = 0.95
+CANDIDATE_RESCUE_STRICT_SPLIT_REAL_AF_MIN = 0.60
+CANDIDATE_RESCUE_STRICT_SPLIT_BREADTH_MIN = 0.25
+CANDIDATE_RESCUE_STRICT_SPLIT_DEPTH_MIN = 1.0
+CANDIDATE_RESCUE_STRICT_TOPN_PER_GENUS = 1
 CANDIDATE_SURFACE_SWITCH_OFF = "off"
 CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI90_XNY100_BR01_AF70 = "accession-ani90-xny100-br01-af70"
 CANDIDATE_SURFACE_SWITCH_ACCESSION_ANI93_XNY650_BR20 = "accession-ani93-xny650-br20"
@@ -338,6 +355,82 @@ def panel_abundance_raw(features: pd.DataFrame) -> np.ndarray:
     return np.nan_to_num(raw, nan=0.0, posinf=0.0, neginf=0.0)
 
 
+def exact_hit_abundance_raw(
+    features: pd.DataFrame,
+    exact_features: Optional[pd.DataFrame] = None,
+) -> tuple[np.ndarray, dict[str, object]]:
+    source = features if exact_features is None else exact_features
+    if (
+        exact_features is not None
+        and "s_best_accession" in features.columns
+        and "accession" in source.columns
+        and "Ref_hit_mean_depth" in source.columns
+    ):
+        exact_by_accession = (
+            source.assign(
+                _accession=source["accession"].astype(str),
+                _exact_hit=numeric(source, "Ref_hit_mean_depth"),
+            )
+            .groupby("_accession", sort=False)["_exact_hit"]
+            .max()
+        )
+        exact = (
+            features["s_best_accession"]
+            .astype(str)
+            .map(exact_by_accession)
+            .fillna(0.0)
+            .to_numpy(dtype=float)
+        )
+    elif (
+        exact_features is not None
+        and "s_best_accession" in features.columns
+        and "s_best_accession" in source.columns
+    ):
+        exact_by_accession = (
+            source.assign(
+                _accession=source["s_best_accession"].astype(str),
+                _exact_hit=numeric(source, "s_Ref_hit_mean_depth_max"),
+            )
+            .groupby("_accession", sort=False)["_exact_hit"]
+            .max()
+        )
+        exact = (
+            features["s_best_accession"]
+            .astype(str)
+            .map(exact_by_accession)
+            .fillna(0.0)
+            .to_numpy(dtype=float)
+        )
+    elif exact_features is not None and "taxid" in features.columns and "taxid" in source.columns:
+        exact_by_taxid = (
+            source.assign(
+                _taxid=source["taxid"].astype(str),
+                _exact_hit=numeric(source, "s_Ref_hit_mean_depth_max"),
+            )
+            .groupby("_taxid", sort=False)["_exact_hit"]
+            .max()
+        )
+        exact = (
+            features["taxid"]
+            .astype(str)
+            .map(exact_by_taxid)
+            .fillna(0.0)
+            .to_numpy(dtype=float)
+        )
+    else:
+        exact = numeric(source, "s_Ref_hit_mean_depth_max").to_numpy(dtype=float)
+    fallback = panel_abundance_raw(features)
+    use_exact = exact > 0.0
+    raw = np.where(use_exact, exact, fallback)
+    details = {
+        "abundance_exact_hit_applied": True,
+        "abundance_exact_hit_source_column": "s_Ref_hit_mean_depth_max",
+        "abundance_exact_hit_fallback_n": int(np.sum(~use_exact)),
+        "abundance_rule": "auto_exact_split_ref_hit_mean_depth",
+    }
+    return np.nan_to_num(raw, nan=0.0, posinf=0.0, neginf=0.0), details
+
+
 def min_positive_support(left: np.ndarray, right: np.ndarray) -> np.ndarray:
     out = np.maximum(left, right)
     both = (left > 0.0) & (right > 0.0)
@@ -419,6 +512,7 @@ def apply_candidate_rescue_switch(
     abundance_raw: np.ndarray,
     mode: str,
     abundance_policy: str = CANDIDATE_ABUNDANCE_POLICY_ZERO,
+    names: Optional[Mapping[str, str]] = None,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     """Apply an experimental rescue for strong uncalled emitted candidates.
 
@@ -448,6 +542,9 @@ def apply_candidate_rescue_switch(
         "candidate_rescue_xny_min": 0.0,
         "candidate_rescue_breadth_min": 0.0,
         "candidate_rescue_real_af_min": 0.0,
+        "candidate_rescue_probability_min": 0.0,
+        "candidate_rescue_depth_min": 0.0,
+        "candidate_rescue_topn_per_genus": 0,
         "candidate_rescue_ani_source_rule": "",
         "candidate_abundance_policy": abundance_policy,
         "candidate_abundance_policy_alpha": candidate_policy_alpha(abundance_policy),
@@ -455,10 +552,73 @@ def apply_candidate_rescue_switch(
     }
     if mode == CANDIDATE_RESCUE_SWITCH_OFF:
         features["candidate_rescue_added"] = added
+        features["candidate_rescue_native_mass"] = added
         features["candidate_abundance_norm_mass"] = np.zeros(len(features), dtype=float)
         return call, abundance, details
-    if mode != CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70:
+    if mode not in {
+        CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70,
+        CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1,
+    }:
         raise ValueError(f"unsupported candidate rescue switch: {mode}")
+
+    if mode == CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1:
+        support_probability = numeric(features, "calibrated_probability").to_numpy(dtype=float)
+        support_ani = numeric(features, "s_ANI_max").to_numpy(dtype=float)
+        support_xny = numeric(features, "s_XnY_ctx_max").to_numpy(dtype=float)
+        support_breadth = numeric(features, "s_Ref_breadth_max").to_numpy(dtype=float)
+        support_real_af = numeric(features, "s_Real_min_align_fraction_max").to_numpy(dtype=float)
+        support_depth = numeric(features, "s_Ref_mean_depth_max").to_numpy(dtype=float)
+        raw_added = (
+            (~call)
+            & (support_probability >= CANDIDATE_RESCUE_STRICT_PROB_MIN)
+            & (support_xny >= CANDIDATE_RESCUE_STRICT_SPLIT_XNY_MIN)
+            & (support_ani >= CANDIDATE_RESCUE_STRICT_SPLIT_ANI_MIN)
+            & (support_real_af >= CANDIDATE_RESCUE_STRICT_SPLIT_REAL_AF_MIN)
+            & (support_breadth >= CANDIDATE_RESCUE_STRICT_SPLIT_BREADTH_MIN)
+            & (support_depth >= CANDIDATE_RESCUE_STRICT_SPLIT_DEPTH_MIN)
+        )
+        score = (
+            np.maximum(support_depth, 0.0)
+            * np.maximum(support_breadth, 1e-6)
+            * np.maximum(support_ani, 0.0)
+            * np.maximum(support_xny, 1.0)
+        )
+        added = topn_by_genus(
+            features,
+            names or {},
+            raw_added,
+            score,
+            CANDIDATE_RESCUE_STRICT_TOPN_PER_GENUS,
+        )
+        call = call | added
+        features["candidate_rescue_added"] = added
+        features["candidate_rescue_native_mass"] = added
+        features["candidate_abundance_norm_mass"] = np.zeros(len(features), dtype=float)
+        zero_mass = not bool(np.any(abundance[added] > 0.0))
+        mass_rule = "rescued rows keep native profile raw abundance mass"
+        details.update(
+            {
+                "candidate_rescue_applied": bool(np.any(added)),
+                "candidate_rescue_added_n": int(np.sum(added)),
+                "candidate_rescue_output_call_n": int(call.sum()),
+                "candidate_rescue_zero_mass": zero_mass,
+                "candidate_rescue_rule": (
+                    "add top1/genus uncalled split-evidence candidates with "
+                    "P>=0.02, s_XnY_ctx>=300, s_ANI>=0.95, "
+                    "s_Real_min_align_fraction>=0.60, s_Ref_breadth>=0.25, "
+                    f"s_Ref_mean_depth>=1; {mass_rule}"
+                ),
+                "candidate_rescue_ani_min": CANDIDATE_RESCUE_STRICT_SPLIT_ANI_MIN,
+                "candidate_rescue_xny_min": CANDIDATE_RESCUE_STRICT_SPLIT_XNY_MIN,
+                "candidate_rescue_breadth_min": CANDIDATE_RESCUE_STRICT_SPLIT_BREADTH_MIN,
+                "candidate_rescue_real_af_min": CANDIDATE_RESCUE_STRICT_SPLIT_REAL_AF_MIN,
+                "candidate_rescue_probability_min": CANDIDATE_RESCUE_STRICT_PROB_MIN,
+                "candidate_rescue_depth_min": CANDIDATE_RESCUE_STRICT_SPLIT_DEPTH_MIN,
+                "candidate_rescue_topn_per_genus": CANDIDATE_RESCUE_STRICT_TOPN_PER_GENUS,
+                "candidate_rescue_ani_source_rule": "s_ANI_max",
+            }
+        )
+        return call, abundance, details
 
     support_ani = np.maximum(
         numeric(features, "s_Ref_zip_aaf_ani_max").to_numpy(dtype=float),
@@ -487,6 +647,7 @@ def apply_candidate_rescue_switch(
     candidate_mass = candidate_normalized_depth_mass(features, abundance_policy)
     abundance[added] = 0.0
     features["candidate_rescue_added"] = added
+    features["candidate_rescue_native_mass"] = np.zeros(len(features), dtype=bool)
     features["candidate_abundance_norm_mass"] = np.where(added, candidate_mass, 0.0)
     added_norm_mass = candidate_mass[added]
     zero_mass = not bool(np.any(added_norm_mass > 0.0))
@@ -1166,6 +1327,99 @@ def guarded_feature_allocator_abundance_raw(
     return np.nan_to_num(adjusted, nan=0.0, posinf=0.0, neginf=0.0), details
 
 
+def abundance_ani_floor_raw(
+    work: pd.DataFrame,
+    abundance_raw: np.ndarray,
+    ani_floor: float = DEFAULT_ABUNDANCE_ANI_FLOOR,
+) -> tuple[np.ndarray, dict[str, object]]:
+    base = np.nan_to_num(np.asarray(abundance_raw, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    base = np.where(base > 0.0, base, 0.0)
+    floor = finite(ani_floor, DEFAULT_ABUNDANCE_ANI_FLOOR)
+    details: dict[str, object] = {
+        "abundance_ani_floor": floor,
+        "abundance_ani_floor_applied": False,
+        "abundance_ani_floor_zeroed_rows_n": 0,
+        "abundance_ani_floor_zeroed_raw_mass": 0.0,
+        "abundance_ani_floor_rule": "off",
+    }
+    if floor <= 0.0:
+        return base, details
+    reported = numeric(work, "reported_ani").to_numpy(dtype=float)
+    call = boolean_column(work, "calibrated_call").to_numpy(dtype=bool)
+    zero = call & (base > 0.0) & (reported < floor)
+    adjusted = base.copy()
+    removed = float(adjusted[zero].sum())
+    adjusted[zero] = 0.0
+    details.update(
+        {
+            "abundance_ani_floor_applied": bool(np.any(zero)),
+            "abundance_ani_floor_zeroed_rows_n": int(np.sum(zero)),
+            "abundance_ani_floor_zeroed_raw_mass": removed,
+            "abundance_ani_floor_rule": (
+                f"abundance-only: keep calls but zero raw mass when reported_ani<{floor:.3f}"
+            ),
+        }
+    )
+    return np.nan_to_num(adjusted, nan=0.0, posinf=0.0, neginf=0.0), details
+
+
+def abundance_sparse_depth_cap_raw(
+    work: pd.DataFrame,
+    abundance_raw: np.ndarray,
+    mode: str = DEFAULT_ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH,
+    breadth_max: float = DEFAULT_ABUNDANCE_SPARSE_BREADTH_MAX,
+    depth_ratio_min: float = DEFAULT_ABUNDANCE_SPARSE_DEPTH_RATIO_MIN,
+) -> tuple[np.ndarray, dict[str, object]]:
+    base = np.nan_to_num(np.asarray(abundance_raw, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    base = np.where(base > 0.0, base, 0.0)
+    breadth_cutoff = finite(breadth_max, DEFAULT_ABUNDANCE_SPARSE_BREADTH_MAX)
+    ratio_cutoff = finite(depth_ratio_min, DEFAULT_ABUNDANCE_SPARSE_DEPTH_RATIO_MIN)
+    details: dict[str, object] = {
+        "abundance_sparse_depth_cap_switch": mode,
+        "abundance_sparse_depth_cap_applied": False,
+        "abundance_sparse_depth_cap_rows_n": 0,
+        "abundance_sparse_depth_cap_raw_mass_before": 0.0,
+        "abundance_sparse_depth_cap_raw_mass_after": 0.0,
+        "abundance_sparse_depth_cap_breadth_max": breadth_cutoff,
+        "abundance_sparse_depth_cap_ratio_min": ratio_cutoff,
+        "abundance_sparse_depth_cap_rule": "off",
+    }
+    if mode == ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_OFF:
+        return base, details
+    if mode != ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH:
+        raise ValueError(f"unsupported abundance sparse-depth cap switch: {mode}")
+    if breadth_cutoff <= 0.0 or ratio_cutoff <= 0.0:
+        return base, details
+
+    breadth = np.maximum(
+        numeric(work, "s_Ref_breadth_max").to_numpy(dtype=float),
+        numeric(work, "u_Ref_breadth_max").to_numpy(dtype=float),
+    )
+    breadth = np.clip(np.nan_to_num(breadth, nan=0.0, posinf=1.0, neginf=0.0), 0.0, 1.0 - 1e-12)
+    poisson_depth = -np.log1p(-breadth)
+    ratio = base / np.maximum(poisson_depth, 1e-12)
+    call = boolean_column(work, "calibrated_call").to_numpy(dtype=bool)
+    cap = call & (base > 0.0) & (breadth <= breadth_cutoff) & (ratio >= ratio_cutoff)
+    adjusted = base.copy()
+    before = float(adjusted[cap].sum())
+    adjusted[cap] = np.minimum(adjusted[cap], poisson_depth[cap])
+    after = float(adjusted[cap].sum())
+    details.update(
+        {
+            "abundance_sparse_depth_cap_applied": bool(np.any(cap)),
+            "abundance_sparse_depth_cap_rows_n": int(np.sum(cap)),
+            "abundance_sparse_depth_cap_raw_mass_before": before,
+            "abundance_sparse_depth_cap_raw_mass_after": after,
+            "abundance_sparse_depth_cap_rule": (
+                "abundance-only: for called rows with max(split,unique) breadth"
+                f"<={breadth_cutoff:.3f} and raw/(-log(1-breadth))>={ratio_cutoff:.3f}, "
+                "cap raw mass at -log(1-breadth)"
+            ),
+        }
+    )
+    return np.nan_to_num(adjusted, nan=0.0, posinf=0.0, neginf=0.0), details
+
+
 def normalized_split_abundance_raw(features: pd.DataFrame) -> np.ndarray:
     raw = numeric(features, "s_Normalized_abundance_depth_max").to_numpy(dtype=float)
     return np.where(raw > 0.0, raw, 0.0)
@@ -1576,6 +1830,8 @@ def run_minco_pass(
     density_block_ctx: Optional[int] = None,
     unique_sidecar_out: Optional[Path] = None,
     exact_split_sidecar_out: Optional[Path] = None,
+    density_cache_out: Optional[Path] = None,
+    density_cache_in: Optional[Path] = None,
 ) -> None:
     cmd = minco_pass_command(
         minco,
@@ -1588,6 +1844,8 @@ def run_minco_pass(
         density_block_ctx,
         unique_sidecar_out,
         exact_split_sidecar_out,
+        density_cache_out,
+        density_cache_in,
     )
     log_path = out.with_suffix(out.suffix + ".log")
     eprint("running:", " ".join(cmd))
@@ -1606,6 +1864,8 @@ def minco_pass_command(
     density_block_ctx: Optional[int] = None,
     unique_sidecar_out: Optional[Path] = None,
     exact_split_sidecar_out: Optional[Path] = None,
+    density_cache_out: Optional[Path] = None,
+    density_cache_in: Optional[Path] = None,
 ) -> list[str]:
     cmd = [
         minco,
@@ -1638,6 +1898,10 @@ def minco_pass_command(
         cmd.extend(["--readwise-unique-out", str(unique_sidecar_out)])
     if exact_split_sidecar_out is not None:
         cmd.extend(["--readwise-exact-split-out", str(exact_split_sidecar_out)])
+    if density_cache_out is not None:
+        cmd.extend(["--readwise-density-cache-out", str(density_cache_out)])
+    if density_cache_in is not None:
+        cmd.extend(["--readwise-density-cache-in", str(density_cache_in)])
     if pipecmd:
         cmd.extend(["--pipecmd", pipecmd])
     return cmd
@@ -1660,6 +1924,7 @@ def run_minco_passes_parallel(
     threads: int,
     pipecmd: str,
     exact_split_sidecar_out: Optional[Path] = None,
+    density_cache_out: Optional[Path] = None,
 ) -> None:
     unique_threads, split_threads = split_initial_pass_threads(threads)
     if threads < 2:
@@ -1673,6 +1938,7 @@ def run_minco_passes_parallel(
             threads,
             pipecmd,
             exact_split_sidecar_out=exact_split_sidecar_out,
+            density_cache_out=density_cache_out,
         )
         return
 
@@ -1692,6 +1958,7 @@ def run_minco_passes_parallel(
                 pass_threads,
                 pipecmd,
                 exact_split_sidecar_out=exact_sidecar,
+                density_cache_out=density_cache_out if assign_mode == "best-diff-split" else None,
             )
             log = out.with_suffix(out.suffix + ".log").open("w")
             eprint(
@@ -1742,16 +2009,28 @@ def use_same_stream_exact_split(args: argparse.Namespace) -> bool:
     return bool(explicit) if explicit is not None else False
 
 
+def use_lazy_exact_density_cache(args: argparse.Namespace) -> bool:
+    explicit = getattr(args, "lazy_exact_density_cache", None)
+    if not getattr(args, "ref", None) or not getattr(args, "reads", None):
+        return False
+    if getattr(args, "pipecmd", ""):
+        return False
+    return bool(explicit) if explicit is not None else True
+
+
 def run_initial_minco_passes(
     args: argparse.Namespace,
     unique_out: Path,
     split_out: Path,
     exact_split_sidecar_out: Optional[Path] = None,
+    density_cache_out: Optional[Path] = None,
 ) -> None:
     if use_same_stream_initial_passes(args):
         kwargs = {"unique_sidecar_out": unique_out}
         if exact_split_sidecar_out is not None:
             kwargs["exact_split_sidecar_out"] = exact_split_sidecar_out
+        if density_cache_out is not None:
+            kwargs["density_cache_out"] = density_cache_out
         run_minco_pass(
             args.minco,
             args.ref,
@@ -1768,6 +2047,8 @@ def run_initial_minco_passes(
         kwargs = {}
         if exact_split_sidecar_out is not None:
             kwargs["exact_split_sidecar_out"] = exact_split_sidecar_out
+        if density_cache_out is not None:
+            kwargs["density_cache_out"] = density_cache_out
         run_minco_passes_parallel(
             args.minco,
             args.ref,
@@ -1783,6 +2064,8 @@ def run_initial_minco_passes(
         kwargs = {}
         if exact_split_sidecar_out is not None:
             kwargs["exact_split_sidecar_out"] = exact_split_sidecar_out
+        if density_cache_out is not None:
+            kwargs["density_cache_out"] = density_cache_out
         run_minco_pass(
             args.minco,
             args.ref,
@@ -1821,10 +2104,20 @@ def ensure_feature_tables(args: argparse.Namespace) -> tuple[Path, Path, Optiona
         and use_same_stream_exact_split(args)
         else None
     )
-    if exact_split_sidecar_out is not None:
-        run_initial_minco_passes(args, unique_out, split_out, exact_split_sidecar_out)
-    else:
-        run_initial_minco_passes(args, unique_out, split_out)
+    density_cache_out = (
+        workdir / "minco.readwise_density.cache.bin"
+        if args.strategy == "universal-auto-exact"
+        and use_lazy_exact_density_cache(args)
+        and exact_split_sidecar_out is None
+        else None
+    )
+    run_initial_minco_passes(
+        args,
+        unique_out,
+        split_out,
+        exact_split_sidecar_out,
+        density_cache_out,
+    )
     return unique_out, split_out, cleanup_dir, workdir
 
 
@@ -1872,6 +2165,18 @@ def taxmap_has_gtdb_species_labels(taxmap: Mapping[str, Mapping[str, str]]) -> b
     return False
 
 
+def assign_output_columns(work: pd.DataFrame, values: Mapping[str, object]) -> pd.DataFrame:
+    new_cols: dict[str, object] = {}
+    for key, value in values.items():
+        if key in work.columns:
+            work[key] = value
+        else:
+            new_cols[key] = value
+    if not new_cols:
+        return work
+    return pd.concat([work, pd.DataFrame(new_cols, index=work.index)], axis=1)
+
+
 def write_output(
     out_path: Path,
     features: pd.DataFrame,
@@ -1887,6 +2192,10 @@ def write_output(
     abundance_genus_xny_blend_alpha: float = DEFAULT_ABUNDANCE_GENUS_XNY_BLEND_ALPHA,
     abundance_feature_allocator_switch: str = ABUNDANCE_FEATURE_ALLOCATOR_SWITCH_OFF,
     abundance_feature_allocator_taxmap: Optional[Mapping[str, Mapping[str, str]]] = None,
+    abundance_ani_floor: float = DEFAULT_ABUNDANCE_ANI_FLOOR,
+    abundance_sparse_depth_cap_switch: str = DEFAULT_ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH,
+    abundance_sparse_breadth_max: float = DEFAULT_ABUNDANCE_SPARSE_BREADTH_MAX,
+    abundance_sparse_depth_ratio_min: float = DEFAULT_ABUNDANCE_SPARSE_DEPTH_RATIO_MIN,
     candidate_surface_rows: Optional[pd.DataFrame] = None,
     candidate_abundance_policy: str = CANDIDATE_ABUNDANCE_POLICY_ZERO,
 ) -> None:
@@ -1896,10 +2205,10 @@ def write_output(
     work["species_name"] = work["taxid"].map(lambda t: names.get(t, ""))
     work["calibrated_call"] = np.asarray(call_mask, dtype=bool)
     work["profile_strategy"] = strategy
-    for key, value in strategy_details.items():
-        if key == "profile_strategy":
-            continue
-        work[key] = value
+    work = assign_output_columns(
+        work,
+        {key: value for key, value in strategy_details.items() if key != "profile_strategy"},
+    )
     if "raw_unique_fallback" not in work.columns:
         work["raw_unique_fallback"] = False
     work["calibrated_threshold"] = threshold
@@ -1920,10 +2229,11 @@ def write_output(
             abundance,
             abundance_genus_xny_blend_alpha,
         )
+    base_abundance_rule = str(strategy_details.get("abundance_rule", "") or "base_raw")
     work["abundance_rule"] = (
-        "base_raw_then_within_genus_xny_blend"
+        f"{base_abundance_rule}_then_within_genus_xny_blend"
         if abundance_blend_applied
-        else "base_raw"
+        else base_abundance_rule
     )
     work["abundance_genus_xny_blend_alpha"] = (
         abundance_genus_xny_blend_alpha if abundance_blend_applied else 0.0
@@ -1948,12 +2258,19 @@ def write_output(
     if base_called_mass <= 0.0:
         base_called_mass = 1.0
     if candidate_abundance_policy == CANDIDATE_ABUNDANCE_POLICY_NORMALIZED_DEPTH_ALPHA2:
+        if "candidate_rescue_native_mass" in work.columns:
+            native_rescue = work["candidate_rescue_native_mass"].astype(bool)
+        else:
+            native_rescue = pd.Series(False, index=work.index)
+        policy_rescue = rescue_added & ~native_rescue
         rescue_norm_mass = candidate_normalized_depth_mass(work, candidate_abundance_policy)
         if "candidate_abundance_norm_mass" not in work.columns:
             work["candidate_abundance_norm_mass"] = 0.0
-        work.loc[rescue_added, "candidate_abundance_norm_mass"] = rescue_norm_mass[rescue_added.to_numpy()]
-        work.loc[rescue_added, "calibrated_abundance_raw"] = (
-            work.loc[rescue_added, "candidate_abundance_norm_mass"].astype(float) * base_called_mass
+        work.loc[policy_rescue, "candidate_abundance_norm_mass"] = rescue_norm_mass[
+            policy_rescue.to_numpy()
+        ]
+        work.loc[policy_rescue, "calibrated_abundance_raw"] = (
+            work.loc[policy_rescue, "candidate_abundance_norm_mass"].astype(float) * base_called_mass
         )
 
     work = append_accession_candidate_surface_rows(
@@ -1971,13 +2288,34 @@ def write_output(
         abundance_feature_allocator_switch,
         abundance_feature_allocator_taxmap,
     )
-    for key, value in allocator_details.items():
-        work[key] = value
+    work = assign_output_columns(work, allocator_details)
     if bool(allocator_details.get("abundance_feature_allocator_applied", False)):
         work["abundance_rule"] = (
             work["abundance_rule"].astype(str) + "_then_guarded_feature_allocator"
         )
-    work["calibrated_abundance_raw"] = allocated_raw
+    guarded_raw, ani_floor_details = abundance_ani_floor_raw(
+        work,
+        allocated_raw,
+        abundance_ani_floor,
+    )
+    work = assign_output_columns(work, ani_floor_details)
+    if bool(ani_floor_details.get("abundance_ani_floor_applied", False)):
+        work["abundance_rule"] = (
+            work["abundance_rule"].astype(str) + "_then_ani_floor_abundance_guard"
+        )
+    capped_raw, sparse_cap_details = abundance_sparse_depth_cap_raw(
+        work,
+        guarded_raw,
+        abundance_sparse_depth_cap_switch,
+        abundance_sparse_breadth_max,
+        abundance_sparse_depth_ratio_min,
+    )
+    work = assign_output_columns(work, sparse_cap_details)
+    if bool(sparse_cap_details.get("abundance_sparse_depth_cap_applied", False)):
+        work["abundance_rule"] = (
+            work["abundance_rule"].astype(str) + "_then_sparse_depth_cap"
+        )
+    work["calibrated_abundance_raw"] = capped_raw
     raw_abundance = numeric(work, "calibrated_abundance_raw")
     called_mass = float(raw_abundance.loc[call_bool].sum())
     if called_mass > 0.0:
@@ -2037,12 +2375,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     run.add_argument("--workdir", type=Path, help="Directory for generated unique/split tables. Defaults to /tmp.")
     run.set_defaults(same_stream_readwise_passes=None)
     run.set_defaults(same_stream_exact_split=None)
+    run.set_defaults(lazy_exact_density_cache=None)
     run.set_defaults(parallel_readwise_passes=True)
     run.add_argument("--same-stream-readwise-passes", dest="same_stream_readwise_passes", action="store_true", default=argparse.SUPPRESS, help="Force one split pass and write the unique table with --readwise-unique-out.")
     run.add_argument("--legacy-dual-readwise-passes", dest="same_stream_readwise_passes", action="store_false", default=argparse.SUPPRESS, help="Force the dual-pass initial table generation path.")
     run.add_argument("--sequential-readwise-passes", dest="parallel_readwise_passes", action="store_false", default=argparse.SUPPRESS, help="Run initial best-diff-unique and best-diff-split MinCO passes sequentially. This disables auto same-stream selection.")
     run.add_argument("--same-stream-exact-split", dest="same_stream_exact_split", action="store_true", default=argparse.SUPPRESS, help="During raw-read universal-auto-exact runs, write the exact per-read split table as a sidecar of the initial split pass so a later auto-exact trigger can avoid a third MinCO pass.")
     run.add_argument("--legacy-exact-split-rerun", dest="same_stream_exact_split", action="store_false", default=argparse.SUPPRESS, help="Disable eager exact-split sidecar generation and keep the legacy third-pass exact rerun path.")
+    run.add_argument("--lazy-exact-density-cache", dest="lazy_exact_density_cache", action="store_true", default=argparse.SUPPRESS, help="During raw-read universal-auto-exact runs, write a cheap density-vector cache in the initial split pass and replay it if exact split is triggered.")
+    run.add_argument("--no-lazy-exact-density-cache", dest="lazy_exact_density_cache", action="store_false", default=argparse.SUPPRESS, help="Disable lazy density-cache replay for exact split.")
 
     model = ap.add_argument_group("calibration")
     model.add_argument("--train-features", type=Path, help="Directory with train.joined_features.tsv and optional test.joined_features.tsv.")
@@ -2058,8 +2399,21 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Final call strategy. Default: universal-auto-exact, the F1-priority guarded universal gate with optional exact split rerun. Use probability for legacy RF/HGB threshold-only output, adaptive-sub95 for the older adaptive guard, or universal to skip the exact split rerun.",
     )
     model.add_argument("--exact-split-trigger", type=float, default=EXACT_SPLIT_TRIGGER, help="For --strategy universal-auto-exact, rerun split with --density-block-ctx 0 when block-mode probability_extra_mass_ratio is at or below this value and the high-uAF/raw-unique guard passes.")
+    model.add_argument("--exact-split-abundance-trigger", type=float, default=EXACT_SPLIT_ABUNDANCE_TRIGGER, help="For --strategy universal-auto-exact, also run exact split as an abundance sidecar when block-mode probability_extra_mass_ratio is at or above this value and the exact guard passes. Default 0.30 is conservative; use inf to disable the sidecar-only trigger.")
     model.add_argument("--exact-split-low-extra-mode", choices=["skip", "allow"], default=EXACT_SPLIT_LOW_EXTRA_MODE, help="For --strategy universal-auto-exact, skip the exact split rerun when the block-mode low-extra split rescue already added candidates. Use allow to keep the older exact behavior.")
     model.add_argument("--abundance-genus-xny-blend-alpha", type=float, default=DEFAULT_ABUNDANCE_GENUS_XNY_BLEND_ALPHA, help="Experimental abundance-only option for universal strategies: blend this fraction of each called genus' current raw abundance toward split-XnY-weighted within-genus mass. The default 0 keeps the selected default abundance unchanged.")
+    model.add_argument("--abundance-ani-floor", type=float, default=DEFAULT_ABUNDANCE_ANI_FLOOR, help="Abundance-only reliability guard: keep calls but set raw abundance mass to zero when reported ANI is below this floor. Default 0 disables the guard.")
+    model.add_argument(
+        "--abundance-sparse-depth-cap",
+        choices=[
+            ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_OFF,
+            ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH_POISSON_BREADTH,
+        ],
+        default=DEFAULT_ABUNDANCE_SPARSE_DEPTH_CAP_SWITCH,
+        help="Experimental abundance-only cap for sparse high-depth rows. poisson-breadth caps raw mass at -log(1-breadth) only when breadth and depth-ratio thresholds pass. Default off.",
+    )
+    model.add_argument("--abundance-sparse-breadth-max", type=float, default=DEFAULT_ABUNDANCE_SPARSE_BREADTH_MAX, help="Breadth cutoff for --abundance-sparse-depth-cap poisson-breadth. Default 0.15.")
+    model.add_argument("--abundance-sparse-depth-ratio-min", type=float, default=DEFAULT_ABUNDANCE_SPARSE_DEPTH_RATIO_MIN, help="Minimum raw_mass / -log(1-breadth) required for sparse-depth capping. Default 200.")
     model.add_argument(
         "--abundance-feature-allocator-switch",
         choices=[
@@ -2071,7 +2425,19 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Experimental abundance-only guarded feature allocator. Default off keeps the selected default abundance unchanged. guarded-genus-hit-breadth-a002 applies the cached candidate rule when its output-derived guard passes; guarded-genus-hit-breadth-a002-xny230 adds the refined s_XnY median guard from the combined cached audit.",
     )
     model.add_argument("--adaptive-call-filter-switch", choices=[ADAPTIVE_CALL_FILTER_SWITCH_OFF, ADAPTIVE_CALL_FILTER_SWITCH_LOPO_MIN_XNY25], default=ADAPTIVE_CALL_FILTER_SWITCH_OFF, help="Experimental F1-priority post-call filter switch. Default off keeps the selected default unchanged. lopo-min-xny25 applies the current candidate rule from the adaptive call-filter audit.")
-    model.add_argument("--candidate-rescue-switch", choices=[CANDIDATE_RESCUE_SWITCH_OFF, CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70], default=CANDIDATE_RESCUE_SWITCH_OFF, help="Experimental F1-priority rescue switch for strong uncalled emitted-profile candidates. Default off keeps the selected default unchanged.")
+    model.add_argument(
+        "--candidate-rescue-switch",
+        choices=[
+            CANDIDATE_RESCUE_SWITCH_OFF,
+            CANDIDATE_RESCUE_SWITCH_EMITTED_ANI90_XNY100_BR01_AF70,
+            CANDIDATE_RESCUE_SWITCH_SPLIT_P002_X300_ANI95_AF60_BR025_D1_TOP1,
+        ],
+        default=CANDIDATE_RESCUE_SWITCH_OFF,
+        help=(
+            "Experimental F1-priority rescue switch for strong uncalled emitted-profile "
+            "candidates. Default off keeps the selected default unchanged."
+        ),
+    )
     model.add_argument(
         "--candidate-surface-switch",
         choices=[
@@ -2103,8 +2469,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         raise SystemExit("--threshold must be in 0..1")
     if args.exact_split_trigger < 0.0:
         raise SystemExit("--exact-split-trigger must be >= 0")
+    if args.exact_split_abundance_trigger < 0.0:
+        raise SystemExit("--exact-split-abundance-trigger must be >= 0")
     if not (0.0 <= args.abundance_genus_xny_blend_alpha <= 1.0):
         raise SystemExit("--abundance-genus-xny-blend-alpha must be in 0..1")
+    if not (0.0 <= args.abundance_ani_floor <= 1.0):
+        raise SystemExit("--abundance-ani-floor must be in 0..1")
+    if not (0.0 <= args.abundance_sparse_breadth_max < 1.0):
+        raise SystemExit("--abundance-sparse-breadth-max must be in [0,1)")
+    if args.abundance_sparse_depth_ratio_min < 0.0:
+        raise SystemExit("--abundance-sparse-depth-ratio-min must be >= 0")
 
     taxmap = parse_species_taxmap(args.taxmap)
     scope_by_taxid = taxid_scope_map(taxmap)
@@ -2144,6 +2518,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     strategy_for_calls = "universal" if args.strategy == "universal-auto-exact" else args.strategy
     auto_exact_details: dict[str, object] = {}
+    density_cache_path_for_cleanup: Optional[Path] = None
+    exact_features_for_abundance: Optional[pd.DataFrame] = None
     if args.strategy == "universal-auto-exact":
         _prelim_call, _prelim_abundance, prelim_details = strategy_call_and_abundance(
             features,
@@ -2158,11 +2534,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         low_extra_added_n = int(prelim_details.get("low_extra_split_rescue_added_n", 0))
         low_extra_skip_active = args.exact_split_low_extra_mode == "skip" and low_extra_added_n > 0
         low_extra_passed = not low_extra_skip_active
-        use_exact = p_extra_passed and exact_guard_passed and low_extra_passed
+        call_exact_requested = p_extra_passed and exact_guard_passed and low_extra_passed
+        abundance_extra_passed = p_extra >= args.exact_split_abundance_trigger
+        abundance_exact_requested = abundance_extra_passed and exact_guard_passed and low_extra_passed
+        use_exact = call_exact_requested or abundance_exact_requested
         auto_exact_details = {
             "auto_exact_split_trigger": args.exact_split_trigger,
+            "auto_exact_split_abundance_trigger": args.exact_split_abundance_trigger,
             "auto_exact_split_block_p_extra_mass_ratio": p_extra,
             "auto_exact_split_p_extra_gate_passed": p_extra_passed,
+            "auto_exact_split_abundance_gate_passed": abundance_extra_passed,
             "auto_exact_split_guard_passed": exact_guard_passed,
             "auto_exact_split_low_extra_mode": args.exact_split_low_extra_mode,
             "auto_exact_split_low_extra_added_n": low_extra_added_n,
@@ -2176,44 +2557,89 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             ),
             "auto_exact_split_requested": use_exact,
             "auto_exact_split_used": False,
+            "auto_exact_split_call_requested": call_exact_requested,
+            "auto_exact_split_call_used": False,
+            "auto_exact_split_abundance_requested": abundance_exact_requested,
+            "auto_exact_split_abundance_used": False,
             "auto_exact_split_path": "",
             "auto_exact_split_sidecar_requested": use_same_stream_exact_split(args),
+            "auto_exact_split_density_cache_requested": use_lazy_exact_density_cache(args),
+            "auto_exact_split_density_cache_path": "",
+            "auto_exact_split_density_cache_retained": False,
             "auto_exact_split_source": "",
         }
         if p_extra_passed and not exact_guard_passed:
             auto_exact_details["auto_exact_split_unavailable_reason"] = "guard_high_uaf_low_raw_unique_support"
         elif p_extra_passed and exact_guard_passed and not low_extra_passed:
             auto_exact_details["auto_exact_split_unavailable_reason"] = "block_low_extra_split_rescue_already_active"
+        density_cache_path = workdir / "minco.readwise_density.cache.bin"
+        if (
+            use_lazy_exact_density_cache(args)
+            and getattr(args, "lazy_exact_density_cache", None) is None
+            and density_cache_path.exists()
+        ):
+            density_cache_path_for_cleanup = density_cache_path
+        elif getattr(args, "lazy_exact_density_cache", None) is True and density_cache_path.exists():
+            auto_exact_details["auto_exact_split_density_cache_path"] = str(density_cache_path)
+            auto_exact_details["auto_exact_split_density_cache_retained"] = True
         if use_exact:
             if not args.ref or not args.reads:
                 eprint("warning: universal-auto-exact trigger fired but --ref/--reads are unavailable; using supplied split table")
                 auto_exact_details["auto_exact_split_unavailable_reason"] = "missing_ref_or_reads"
             else:
                 exact_split_path = workdir / "minco.best_diff_split.exact.unfiltered.tsv"
+                if (
+                    density_cache_path.exists()
+                    and auto_exact_details["auto_exact_split_density_cache_retained"]
+                ):
+                    auto_exact_details["auto_exact_split_density_cache_path"] = str(density_cache_path)
                 if not exact_split_path.exists():
-                    run_minco_pass(
-                        args.minco,
-                        args.ref,
-                        args.reads,
-                        exact_split_path,
-                        "best-diff-split",
-                        args.threads,
-                        args.pipecmd,
-                        density_block_ctx=0,
-                    )
-                    auto_exact_details["auto_exact_split_source"] = "rerun"
+                    if use_lazy_exact_density_cache(args) and density_cache_path.exists():
+                        run_minco_pass(
+                            args.minco,
+                            args.ref,
+                            args.reads,
+                            exact_split_path,
+                            "best-diff-split",
+                            args.threads,
+                            args.pipecmd,
+                            density_block_ctx=0,
+                            density_cache_in=density_cache_path,
+                        )
+                        auto_exact_details["auto_exact_split_source"] = "density_cache"
+                    else:
+                        run_minco_pass(
+                            args.minco,
+                            args.ref,
+                            args.reads,
+                            exact_split_path,
+                            "best-diff-split",
+                            args.threads,
+                            args.pipecmd,
+                            density_block_ctx=0,
+                        )
+                        auto_exact_details["auto_exact_split_source"] = "rerun"
                 else:
                     auto_exact_details["auto_exact_split_source"] = "sidecar"
-                split_path = exact_split_path
-                unique_rows, split_rows, features = load_joined_predicted_features(
+                exact_unique_rows, exact_split_rows, exact_features = load_joined_predicted_features(
                     unique_path,
-                    split_path,
+                    exact_split_path,
                     taxmap,
                     args.scope,
                     scope_by_taxid,
                     models,
                 )
+                exact_features_for_abundance = exact_split_rows
+                if call_exact_requested:
+                    split_path = exact_split_path
+                    unique_rows = exact_unique_rows
+                    split_rows = exact_split_rows
+                    features = exact_features
+                    auto_exact_details["auto_exact_split_call_used"] = True
                 auto_exact_details["auto_exact_split_used"] = True
+                auto_exact_details["auto_exact_split_abundance_used"] = (
+                    call_exact_requested or abundance_exact_requested
+                )
                 auto_exact_details["auto_exact_split_path"] = str(exact_split_path)
 
     call_mask, abundance_raw, strategy_details = strategy_call_and_abundance(
@@ -2224,6 +2650,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         args.threshold,
     )
     strategy_details.update(auto_exact_details)
+    if exact_features_for_abundance is not None:
+        abundance_raw, exact_abundance_details = exact_hit_abundance_raw(
+            features,
+            exact_features_for_abundance,
+        )
+        strategy_details.update(exact_abundance_details)
+    else:
+        strategy_details.setdefault("abundance_exact_hit_applied", False)
+        strategy_details.setdefault("abundance_exact_hit_source_column", "")
+        strategy_details.setdefault("abundance_exact_hit_fallback_n", 0)
     call_mask, call_filter_details = apply_adaptive_call_filter_switch(
         features,
         call_mask,
@@ -2236,6 +2672,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         abundance_raw,
         args.candidate_rescue_switch,
         args.candidate_abundance_policy,
+        names,
     )
     strategy_details.update(candidate_rescue_details)
     if (
@@ -2273,9 +2710,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         args.abundance_genus_xny_blend_alpha,
         args.abundance_feature_allocator_switch,
         candidate_surface_taxmap,
+        args.abundance_ani_floor,
+        args.abundance_sparse_depth_cap,
+        args.abundance_sparse_breadth_max,
+        args.abundance_sparse_depth_ratio_min,
         candidate_surface_rows,
         args.candidate_abundance_policy,
     )
+    if density_cache_path_for_cleanup is not None and density_cache_path_for_cleanup.exists():
+        try:
+            density_cache_path_for_cleanup.unlink()
+        except OSError as exc:
+            eprint(f"warning: could not remove internal density cache {density_cache_path_for_cleanup}: {exc}")
     eprint(f"wrote {args.out}")
     if cleanup_dir:
         eprint(f"generated tables kept in {cleanup_dir}")

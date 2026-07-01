@@ -1,0 +1,9 @@
+panel	sample	label	method	profile_rows	called_rows	called_species	rescue_added_rows	rescue_added_truth_rows	rescue_added_fp_rows
+cami3_toy_human_gut_gtdb_source_readmap	0	cami3_sample0	current_calibrated_abundance	18254	94	94	0	0	0
+cami3_toy_human_gut_gtdb_source_readmap	0	cami3_sample0	profile_rescue_p002_x300_ani095_af06_b025_d1_top1	18254	97	97	3	3	0
+cami3_toy_human_gut_gtdb_source_readmap	1	cami3_sample1	current_calibrated_abundance	20059	99	99	0	0	0
+cami3_toy_human_gut_gtdb_source_readmap	1	cami3_sample1	profile_rescue_p002_x300_ani095_af06_b025_d1_top1	20059	102	102	3	3	0
+cami3_toy_human_gut_gtdb_source_readmap	2	cami3_sample2	current_calibrated_abundance	18066	115	115	0	0	0
+cami3_toy_human_gut_gtdb_source_readmap	2	cami3_sample2	profile_rescue_p002_x300_ani095_af06_b025_d1_top1	18066	115	115	0	0	0
+hmp_airskin_gtdb_source_abundance	13	hmp_airskin13	current_calibrated_abundance	29890	40	40	0	0	0
+hmp_airskin_gtdb_source_abundance	13	hmp_airskin13	profile_rescue_p002_x300_ani095_af06_b025_d1_top1	29890	40	40	0	0	0

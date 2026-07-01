@@ -1,0 +1,13 @@
+parameter	value
+ref	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno
+taxmap	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/species_taxmap.tsv
+model_cache	/mnt/new3T/gtdbr220/gtdb232/GTDBr232_minco_T_S1000_anno_20260619/sketch_T_S1000_anno/minco_profile_rf_hgb.train12.unfiltered.joblib
+profile_strategy	universal-auto-exact
+report_all	true
+scope	bacteria
+threads	8
+abundance_ani_floor	0.90
+abundance_sparse_depth_cap	poisson-breadth
+abundance_sparse_breadth_max	0.15
+abundance_sparse_depth_ratio_min	200
+rescue_rule	prob>=0.02; s_XnY_ctx_max>=300; s_ANI_max>=0.95; s_Real_min_align_fraction_max>=0.60; s_Ref_breadth_max>=0.25; s_Ref_mean_depth_max>=1; top1_per_genus

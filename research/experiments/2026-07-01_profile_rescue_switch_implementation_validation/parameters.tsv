@@ -1,0 +1,13 @@
+parameter	value
+candidate_rescue_switch	split-p002-x300-ani095-af06-b025-d1-top1
+candidate_rescue_rule	P>=0.02; s_XnY_ctx_max>=300; s_ANI_max>=0.95; s_Real_min_align_fraction_max>=0.60; s_Ref_breadth_max>=0.25; s_Ref_mean_depth_max>=1; top1_per_genus
+rescued_abundance_policy	native profile raw abundance retained
+baseline_switch	off
+strategy	universal-auto-exact
+scope	bacteria
+abundance_ani_floor	0.90
+abundance_sparse_depth_cap	poisson-breadth
+abundance_sparse_breadth_max	0.15
+abundance_sparse_depth_ratio_min	200
+source_saved_tables	/tmp/minco_profile_rescue_fresh_raw_validation_20260701/work
+large_output_root	/tmp/minco_profile_rescue_switch_implementation_validation_20260701
