@@ -207,6 +207,92 @@ if a != b:
     raise SystemExit(f"unique sidecar differs from separate unique pass: {sidecar} {separate}")
 PY
 
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split --density-block-ctx 100 \
+  --readwise-exact-split-out "$WORK/read.exact_split.sidecar.tsv" \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.split.with_exact_sidecar.tsv" \
+  > "$WORK/read.split.with_exact_sidecar.log" 2>&1
+test -s "$WORK/read.exact_split.sidecar.tsv"
+grep -q "wrote exact best-diff-split sidecar" "$WORK/read.split.with_exact_sidecar.log"
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split --density-block-ctx 0 \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.exact_split.separate.tsv" \
+  > "$WORK/read.exact_split.separate.log" 2>&1
+python3 - "$WORK/read.exact_split.sidecar.tsv" "$WORK/read.exact_split.separate.tsv" <<'PY'
+import csv
+import sys
+
+sidecar, separate = sys.argv[1:3]
+cols = [
+    "Qry", "Ref", "ANI", "XnY_ctx", "N_diff_obj", "N_diff_obj_section",
+    "N_mut2_ctx", "Unique_ref_ctx_hit", "Raw_XnY_ctx",
+    "Ref_breadth", "Ref_mean_depth", "Ref_hit_mean_depth", "Ref_zip_af",
+    "Relative_abundance_depth", "Normalized_abundance_depth",
+]
+
+def read_rows(path):
+    with open(path, newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        missing = [c for c in cols if c not in (reader.fieldnames or [])]
+        if missing:
+            raise SystemExit(f"{path}: missing columns {missing}")
+        return sorted(
+            ({c: row[c] for c in cols} for row in reader),
+            key=lambda row: (row["Qry"], row["Ref"]),
+        )
+
+a = read_rows(sidecar)
+b = read_rows(separate)
+if a != b:
+    raise SystemExit(f"exact split sidecar differs from separate exact pass: {sidecar} {separate}")
+PY
+
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split --density-block-ctx 100 \
+  --readwise-density-cache-out "$WORK/read.density.cache.bin" \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.split.with_density_cache.tsv" \
+  > "$WORK/read.split.with_density_cache.log" 2>&1
+test -s "$WORK/read.density.cache.bin"
+grep -q "wrote density cache" "$WORK/read.split.with_density_cache.log"
+"$BIN" ani -r "$WORK/pair.minco" --qraw "$WORK/a.fna" --query-density ref \
+  --abundance-est depth --readwise-profile-only \
+  --readwise-assign best-diff-split --density-block-ctx 0 \
+  --readwise-density-cache-in "$WORK/read.density.cache.bin" \
+  -m0 -f0 -n0 -t0 -o "$WORK/read.exact_split.cache_replay.tsv" \
+  > "$WORK/read.exact_split.cache_replay.log" 2>&1
+grep -q "density cache replay active" "$WORK/read.exact_split.cache_replay.log"
+python3 - "$WORK/read.exact_split.cache_replay.tsv" "$WORK/read.exact_split.separate.tsv" <<'PY'
+import csv
+import sys
+
+cache_replay, separate = sys.argv[1:3]
+cols = [
+    "Qry", "Ref", "ANI", "XnY_ctx", "N_diff_obj", "N_diff_obj_section",
+    "N_mut2_ctx", "Unique_ref_ctx_hit", "Raw_XnY_ctx",
+    "Ref_breadth", "Ref_mean_depth", "Ref_hit_mean_depth", "Ref_zip_af",
+    "Relative_abundance_depth", "Normalized_abundance_depth",
+]
+
+def read_rows(path):
+    with open(path, newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        missing = [c for c in cols if c not in (reader.fieldnames or [])]
+        if missing:
+            raise SystemExit(f"{path}: missing columns {missing}")
+        return sorted(
+            ({c: row[c] for c in cols} for row in reader),
+            key=lambda row: (row["Qry"], row["Ref"]),
+        )
+
+a = read_rows(cache_replay)
+b = read_rows(separate)
+if a != b:
+    raise SystemExit(f"density cache replay differs from separate exact pass: {cache_replay} {separate}")
+PY
+
 "$BIN" profile -r "$WORK/pair.minco" "$WORK/a.fna" -p 2 \
   -o "$WORK/profile.tsv" > "$WORK/profile.log" 2>&1
 test -s "$WORK/profile.tsv"

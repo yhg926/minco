@@ -128,6 +128,8 @@ typedef struct ani_opt
 	char readwise_track_summary[PATHLEN];
 	char readwise_unique_out[PATHLEN];
 	char readwise_exact_split_out[PATHLEN];
+	char readwise_density_cache_out[PATHLEN];
+	char readwise_density_cache_in[PATHLEN];
 	char readwise_edge_out[PATHLEN];
 	uint64_t readwise_edge_max;
 	uint32_t readwise_edge_max_candidates;

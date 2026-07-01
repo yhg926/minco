@@ -69,6 +69,8 @@ enum
 	ANI_READWISE_TAXONOMY,
 	ANI_READWISE_UNIQUE_OUT,
 	ANI_READWISE_EXACT_SPLIT_OUT,
+	ANI_READWISE_DENSITY_CACHE_OUT,
+	ANI_READWISE_DENSITY_CACHE_IN,
 	ANI_READWISE_EDGE_OUT,
 	ANI_READWISE_EDGE_MAX,
 	ANI_READWISE_EDGE_MAX_CANDIDATES,
@@ -134,6 +136,8 @@ static struct argp_option opt_ani[] =
 		{"readwise-taxonomy", ANI_READWISE_TAXONOMY, "<none|gtdb|ncbi|both>", 0, "Taxonomy namespace(s) for --readwise-track LCA columns. [none]", ANI_GROUP_REPORT},
 		{"readwise-unique-out", ANI_READWISE_UNIQUE_OUT, "<FILE>", 0, "Experimental: while running direct readwise depth mode, also write a best-diff-unique profile table from the same read stream.", ANI_GROUP_REPORT},
 		{"readwise-exact-split-out", ANI_READWISE_EXACT_SPLIT_OUT, "<FILE>", 0, "Experimental: while running block-mode best-diff-split depth mode, also write an exact per-read best-diff-split profile table from the same read stream.", ANI_GROUP_REPORT},
+		{"readwise-density-cache-out", ANI_READWISE_DENSITY_CACHE_OUT, "<FILE>", OPTION_HIDDEN, "Internal: write retained per-read density vectors for later exact replay.", ANI_GROUP_REPORT},
+		{"readwise-density-cache-in", ANI_READWISE_DENSITY_CACHE_IN, "<FILE>", OPTION_HIDDEN, "Internal: replay retained per-read density vectors instead of reading FASTQ.", ANI_GROUP_REPORT},
 		{"readwise-edge-out", ANI_READWISE_EDGE_OUT, "<FILE>", 0, "Experimental: write context-level readwise ambiguity edges for EM/debugging. Forces per-read density units.", ANI_GROUP_REPORT},
 		{"readwise-edge-max", ANI_READWISE_EDGE_MAX, "<INT>", 0, "Maximum ambiguity edge rows to write; 0 disables the cap. [10000000]", ANI_GROUP_REPORT},
 		{"readwise-edge-max-candidates", ANI_READWISE_EDGE_MAX_CANDIDATES, "<INT>", 0, "Skip context groups with more candidate refs than this; 0 disables the cap. [64]", ANI_GROUP_REPORT},
@@ -764,6 +768,18 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 					  sizeof(ani_opt.readwise_exact_split_out), arg);
 		break;
 	}
+	case ANI_READWISE_DENSITY_CACHE_OUT:
+	{
+		copy_path_arg(state, "--readwise-density-cache-out", ani_opt.readwise_density_cache_out,
+					  sizeof(ani_opt.readwise_density_cache_out), arg);
+		break;
+	}
+	case ANI_READWISE_DENSITY_CACHE_IN:
+	{
+		copy_path_arg(state, "--readwise-density-cache-in", ani_opt.readwise_density_cache_in,
+					  sizeof(ani_opt.readwise_density_cache_in), arg);
+		break;
+	}
 	case ANI_READWISE_EDGE_OUT:
 	{
 		copy_path_arg(state, "--readwise-edge-out", ani_opt.readwise_edge_out,
@@ -1049,6 +1065,34 @@ static error_t parse_ani(int key, char *arg, struct argp_state *state)
 				argp_error(state, "--readwise-exact-split-out requires --readwise-assign best-diff-split");
 			if (strcmp(ani_opt.readwise_exact_split_out, "-") == 0 && ani_opt.outf[0] == '\0')
 				argp_error(state, "--readwise-exact-split-out - cannot be combined with ANI detail output on stdout; use -o or write exact split output to a file");
+		}
+		if (ani_opt.readwise_density_cache_out[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-density-cache-out requires --query-density ref");
+			if (ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+				argp_error(state, "--readwise-density-cache-out requires --abundance-est depth");
+			if (!ani_opt.readwise_profile_only)
+				argp_error(state, "--readwise-density-cache-out requires --readwise-profile-only");
+			if (strcmp(ani_opt.readwise_density_cache_out, "-") == 0)
+				argp_error(state, "--readwise-density-cache-out requires a seekable file path");
+		}
+		if (ani_opt.readwise_density_cache_in[0] != '\0')
+		{
+			if (ani_opt.query_density_model != ANI_QUERY_DENSITY_REF)
+				argp_error(state, "--readwise-density-cache-in requires --query-density ref");
+			if (ani_opt.abundance_model == ANI_ABUNDANCE_NONE)
+				argp_error(state, "--readwise-density-cache-in requires --abundance-est depth");
+			if (!ani_opt.readwise_profile_only)
+				argp_error(state, "--readwise-density-cache-in requires --readwise-profile-only");
+			if (ani_opt.readwise_density_cache_out[0] != '\0')
+				argp_error(state, "--readwise-density-cache-in cannot be combined with --readwise-density-cache-out");
+			if (ani_opt.readwise_track[0] != '\0' || ani_opt.readwise_track_summary[0] != '\0')
+				argp_error(state, "--readwise-density-cache-in cannot be combined with read tracking");
+			if (ani_opt.readwise_edge_out[0] != '\0')
+				argp_error(state, "--readwise-density-cache-in cannot be combined with --readwise-edge-out");
+			if (ani_opt.sketch_pipecmd[0] != '\0')
+				argp_error(state, "--readwise-density-cache-in cannot be combined with --pipecmd");
 		}
 		if (ani_opt.readwise_edge_out[0] != '\0')
 		{

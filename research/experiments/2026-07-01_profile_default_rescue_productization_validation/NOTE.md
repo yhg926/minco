@@ -80,8 +80,15 @@ Raw-input smoke test:
 - sparse-depth abundance guard: `poisson-breadth`
 - exact-density replay: used, source `density_cache`
 - exit status: `0`
-- elapsed time: `0:01.48`
-- peak RSS: `226096 KB`
+- elapsed time: `0:01.49`
+- peak RSS: `226308 KB`
+
+C source validation after adding the readwise density-cache replay support:
+
+- `make minco`: passed
+- `bash tests/smoke.sh`: passed, including exact split sidecar parity and
+  density-cache replay parity against a separate exact pass
+- `bash tests/full_cli.sh`: passed
 
 ## Conclusion
 

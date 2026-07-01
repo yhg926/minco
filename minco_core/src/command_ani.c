@@ -7278,6 +7278,229 @@ static inline void ani_ctxobj96_vec_push(ani_ctxobj96_vec_t *v, ctxobj96_t rec)
 	v->a[v->n++] = rec;
 }
 
+#define ANI_DENSITY_CACHE_MAGIC "MNCDENS1"
+#define ANI_DENSITY_CACHE_VERSION 1u
+#define ANI_DENSITY_CACHE_STORAGE64 1u
+#define ANI_DENSITY_CACHE_STORAGE96 2u
+
+typedef struct {
+	char magic[8];
+	uint32_t version;
+	uint32_t storage;
+	uint32_t item_size;
+	uint32_t nobjbits;
+	uint32_t ctx_bits;
+	uint32_t obj_bits;
+	uint32_t reserved;
+	uint64_t density_threshold;
+	uint64_t total_reads;
+	uint64_t density_reads;
+} ani_density_cache_header_t;
+
+typedef struct {
+	FILE *fp;
+	const char *path;
+	ani_density_cache_header_t hdr;
+} ani_density_cache_writer_t;
+
+typedef struct {
+	FILE *fp;
+	const char *path;
+	ani_density_cache_header_t hdr;
+	uint64_t records_read;
+} ani_density_cache_reader_t;
+
+static void ani_density_cache_fwrite(FILE *fp, const void *ptr, size_t size,
+									 size_t n, const char *path)
+{
+	if (n && fwrite(ptr, size, n, fp) != n)
+		err(errno, "%s(): write failed: %s", __func__, path ? path : "density cache");
+}
+
+static bool ani_density_cache_fread_record(FILE *fp, void *ptr, size_t size,
+										   size_t n, const char *path,
+										   bool allow_eof)
+{
+	const size_t got = fread(ptr, size, n, fp);
+	if (got == n)
+		return true;
+	if (allow_eof && got == 0 && feof(fp))
+		return false;
+	if (ferror(fp))
+		err(errno, "%s(): read failed: %s", __func__, path ? path : "density cache");
+	errx(EXIT_FAILURE, "%s(): truncated density cache: %s",
+		 __func__, path ? path : "density cache");
+}
+
+static void ani_density_cache_writer_open(ani_density_cache_writer_t *w,
+										  const char *path,
+										  bool use_ctxobj96,
+										  uint8_t nobjbits,
+										  uint64_t density_threshold)
+{
+	if (!w || !path || path[0] == '\0')
+		return;
+	memset(w, 0, sizeof(*w));
+	w->path = path;
+	w->fp = fopen(path, "wb+");
+	if (!w->fp)
+		err(errno, "%s(): cannot create %s", __func__, path);
+	memcpy(w->hdr.magic, ANI_DENSITY_CACHE_MAGIC, sizeof(w->hdr.magic));
+	w->hdr.version = ANI_DENSITY_CACHE_VERSION;
+	w->hdr.storage = use_ctxobj96 ? ANI_DENSITY_CACHE_STORAGE96 : ANI_DENSITY_CACHE_STORAGE64;
+	w->hdr.item_size = use_ctxobj96 ? (uint32_t)sizeof(ctxobj96_t) : (uint32_t)sizeof(uint64_t);
+	w->hdr.nobjbits = nobjbits;
+	w->hdr.ctx_bits = Bitslen.ctx;
+	w->hdr.obj_bits = Bitslen.obj;
+	w->hdr.density_threshold = density_threshold;
+	ani_density_cache_fwrite(w->fp, &w->hdr, sizeof(w->hdr), 1, path);
+	fprintf(stderr, "minco readwise: density cache write active; out=%s\n", path);
+}
+
+static void ani_density_cache_writer_write64(ani_density_cache_writer_t *w,
+											 const u64vec *vec)
+{
+	if (!w || !w->fp || !vec || vec->n == 0)
+		return;
+	if (vec->n > UINT32_MAX)
+		errx(EXIT_FAILURE, "%s(): density cache record too large", __func__);
+	const uint32_t n = (uint32_t)vec->n;
+	ani_density_cache_fwrite(w->fp, &n, sizeof(n), 1, w->path);
+	ani_density_cache_fwrite(w->fp, vec->a, sizeof(vec->a[0]), vec->n, w->path);
+	w->hdr.density_reads++;
+}
+
+static void ani_density_cache_writer_write96(ani_density_cache_writer_t *w,
+											 const ani_ctxobj96_vec_t *vec)
+{
+	if (!w || !w->fp || !vec || vec->n == 0)
+		return;
+	if (vec->n > UINT32_MAX)
+		errx(EXIT_FAILURE, "%s(): density cache record too large", __func__);
+	const uint32_t n = (uint32_t)vec->n;
+	ani_density_cache_fwrite(w->fp, &n, sizeof(n), 1, w->path);
+	ani_density_cache_fwrite(w->fp, vec->a, sizeof(vec->a[0]), vec->n, w->path);
+	w->hdr.density_reads++;
+}
+
+static void ani_density_cache_writer_close(ani_density_cache_writer_t *w,
+										   uint64_t total_reads)
+{
+	if (!w || !w->fp)
+		return;
+	w->hdr.total_reads = total_reads;
+	if (fseeko(w->fp, 0, SEEK_SET) != 0)
+		err(errno, "%s(): seek failed: %s", __func__, w->path);
+	ani_density_cache_fwrite(w->fp, &w->hdr, sizeof(w->hdr), 1, w->path);
+	if (fclose(w->fp) != 0)
+		err(errno, "%s(): close failed: %s", __func__, w->path);
+	fprintf(stderr,
+			"minco readwise: wrote density cache %s; total_reads=%" PRIu64
+			"; density_reads=%" PRIu64 "\n",
+			w->path, w->hdr.total_reads, w->hdr.density_reads);
+	w->fp = NULL;
+}
+
+static void ani_density_cache_reader_open(ani_density_cache_reader_t *r,
+										  const char *path,
+										  bool use_ctxobj96,
+										  uint8_t nobjbits,
+										  uint64_t density_threshold)
+{
+	if (!r || !path || path[0] == '\0')
+		return;
+	memset(r, 0, sizeof(*r));
+	r->path = path;
+	r->fp = fopen(path, "rb");
+	if (!r->fp)
+		err(errno, "%s(): cannot open %s", __func__, path);
+	ani_density_cache_fread_record(r->fp, &r->hdr, sizeof(r->hdr), 1, path, false);
+	if (memcmp(r->hdr.magic, ANI_DENSITY_CACHE_MAGIC, sizeof(r->hdr.magic)) != 0 ||
+		r->hdr.version != ANI_DENSITY_CACHE_VERSION)
+		errx(EXIT_FAILURE, "%s(): unsupported density cache format: %s", __func__, path);
+	const uint32_t expected_storage =
+		use_ctxobj96 ? ANI_DENSITY_CACHE_STORAGE96 : ANI_DENSITY_CACHE_STORAGE64;
+	const uint32_t expected_item_size =
+		use_ctxobj96 ? (uint32_t)sizeof(ctxobj96_t) : (uint32_t)sizeof(uint64_t);
+	if (r->hdr.storage != expected_storage || r->hdr.item_size != expected_item_size)
+		errx(EXIT_FAILURE, "%s(): density cache storage does not match reference sketch: %s",
+			 __func__, path);
+	if (r->hdr.nobjbits != nobjbits ||
+		r->hdr.ctx_bits != Bitslen.ctx ||
+		r->hdr.obj_bits != Bitslen.obj ||
+		r->hdr.density_threshold != density_threshold)
+		errx(EXIT_FAILURE, "%s(): density cache parameters do not match reference sketch: %s",
+			 __func__, path);
+	fprintf(stderr,
+			"minco readwise: density cache replay active; in=%s total_reads=%" PRIu64
+			" density_reads=%" PRIu64 "\n",
+			path, r->hdr.total_reads, r->hdr.density_reads);
+}
+
+static size_t ani_density_cache_reader_read64(ani_density_cache_reader_t *r,
+											  u64vec *read_vecs,
+											  size_t max_records)
+{
+	if (!r || !r->fp || !read_vecs || max_records == 0)
+		return 0;
+	size_t nread = 0;
+	while (nread < max_records && r->records_read < r->hdr.density_reads) {
+		uint32_t n = 0;
+		if (!ani_density_cache_fread_record(r->fp, &n, sizeof(n), 1, r->path, true))
+			break;
+		v_init(&read_vecs[nread], n);
+		if (n) {
+			v_reserve(&read_vecs[nread], n);
+			ani_density_cache_fread_record(
+				r->fp, read_vecs[nread].a, sizeof(read_vecs[nread].a[0]), n,
+				r->path, false);
+			read_vecs[nread].n = n;
+		}
+		++nread;
+		++r->records_read;
+	}
+	return nread;
+}
+
+static size_t ani_density_cache_reader_read96(ani_density_cache_reader_t *r,
+											  ani_ctxobj96_vec_t *read_vecs,
+											  size_t max_records)
+{
+	if (!r || !r->fp || !read_vecs || max_records == 0)
+		return 0;
+	size_t nread = 0;
+	while (nread < max_records && r->records_read < r->hdr.density_reads) {
+		uint32_t n = 0;
+		if (!ani_density_cache_fread_record(r->fp, &n, sizeof(n), 1, r->path, true))
+			break;
+		ani_ctxobj96_vec_init(&read_vecs[nread], n);
+		if (n) {
+			ani_ctxobj96_vec_reserve(&read_vecs[nread], n);
+			ani_density_cache_fread_record(
+				r->fp, read_vecs[nread].a, sizeof(read_vecs[nread].a[0]), n,
+				r->path, false);
+			read_vecs[nread].n = n;
+		}
+		++nread;
+		++r->records_read;
+	}
+	return nread;
+}
+
+static void ani_density_cache_reader_close(ani_density_cache_reader_t *r)
+{
+	if (!r || !r->fp)
+		return;
+	if (r->records_read != r->hdr.density_reads)
+		errx(EXIT_FAILURE,
+			 "%s(): density cache ended after %" PRIu64 " records; expected %" PRIu64
+			 ": %s",
+			 __func__, r->records_read, r->hdr.density_reads, r->path);
+	if (fclose(r->fp) != 0)
+		err(errno, "%s(): close failed: %s", __func__, r->path);
+	r->fp = NULL;
+}
+
 static int ani_ctxobj96_cmp(const void *pa, const void *pb)
 {
 	const ctxobj96_t *a = (const ctxobj96_t *)pa;
@@ -9511,6 +9734,20 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		errx(EXIT_FAILURE, "--readwise-unique-out requires --readwise-profile-only");
 	if (ani_opt->readwise_exact_split_out[0] != '\0' && !ani_opt->readwise_profile_only)
 		errx(EXIT_FAILURE, "--readwise-exact-split-out requires --readwise-profile-only");
+	const bool use_density_cache_in = ani_opt->readwise_density_cache_in[0] != '\0';
+	const bool use_density_cache_out = ani_opt->readwise_density_cache_out[0] != '\0';
+	if (use_density_cache_in && use_density_cache_out)
+		errx(EXIT_FAILURE,
+			 "--readwise-density-cache-in cannot be combined with --readwise-density-cache-out");
+	const char *trace_out_env = getenv("MINCO_READWISE_TRACE_OUT");
+	const char *edge_out_env = getenv("MINCO_READWISE_EDGE_OUT");
+	if (use_density_cache_in &&
+		(ani_opt->readwise_track[0] != '\0' ||
+		 ani_opt->readwise_edge_out[0] != '\0' ||
+		 (trace_out_env && trace_out_env[0] != '\0') ||
+		 (edge_out_env && edge_out_env[0] != '\0')))
+		errx(EXIT_FAILURE,
+			 "--readwise-density-cache-in cannot be combined with read/edge tracing");
 
 	char *ref_stat_path = test_get_fullpath(ani_opt->refdir, sketch_stat);
 	size_t ref_stat_size = 0;
@@ -9752,14 +9989,28 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_readwise_thread_state_init(&exact_split_thread_states[t], ref_n, index_n,
 										true, false);
 
-	ani_fastx_stream_t stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
-	(void)gzbuffer(stream.gz, 4u << 20);
-	kseq_t *seq = kseq_init(stream.gz);
-	if (!seq)
-		err(errno, "%s(): kseq_init %s", __func__, query_path);
+	const uint8_t nobjbits = Bitslen.obj;
+	ani_density_cache_reader_t density_cache_reader = {0};
+	ani_density_cache_writer_t density_cache_writer = {0};
+	ani_fastx_stream_t stream = {0};
+	kseq_t *seq = NULL;
+	if (use_density_cache_in) {
+		ani_density_cache_reader_open(
+			&density_cache_reader, ani_opt->readwise_density_cache_in,
+			ref_uses_ctxobj96, nobjbits, density_threshold);
+	} else {
+		stream = ani_open_fastx_stream(query_path, ani_opt->sketch_pipecmd);
+		(void)gzbuffer(stream.gz, 4u << 20);
+		seq = kseq_init(stream.gz);
+		if (!seq)
+			err(errno, "%s(): kseq_init %s", __func__, query_path);
+		if (use_density_cache_out)
+			ani_density_cache_writer_open(
+				&density_cache_writer, ani_opt->readwise_density_cache_out,
+				ref_uses_ctxobj96, nobjbits, density_threshold);
+	}
 	ani_readwise_progress_t progress = ani_readwise_progress_start(&stream);
 
-	const uint8_t nobjbits = Bitslen.obj;
 	const uint64_t objmask = (nobjbits == 64) ? UINT64_MAX : ((1ULL << nobjbits) - 1ULL);
 	const uint64_t gidmask_local = (1ULL << GID_NBITS) - 1ULL;
 	ani_readwise_tracker_t read_tracker;
@@ -9768,7 +10019,7 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ref_ctxmeta,
 		ani_readwise_density_probability(density_threshold, ref_uses_ctxobj96,
 										 nobjbits));
-	uint64_t total_reads = 0;
+	uint64_t total_reads = use_density_cache_in ? density_cache_reader.hdr.total_reads : 0;
 	uint64_t total_density_blocks = 0;
 	uint64_t exact_split_total_density_blocks = 0;
 	uint64_t block_reads_with_density_ctx = 0;
@@ -9807,55 +10058,84 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_readwise_seq_rec_t batch[ANI_READWISE_BATCH_READS];
 		memset(batch, 0, sizeof(batch));
 		size_t batch_n = 0;
-		int kseq_status = 0;
-		while (batch_n < ANI_READWISE_BATCH_READS) {
-			kseq_status = kseq_read(seq);
-			if (kseq_status < 0) {
-				read_status = kseq_status;
-				break;
-			}
-			const size_t len = seq->seq.l;
-			char *copy = malloc(len + 1u);
-			if (!copy)
-				err(EXIT_FAILURE, "%s(): OOM read batch sequence", __func__);
-			memcpy(copy, seq->seq.s, len);
-			copy[len] = '\0';
-			char *name_copy = NULL;
-			if (seq->name.s) {
-				name_copy = strdup(seq->name.s);
-				if (!name_copy)
-					err(EXIT_FAILURE, "%s(): OOM read batch name", __func__);
-			}
-			batch[batch_n].seq = copy;
-			batch[batch_n].name = name_copy;
-			batch[batch_n].len = (int)len;
-			++batch_n;
-			++total_reads;
-			ani_readwise_progress_update(&stream, &progress, total_reads, false);
-		}
-		if (!batch_n)
-			break;
-
-		u64vec *read_vecs = ref_uses_ctxobj96 ? NULL : calloc(batch_n, sizeof(read_vecs[0]));
+		u64vec *read_vecs = NULL;
 		ani_ctxobj96_vec_t *read_vecs96 = ref_uses_ctxobj96
-			? calloc(batch_n, sizeof(read_vecs96[0]))
+			? calloc(ANI_READWISE_BATCH_READS, sizeof(read_vecs96[0]))
 			: NULL;
+		if (!ref_uses_ctxobj96)
+			read_vecs = calloc(ANI_READWISE_BATCH_READS, sizeof(read_vecs[0]));
 		if ((!ref_uses_ctxobj96 && !read_vecs) ||
 			(ref_uses_ctxobj96 && !read_vecs96))
 			err(EXIT_FAILURE, "%s(): OOM read density vectors", __func__);
-#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 256)
-		for (size_t i = 0; i < batch_n; ++i) {
-			if (ref_uses_ctxobj96) {
-				ani_ctxobj96_vec_init(&read_vecs96[i], 128);
-				ani_extract_read_density_ctxobjs96(batch[i].seq, batch[i].len,
-												   &read_vecs96[i],
-												   density_threshold);
-			} else {
-				v_init(&read_vecs[i], 128);
-				ani_extract_read_density_ctxobjs(batch[i].seq, batch[i].len,
-												 &read_vecs[i], nobjbits,
-												 density_threshold);
+
+		if (use_density_cache_in) {
+			batch_n = ref_uses_ctxobj96
+				? ani_density_cache_reader_read96(
+					  &density_cache_reader, read_vecs96, ANI_READWISE_BATCH_READS)
+				: ani_density_cache_reader_read64(
+					  &density_cache_reader, read_vecs, ANI_READWISE_BATCH_READS);
+		} else {
+			int kseq_status = 0;
+			while (batch_n < ANI_READWISE_BATCH_READS) {
+				kseq_status = kseq_read(seq);
+				if (kseq_status < 0) {
+					read_status = kseq_status;
+					break;
+				}
+				const size_t len = seq->seq.l;
+				char *copy = malloc(len + 1u);
+				if (!copy)
+					err(EXIT_FAILURE, "%s(): OOM read batch sequence", __func__);
+				memcpy(copy, seq->seq.s, len);
+				copy[len] = '\0';
+				char *name_copy = NULL;
+				if (seq->name.s) {
+					name_copy = strdup(seq->name.s);
+					if (!name_copy)
+						err(EXIT_FAILURE, "%s(): OOM read batch name", __func__);
+				}
+				batch[batch_n].seq = copy;
+				batch[batch_n].name = name_copy;
+				batch[batch_n].len = (int)len;
+				++batch_n;
+				++total_reads;
+				ani_readwise_progress_update(&stream, &progress, total_reads, false);
 			}
+			if (!batch_n) {
+				free(read_vecs);
+				free(read_vecs96);
+				break;
+			}
+
+#pragma omp parallel for num_threads(worker_n) schedule(dynamic, 256)
+			for (size_t i = 0; i < batch_n; ++i) {
+				if (ref_uses_ctxobj96) {
+					ani_ctxobj96_vec_init(&read_vecs96[i], 128);
+					ani_extract_read_density_ctxobjs96(batch[i].seq, batch[i].len,
+													   &read_vecs96[i],
+													   density_threshold);
+				} else {
+					v_init(&read_vecs[i], 128);
+					ani_extract_read_density_ctxobjs(batch[i].seq, batch[i].len,
+													 &read_vecs[i], nobjbits,
+													 density_threshold);
+				}
+			}
+			if (use_density_cache_out) {
+				for (size_t i = 0; i < batch_n; ++i) {
+					if (ref_uses_ctxobj96)
+						ani_density_cache_writer_write96(&density_cache_writer,
+														 &read_vecs96[i]);
+					else
+						ani_density_cache_writer_write64(&density_cache_writer,
+														 &read_vecs[i]);
+				}
+			}
+		}
+		if (!batch_n) {
+			free(read_vecs);
+			free(read_vecs96);
+			break;
 		}
 
 		if (ref_uses_ctxobj96) {
@@ -10135,8 +10415,15 @@ int stream_fastq_query_readwise_density_ani(ani_opt_t *ani_opt, const char *quer
 		ani_ctxobj96_vec_free(&block_vec96);
 	else
 		v_free(&block_vec);
-	kseq_destroy(seq);
-	const bool close_warning = ani_close_fastx_stream(&stream, true);
+	if (use_density_cache_out)
+		ani_density_cache_writer_close(&density_cache_writer, total_reads);
+	if (use_density_cache_in)
+		ani_density_cache_reader_close(&density_cache_reader);
+	if (seq)
+		kseq_destroy(seq);
+	const bool close_warning = use_density_cache_in
+		? false
+		: ani_close_fastx_stream(&stream, true);
 	if (close_warning)
 		fprintf(stderr,
 				"minco readwise: warning: gzip integrity/close error after %" PRIu64
